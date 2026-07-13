@@ -231,11 +231,35 @@ const REGIOES = {
   PA:'Norte', AM:'Norte', TO:'Norte',
   CE:'Nordeste', PB:'Nordeste', RN:'Nordeste', SE:'Nordeste', AL:'Nordeste',
   PI:'Nordeste', MA:'Nordeste', PE:'Nordeste', BA:'Nordeste',
-  GO:'Centro-Oeste', DF:'Centro-Oeste',
+  GO:'Centro-Oeste', DF:'Centro-Oeste', MT:'Centro-Oeste',
   RJ:'Sudeste', SP:'Sudeste', MG:'Sudeste', ES:'Sudeste',
   RS:'Sul', SC:'Sul', PR:'Sul'
 };
 const UF_LIST = Object.keys(REGIOES);
+
+// Coordenadas aproximadas (capital de cada estado) usadas só para estimar a
+// distância de viagem entre as cidades dos clubes — não é uma referência
+// geográfica precisa, mas dá uma ideia realista de perto/médio/longe.
+const UF_COORDS = {
+  PA:[-1.46,-48.50], AM:[-3.10,-60.02], TO:[-10.25,-48.32],
+  CE:[-3.73,-38.53], PB:[-7.12,-34.88], RN:[-5.79,-35.21], SE:[-10.91,-37.07], AL:[-9.65,-35.73],
+  PI:[-5.09,-42.80], MA:[-2.53,-44.30], PE:[-8.05,-34.90], BA:[-12.97,-38.51],
+  GO:[-16.68,-49.25], DF:[-15.78,-47.93], MT:[-15.60,-56.10],
+  RJ:[-22.91,-43.17], SP:[-23.55,-46.63], MG:[-19.92,-43.94], ES:[-20.32,-40.34],
+  RS:[-30.03,-51.23], SC:[-27.60,-48.55], PR:[-25.43,-49.27]
+};
+// Distância aproximada em km entre as cidades de dois clubes (Haversine
+// entre as capitais dos estados), usada pro desgaste de viagem em jogos fora
+function distanciaKmClubes(uf1, uf2){
+  if(!uf1 || !uf2) return 300;
+  if(uf1 === uf2) return rand(60, 320); // mesmo estado, cidades diferentes
+  const c1 = UF_COORDS[uf1], c2 = UF_COORDS[uf2];
+  if(!c1 || !c2) return 800;
+  const R = 6371;
+  const dLat = (c2[0]-c1[0]) * Math.PI/180, dLon = (c2[1]-c1[1]) * Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(c1[0]*Math.PI/180)*Math.cos(c2[0]*Math.PI/180)*Math.sin(dLon/2)**2;
+  return Math.round(R * 2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+}
 
 /* ============================== DATA: CLUBES ==============================
    Base inicial de clubes brasileiros reais (Série C/D ou divisões estaduais
@@ -299,7 +323,55 @@ const CLUBES = [
   {id:'santa_cruz', nome:'Santa Cruz', cidade:'Recife', uf:'PE', divisao:'Série C', exigenciaPeneira:64, estiloJogo:'Tradicional e passional', nivelBase:60, chanceAprovacaoBase:34, pressaoTorcida:75, oportunidadeJovens:44, financeiro:52, reputacao:66, cor1:'#c8102e', cor2:'#141414'},
   {id:'central_pe', nome:'Central', cidade:'Caruaru', uf:'PE', divisao:'Série D', exigenciaPeneira:44, estiloJogo:'Raçudo', nivelBase:42, chanceAprovacaoBase:56, pressaoTorcida:32, oportunidadeJovens:64, financeiro:34, reputacao:38, cor1:'#0b3d91', cor2:'#ffffff'},
   {id:'juazeirense', nome:'Juazeirense', cidade:'Juazeiro', uf:'BA', divisao:'Série D', exigenciaPeneira:46, estiloJogo:'Físico', nivelBase:44, chanceAprovacaoBase:54, pressaoTorcida:34, oportunidadeJovens:62, financeiro:36, reputacao:40, cor1:'#0b3d91', cor2:'#ffffff'},
-  {id:'jacuipense', nome:'Jacuipense', cidade:'Riachão do Jacuípe', uf:'BA', divisao:'Série D', exigenciaPeneira:44, estiloJogo:'Base forte', nivelBase:42, chanceAprovacaoBase:56, pressaoTorcida:30, oportunidadeJovens:64, financeiro:32, reputacao:36, cor1:'#c8102e', cor2:'#141414'}
+  {id:'jacuipense', nome:'Jacuipense', cidade:'Riachão do Jacuípe', uf:'BA', divisao:'Série D', exigenciaPeneira:44, estiloJogo:'Base forte', nivelBase:42, chanceAprovacaoBase:56, pressaoTorcida:30, oportunidadeJovens:64, financeiro:32, reputacao:36, cor1:'#c8102e', cor2:'#141414'},
+
+  // --------- Série B: acima da Série C, ainda fora do alcance de uma primeira
+  // peneira (só chega aqui subindo de divisão ou sendo scoutado mais pra frente) ---------
+  {id:'ceara', nome:'Ceará', cidade:'Fortaleza', uf:'CE', divisao:'Série B', exigenciaPeneira:72, estiloJogo:'Organizado', nivelBase:74, chanceAprovacaoBase:26, pressaoTorcida:72, oportunidadeJovens:40, financeiro:66, reputacao:76, cor1:'#000000', cor2:'#c8102e'},
+  {id:'coritiba', nome:'Coritiba', cidade:'Curitiba', uf:'PR', divisao:'Série B', exigenciaPeneira:73, estiloJogo:'Tradicional', nivelBase:75, chanceAprovacaoBase:25, pressaoTorcida:70, oportunidadeJovens:38, financeiro:68, reputacao:78, cor1:'#0d6b34', cor2:'#ffffff'},
+  {id:'guarani', nome:'Guarani', cidade:'Campinas', uf:'SP', divisao:'Série B', exigenciaPeneira:68, estiloJogo:'Equilibrado', nivelBase:69, chanceAprovacaoBase:30, pressaoTorcida:58, oportunidadeJovens:45, financeiro:58, reputacao:68, cor1:'#0d6b34', cor2:'#ffffff'},
+  {id:'ponte_preta', nome:'Ponte Preta', cidade:'Campinas', uf:'SP', divisao:'Série B', exigenciaPeneira:69, estiloJogo:'Ofensivo', nivelBase:70, chanceAprovacaoBase:29, pressaoTorcida:60, oportunidadeJovens:44, financeiro:60, reputacao:70, cor1:'#000000', cor2:'#ffffff'},
+  {id:'novorizontino', nome:'Novorizontino', cidade:'Novo Horizonte', uf:'SP', divisao:'Série B', exigenciaPeneira:70, estiloJogo:'Contra-ataque', nivelBase:71, chanceAprovacaoBase:28, pressaoTorcida:52, oportunidadeJovens:48, financeiro:56, reputacao:70, cor1:'#c8102e', cor2:'#ffffff'},
+  {id:'crb', nome:'CRB', cidade:'Maceió', uf:'AL', divisao:'Série B', exigenciaPeneira:69, estiloJogo:'Físico e direto', nivelBase:70, chanceAprovacaoBase:29, pressaoTorcida:62, oportunidadeJovens:42, financeiro:58, reputacao:70, cor1:'#000000', cor2:'#c8102e'},
+  {id:'vila_nova', nome:'Vila Nova', cidade:'Goiânia', uf:'GO', divisao:'Série B', exigenciaPeneira:68, estiloJogo:'Raçudo', nivelBase:69, chanceAprovacaoBase:30, pressaoTorcida:56, oportunidadeJovens:46, financeiro:56, reputacao:68, cor1:'#c8102e', cor2:'#ffffff'},
+  {id:'avai', nome:'Avaí', cidade:'Florianópolis', uf:'SC', divisao:'Série B', exigenciaPeneira:70, estiloJogo:'Organizado', nivelBase:72, chanceAprovacaoBase:27, pressaoTorcida:58, oportunidadeJovens:40, financeiro:60, reputacao:71, cor1:'#0b3d91', cor2:'#ffffff'},
+  {id:'chapecoense', nome:'Chapecoense', cidade:'Chapecó', uf:'SC', divisao:'Série B', exigenciaPeneira:71, estiloJogo:'Intenso e pressão', nivelBase:73, chanceAprovacaoBase:26, pressaoTorcida:64, oportunidadeJovens:38, financeiro:62, reputacao:73, cor1:'#0d6b34', cor2:'#ffffff'},
+  {id:'botafogo_sp', nome:'Botafogo-SP', cidade:'Ribeirão Preto', uf:'SP', divisao:'Série B', exigenciaPeneira:69, estiloJogo:'Moderno e propositivo', nivelBase:70, chanceAprovacaoBase:29, pressaoTorcida:54, oportunidadeJovens:46, financeiro:58, reputacao:69, cor1:'#c8102e', cor2:'#000000'},
+  {id:'america_mg', nome:'América-MG', cidade:'Belo Horizonte', uf:'MG', divisao:'Série B', exigenciaPeneira:71, estiloJogo:'Equilibrado', nivelBase:72, chanceAprovacaoBase:27, pressaoTorcida:60, oportunidadeJovens:42, financeiro:64, reputacao:72, cor1:'#0d6b34', cor2:'#ffffff'},
+  {id:'goias', nome:'Goiás', cidade:'Goiânia', uf:'GO', divisao:'Série B', exigenciaPeneira:72, estiloJogo:'Tradicional', nivelBase:73, chanceAprovacaoBase:26, pressaoTorcida:64, oportunidadeJovens:40, financeiro:66, reputacao:74, cor1:'#0d6b34', cor2:'#ffffff'},
+  {id:'ituano', nome:'Ituano', cidade:'Itu', uf:'SP', divisao:'Série B', exigenciaPeneira:66, estiloJogo:'Base forte', nivelBase:67, chanceAprovacaoBase:32, pressaoTorcida:48, oportunidadeJovens:52, financeiro:52, reputacao:64, cor1:'#0b3d91', cor2:'#ffffff'},
+  {id:'amazonas_fc', nome:'Amazonas FC', cidade:'Manaus', uf:'AM', divisao:'Série B', exigenciaPeneira:67, estiloJogo:'Físico', nivelBase:68, chanceAprovacaoBase:31, pressaoTorcida:52, oportunidadeJovens:48, financeiro:54, reputacao:66, cor1:'#c8102e', cor2:'#ffffff'},
+  {id:'criciuma', nome:'Criciúma', cidade:'Criciúma', uf:'SC', divisao:'Série B', exigenciaPeneira:70, estiloJogo:'Raçudo', nivelBase:71, chanceAprovacaoBase:28, pressaoTorcida:56, oportunidadeJovens:44, financeiro:58, reputacao:70, cor1:'#000000', cor2:'#ffffff'},
+  {id:'csa', nome:'CSA', cidade:'Maceió', uf:'AL', divisao:'Série B', exigenciaPeneira:67, estiloJogo:'Equilibrado', nivelBase:67, chanceAprovacaoBase:32, pressaoTorcida:50, oportunidadeJovens:48, financeiro:52, reputacao:64, cor1:'#0b3d91', cor2:'#ffffff'},
+  {id:'volta_redonda', nome:'Volta Redonda', cidade:'Volta Redonda', uf:'RJ', divisao:'Série B', exigenciaPeneira:66, estiloJogo:'Físico e direto', nivelBase:66, chanceAprovacaoBase:33, pressaoTorcida:46, oportunidadeJovens:54, financeiro:50, reputacao:62, cor1:'#0d6b34', cor2:'#ffffff'},
+  {id:'nautico', nome:'Náutico', cidade:'Recife', uf:'PE', divisao:'Série B', exigenciaPeneira:70, estiloJogo:'Tradicional', nivelBase:70, chanceAprovacaoBase:28, pressaoTorcida:62, oportunidadeJovens:42, financeiro:58, reputacao:70, cor1:'#c8102e', cor2:'#000000'},
+  {id:'mirassol', nome:'Mirassol', cidade:'Mirassol', uf:'SP', divisao:'Série B', exigenciaPeneira:69, estiloJogo:'Moderno e propositivo', nivelBase:70, chanceAprovacaoBase:29, pressaoTorcida:44, oportunidadeJovens:50, financeiro:56, reputacao:66, cor1:'#d4a017', cor2:'#0d6b34'},
+  {id:'figueirense', nome:'Figueirense', cidade:'Florianópolis', uf:'SC', divisao:'Série B', exigenciaPeneira:67, estiloJogo:'Organizado', nivelBase:67, chanceAprovacaoBase:31, pressaoTorcida:48, oportunidadeJovens:48, financeiro:52, reputacao:64, cor1:'#000000', cor2:'#ffffff'},
+
+  // --------- Série A: topo do futebol nacional — extremamente difícil de
+  // entrar direto (exige um jogador excepcional, e mesmo assim é raro; o
+  // caminho realista é subir pela divisão de acesso ou ser scoutado depois
+  // de uma temporada de destaque em uma divisão menor) ---------
+  {id:'flamengo', nome:'Flamengo', cidade:'Rio de Janeiro', uf:'RJ', divisao:'Série A', exigenciaPeneira:96, estiloJogo:'Ofensivo e técnico', nivelBase:94, chanceAprovacaoBase:5, pressaoTorcida:97, oportunidadeJovens:20, financeiro:98, reputacao:99, cor1:'#c8102e', cor2:'#000000'},
+  {id:'palmeiras', nome:'Palmeiras', cidade:'São Paulo', uf:'SP', divisao:'Série A', exigenciaPeneira:96, estiloJogo:'Organizado taticamente', nivelBase:94, chanceAprovacaoBase:5, pressaoTorcida:92, oportunidadeJovens:24, financeiro:97, reputacao:98, cor1:'#0d6b34', cor2:'#ffffff'},
+  {id:'sao_paulo', nome:'São Paulo', cidade:'São Paulo', uf:'SP', divisao:'Série A', exigenciaPeneira:94, estiloJogo:'Tradicional', nivelBase:91, chanceAprovacaoBase:6, pressaoTorcida:88, oportunidadeJovens:26, financeiro:93, reputacao:95, cor1:'#c8102e', cor2:'#000000'},
+  {id:'corinthians', nome:'Corinthians', cidade:'São Paulo', uf:'SP', divisao:'Série A', exigenciaPeneira:94, estiloJogo:'Raça e marcação', nivelBase:90, chanceAprovacaoBase:6, pressaoTorcida:95, oportunidadeJovens:22, financeiro:92, reputacao:96, cor1:'#000000', cor2:'#ffffff'},
+  {id:'santos', nome:'Santos', cidade:'Santos', uf:'SP', divisao:'Série A', exigenciaPeneira:91, estiloJogo:'Base forte', nivelBase:86, chanceAprovacaoBase:9, pressaoTorcida:85, oportunidadeJovens:35, financeiro:82, reputacao:92, cor1:'#000000', cor2:'#ffffff'},
+  {id:'gremio', nome:'Grêmio', cidade:'Porto Alegre', uf:'RS', divisao:'Série A', exigenciaPeneira:92, estiloJogo:'Organizado taticamente', nivelBase:88, chanceAprovacaoBase:7, pressaoTorcida:88, oportunidadeJovens:28, financeiro:87, reputacao:93, cor1:'#0b3d91', cor2:'#000000'},
+  {id:'internacional', nome:'Internacional', cidade:'Porto Alegre', uf:'RS', divisao:'Série A', exigenciaPeneira:92, estiloJogo:'Físico e pressão', nivelBase:88, chanceAprovacaoBase:7, pressaoTorcida:87, oportunidadeJovens:28, financeiro:87, reputacao:93, cor1:'#c8102e', cor2:'#ffffff'},
+  {id:'atletico_mg', nome:'Atlético-MG', cidade:'Belo Horizonte', uf:'MG', divisao:'Série A', exigenciaPeneira:92, estiloJogo:'Ofensivo', nivelBase:88, chanceAprovacaoBase:7, pressaoTorcida:90, oportunidadeJovens:26, financeiro:88, reputacao:93, cor1:'#000000', cor2:'#ffffff'},
+  {id:'cruzeiro', nome:'Cruzeiro', cidade:'Belo Horizonte', uf:'MG', divisao:'Série A', exigenciaPeneira:90, estiloJogo:'Organizado', nivelBase:86, chanceAprovacaoBase:8, pressaoTorcida:85, oportunidadeJovens:30, financeiro:83, reputacao:90, cor1:'#0b3d91', cor2:'#ffffff'},
+  {id:'fluminense', nome:'Fluminense', cidade:'Rio de Janeiro', uf:'RJ', divisao:'Série A', exigenciaPeneira:90, estiloJogo:'Moderno e propositivo', nivelBase:85, chanceAprovacaoBase:8, pressaoTorcida:82, oportunidadeJovens:32, financeiro:84, reputacao:90, cor1:'#7a1030', cor2:'#0d6b34'},
+  {id:'botafogo', nome:'Botafogo', cidade:'Rio de Janeiro', uf:'RJ', divisao:'Série A', exigenciaPeneira:89, estiloJogo:'Ofensivo e técnico', nivelBase:85, chanceAprovacaoBase:8, pressaoTorcida:80, oportunidadeJovens:32, financeiro:83, reputacao:89, cor1:'#000000', cor2:'#ffffff'},
+  {id:'vasco', nome:'Vasco da Gama', cidade:'Rio de Janeiro', uf:'RJ', divisao:'Série A', exigenciaPeneira:88, estiloJogo:'Tradicional e físico', nivelBase:83, chanceAprovacaoBase:9, pressaoTorcida:85, oportunidadeJovens:30, financeiro:78, reputacao:88, cor1:'#000000', cor2:'#ffffff'},
+  {id:'bahia', nome:'Bahia', cidade:'Salvador', uf:'BA', divisao:'Série A', exigenciaPeneira:87, estiloJogo:'Equilibrado', nivelBase:82, chanceAprovacaoBase:10, pressaoTorcida:83, oportunidadeJovens:32, financeiro:76, reputacao:86, cor1:'#0b3d91', cor2:'#c8102e'},
+  {id:'fortaleza', nome:'Fortaleza', cidade:'Fortaleza', uf:'CE', divisao:'Série A', exigenciaPeneira:86, estiloJogo:'Ofensivo', nivelBase:81, chanceAprovacaoBase:11, pressaoTorcida:80, oportunidadeJovens:34, financeiro:74, reputacao:85, cor1:'#c8102e', cor2:'#0b3d91'},
+  {id:'athletico_pr', nome:'Athletico Paranaense', cidade:'Curitiba', uf:'PR', divisao:'Série A', exigenciaPeneira:88, estiloJogo:'Moderno e propositivo', nivelBase:84, chanceAprovacaoBase:9, pressaoTorcida:78, oportunidadeJovens:34, financeiro:80, reputacao:87, cor1:'#c8102e', cor2:'#000000'},
+  {id:'bragantino', nome:'Red Bull Bragantino', cidade:'Bragança Paulista', uf:'SP', divisao:'Série A', exigenciaPeneira:85, estiloJogo:'Moderno e propositivo', nivelBase:80, chanceAprovacaoBase:12, pressaoTorcida:62, oportunidadeJovens:40, financeiro:85, reputacao:82, cor1:'#c8102e', cor2:'#ffffff'},
+  {id:'cuiaba', nome:'Cuiabá', cidade:'Cuiabá', uf:'MT', divisao:'Série A', exigenciaPeneira:83, estiloJogo:'Físico e pressão', nivelBase:78, chanceAprovacaoBase:14, pressaoTorcida:60, oportunidadeJovens:42, financeiro:70, reputacao:79, cor1:'#0d6b34', cor2:'#d4a017'},
+  {id:'vitoria', nome:'Vitória', cidade:'Salvador', uf:'BA', divisao:'Série A', exigenciaPeneira:85, estiloJogo:'Raça e marcação', nivelBase:80, chanceAprovacaoBase:12, pressaoTorcida:78, oportunidadeJovens:34, financeiro:72, reputacao:82, cor1:'#c8102e', cor2:'#000000'},
+  {id:'sport', nome:'Sport Recife', cidade:'Recife', uf:'PE', divisao:'Série A', exigenciaPeneira:85, estiloJogo:'Tradicional e físico', nivelBase:80, chanceAprovacaoBase:12, pressaoTorcida:78, oportunidadeJovens:34, financeiro:72, reputacao:82, cor1:'#c8102e', cor2:'#000000'},
+  {id:'juventude', nome:'Juventude', cidade:'Caxias do Sul', uf:'RS', divisao:'Série A', exigenciaPeneira:82, estiloJogo:'Físico e direto', nivelBase:76, chanceAprovacaoBase:16, pressaoTorcida:58, oportunidadeJovens:44, financeiro:66, reputacao:76, cor1:'#0d6b34', cor2:'#ffffff'}
 ];
 
 /* ============================== DATA: ESTILOS ==============================
@@ -358,6 +430,35 @@ const SOCIAIS_DEF = [
   ['reputacaoLocal','Reputação Local'], ['imagemMidia','Imagem na Mídia'], ['pressaoPsicologica','Pressão Psicológica']
 ];
 
+/* ============================== OVERALL (FORÇA GERAL) =======================
+   Nota única de 1-99 que resume a qualidade do jogador, calculada como uma
+   média ponderada dos atributos REAIS de acordo com o grupo de posição —
+   cada grupo pesa os atributos que de fato importam nele (ex: goleiro pesa
+   concentração/agilidade, atacante pesa finalização/drible). Não é um número
+   arbitrário: sobe e desce exatamente conforme os atributos evoluem no treino.
+   ========================================================================= */
+const POSICOES_ATACANTE = ['Ponta-direita','Ponta-esquerda','Segundo atacante','Centroavante','Meia ofensivo'];
+const POSICOES_DEFENSOR = ['Zagueiro','Lateral-direito','Lateral-esquerdo','Volante'];
+const OVERALL_PESOS = {
+  Goleiro: { concentracao:0.20, agilidade:0.20, decisao:0.15, coragem:0.12, frieza:0.10, impulsao:0.08, forca:0.05, lideranca:0.05, controleDeBola:0.05 },
+  defensor: { desarme:0.18, marcacao:0.16, interceptacao:0.14, forca:0.12, velocidade:0.08, resistencia:0.08, disciplina:0.08, passeCurto:0.06, concentracao:0.06, decisao:0.04 },
+  meio: { passeCurto:0.16, visaoDeJogo:0.16, passeLongo:0.12, controleDeBola:0.12, resistencia:0.10, desarme:0.08, drible:0.08, decisao:0.08, trabalhoEmEquipe:0.06, finalizacao:0.04 },
+  atacante: { finalizacao:0.20, drible:0.14, velocidade:0.12, controleDeBola:0.12, frieza:0.10, aceleracao:0.08, visaoDeJogo:0.08, cabeceio:0.06, passeCurto:0.06, decisao:0.04 }
+};
+function grupoOverallDaPosicao(posicao){
+  if(posicao === 'Goleiro') return 'Goleiro';
+  if(POSICOES_DEFENSOR.includes(posicao)) return 'defensor';
+  if(POSICOES_ATACANTE.includes(posicao)) return 'atacante';
+  return 'meio';
+}
+function calcularOverall(){
+  const grupo = grupoOverallDaPosicao(GAME.identidade.posicaoPrincipal);
+  const pesos = OVERALL_PESOS[grupo];
+  let soma = 0;
+  Object.keys(pesos).forEach(attr => { soma += (GAME.atributos[attr]||40) * pesos[attr]; });
+  return clamp(Math.round(soma), 1, 99);
+}
+
 /* ==================== DATA: NOMES FICTÍCIOS DE AMBIENTAÇÃO ==================
    Para evitar afirmar informações falsas sobre pessoas reais, técnicos,
    observadores, dirigentes e companheiros de elenco são fictícios. Os
@@ -394,6 +495,14 @@ function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
 function rand(min, max){ return Math.floor(Math.random()*(max-min+1))+min; }
 function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 function chance(pct){ return Math.random()*100 < pct; }
+// Gols de uma "força" ofensiva (0-100) via aproximação de Poisson simples,
+// usado tanto na sua partida quanto nos jogos simulados da rodada da liga
+function golsPoisson(forca){
+  const lambda = clamp(forca/38, 0.2, 3.5);
+  let n = 0;
+  for(let i=0;i<6;i++){ if(chance(lambda/6*100)) n++; }
+  return n;
+}
 function fmtData(d){ const dd=String(d.getDate()).padStart(2,'0'), mm=String(d.getMonth()+1).padStart(2,'0'); return `${dd}/${mm}/${d.getFullYear()}`; }
 function el(html){ const t=document.createElement('template'); t.innerHTML=html.trim(); return t.content.firstChild; }
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -496,6 +605,9 @@ function criarNovoJogador(dados){
     temporadaState: null,
     lesaoAtual: null,
     disciplinaPontos: 0,
+    recondicionamentoSemanas: 0,
+    cuidadoFisico: 50,
+    historicoLesoesTotal: 0,
     tracos: { humilde:0, confiante:0, descontraido:0, serio:0, rebelde:0 },
     carteira: 0,
     patrocinioAtual: null,
@@ -548,7 +660,7 @@ function pushHistorico(texto){
    ========================================================================= */
 const MENSAGENS_FA_ELOGIO = [
   (g)=>`Torcedor: "Ainda bem que existe um moleque desses na base do ${g.clube.nome}, hein!! 🔥"`,
-  (g)=>`Comentário: "${g.identidade.apelido} jogando desse jeito com 16 anos é assustador."`,
+  (g)=>`Comentário: "${g.identidade.apelido} jogando desse jeito com ${idadeAtual()} anos é assustador."`,
   (g)=>`Mensagem direta: "Continua assim que você chega longe, meu irmão. Confia."`
 ];
 const MENSAGENS_FA_CRITICA = [
@@ -608,6 +720,13 @@ appObserver.observe(app, { childList: true });
 function render(){
   sincronizarTemaClube();
   if(!GAME){ return renderStart(); }
+  // Reparo de saves antigos (de antes da liga/tabela existir): sem isso, o
+  // painel de classificação ficaria vazio e as partidas cairiam no adversário
+  // fictício de fallback pra sempre nessa carreira.
+  if(GAME.temporadaState && GAME.clube && !GAME.temporadaState.liga){
+    GAME.temporadaState.liga = montarLigaTemporada();
+    salvarJogo();
+  }
   if(GAME.fase === 'historia') return renderHistoriaPassado();
   if(GAME.fase === 'clubes') return renderSelecaoClubes();
   if(GAME.fase === 'peneira') return renderPeneira();
@@ -733,9 +852,13 @@ function renderHistoriaPassado(){
    API de geolocalização real.
    ========================================================================= */
 function selecionarClubesProximos(uf){
+  // Série A e Série B ficam fora da primeira peneira — um garoto de 16 anos
+  // não bate à porta do Flamengo do nada; esses clubes só entram na carreira
+  // mais pra frente, subindo de divisão ou sendo scoutado depois de se destacar.
+  const clubesBase = CLUBES.filter(c => c.divisao !== 'Série A' && c.divisao !== 'Série B');
   const regiao = REGIOES[uf];
-  const mesmoEstado = CLUBES.filter(c => c.uf === uf);
-  const mesmaRegiao = CLUBES.filter(c => c.uf !== uf && REGIOES[c.uf] === regiao);
+  const mesmoEstado = clubesBase.filter(c => c.uf === uf);
+  const mesmaRegiao = clubesBase.filter(c => c.uf !== uf && REGIOES[c.uf] === regiao);
   const combinados = [...mesmoEstado, ...mesmaRegiao];
   // embaralha levemente mantendo prioridade de proximidade
   const top = combinados.slice(0, 8);
@@ -746,7 +869,7 @@ function selecionarClubesProximos(uf){
   }
   // caso a base não tenha 4 nem na região (raro), completa com clubes aleatórios
   while(escolhidos.length < 4){
-    const extra = pick(CLUBES);
+    const extra = pick(clubesBase);
     if(!escolhidos.find(c=>c.id===extra.id)) escolhidos.push(extra);
   }
   return escolhidos;
@@ -835,6 +958,7 @@ function aplicarEfeitos(efeitos){
   if(efeitos.popularidade) so.popularidade = clamp(so.popularidade + efeitos.popularidade, 0, 100);
   if(efeitos.imagemMidia) so.imagemMidia = clamp(so.imagemMidia + efeitos.imagemMidia, 0, 100);
   if(efeitos.disciplina) GAME.atributos.disciplina = clamp(GAME.atributos.disciplina + efeitos.disciplina, 1, 99);
+  if(efeitos.cuidadoFisico) GAME.cuidadoFisico = clamp((GAME.cuidadoFisico!=null?GAME.cuidadoFisico:50) + efeitos.cuidadoFisico, 0, 100);
   if(efeitos.chanceDestaque && GAME.peneiraState) GAME.peneiraState.chanceDestaque = clamp(GAME.peneiraState.chanceDestaque + efeitos.chanceDestaque, 0, 100);
   if(efeitos.atributos){
     Object.keys(efeitos.atributos).forEach(k => {
@@ -1126,17 +1250,18 @@ function renderResultadoPeneira(){
 }
 
 /* ================================ TEMPORADA ==================================
-   Dividida em 5 períodos, cada um com N semanas. Cada semana pode conter,
+   Dividida em períodos, cada um com N semanas. Cada semana pode conter,
    nessa ordem: evento aleatório (opcional) -> treino -> partida (se agendada
    no calendário do período) -> avança para a próxima semana.
+   Formato "tipo Brasileirão": pré-temporada sem jogos, depois 1º turno e
+   2º turno (returno) com um jogo por semana cada — 19+19 = 38 rodadas,
+   batendo exatamente com o calendário de pontos corridos da liga (20 clubes).
    ========================================================================= */
 const PERIODOS = [
-  { nome:'Pré-temporada', semanas:4, jogos:[false,false,true,true] },
-  { nome:'Início do Estadual/Sub-20', semanas:5, jogos:[true,false,true,false,true] },
-  { nome:'Meio da Temporada', semanas:5, jogos:[true,false,true,false,true] },
-  { nome:'Returno / Reta Final do Estadual', semanas:5, jogos:[true,true,false,true,false] },
-  { nome:'Fase Decisiva', semanas:5, jogos:[true,true,false,true,true] },
-  { nome:'Encerramento', semanas:3, jogos:[true,false,false] }
+  { nome:'Pré-temporada', semanas:4, jogos:[false,false,false,false] },
+  { nome:'1º Turno', semanas:19, jogos:Array(19).fill(true) },
+  { nome:'2º Turno (Returno)', semanas:19, jogos:Array(19).fill(true) },
+  { nome:'Encerramento', semanas:2, jogos:[false,false] }
 ];
 
 const TREINOS = [
@@ -1150,13 +1275,164 @@ const TREINOS = [
   { id:'descanso', nome:'Descanso e Recuperação', attrs:[], custo:-30, riscoLesaoMod:-10 }
 ];
 
+/* ============================== LIGA / CAMPEONATO ===========================
+   Monta um campeonato nos moldes do Brasileirão: 20 clubes (o seu + 19 rivais
+   de nível parecido, escolhidos entre os CLUBES reais), pontos corridos com
+   turno e returno completos (cada dupla se enfrenta em casa e fora), gerado
+   pelo método do círculo — 2*(20-1) = 38 rodadas, uma por semana de jogo.
+   Os rivais são escolhidos, sempre que possível, dentro da MESMA divisão real
+   do seu clube (Série C / Série D / Estadual) — só completando com a divisão
+   mais próxima se não houver 19 clubes reais suficientes naquela divisão.
+   ========================================================================= */
+const TIERS_ORDEM = ['Estadual', 'Série D', 'Série C', 'Série B', 'Série A']; // do mais baixo pro mais alto
+function tierDoClube(clube){
+  if(clube.divisao === 'Série A') return 'Série A';
+  if(clube.divisao === 'Série B') return 'Série B';
+  if(clube.divisao === 'Série C') return 'Série C';
+  if(clube.divisao === 'Série D' || clube.divisao === 'Estadual/Série D') return 'Série D';
+  return 'Estadual';
+}
+function gerarCalendarioRoundRobin(ids){
+  const n = ids.length;
+  const fixo = ids[0];
+  let resto = ids.slice(1);
+  const turno = [];
+  for(let r=0; r<n-1; r++){
+    const completa = [fixo, ...resto];
+    const rodada = [];
+    for(let i=0; i<n/2; i++){
+      let par = [completa[i], completa[n-1-i]];
+      // o método do círculo sempre deixa o clube fixo (índice 0, aqui o SEU
+      // clube) como mandante em todo o turno — sorteia a inversão por confronto
+      // pra misturar mando de campo, em vez de "tudo em casa no 1º turno e
+      // tudo fora no returno"
+      if(chance(50)) par = [par[1], par[0]];
+      rodada.push(par);
+    }
+    turno.push(rodada);
+    resto.unshift(resto.pop());
+  }
+  const returno = turno.map(rodada => rodada.map(([m,v]) => [v,m]));
+  return [...turno, ...returno];
+}
+function montarLigaTemporada(){
+  const meuTier = tierDoClube(GAME.clube);
+  const nivelRef = GAME.clube.reputacao;
+  const ordenarPorProximidade = (lista) => lista.slice().sort((a,b) => Math.abs(a.reputacao-nivelRef) - Math.abs(b.reputacao-nivelRef));
+  let pool = ordenarPorProximidade(CLUBES.filter(c => c.id !== GAME.clube.id && tierDoClube(c) === meuTier));
+  if(pool.length < 19){
+    // divisão real não tem 19 outros clubes na base de dados — completa com a
+    // divisão mais próxima, priorizando sempre quem já é da mesma divisão
+    const indiceTier = TIERS_ORDEM.indexOf(meuTier);
+    const vizinhos = TIERS_ORDEM.filter(t => t !== meuTier)
+      .sort((a,b) => Math.abs(TIERS_ORDEM.indexOf(a)-indiceTier) - Math.abs(TIERS_ORDEM.indexOf(b)-indiceTier));
+    for(const tier of vizinhos){
+      if(pool.length >= 19) break;
+      const usados = new Set(pool.map(c=>c.id));
+      const extras = ordenarPorProximidade(CLUBES.filter(c => c.id !== GAME.clube.id && tierDoClube(c) === tier && !usados.has(c.id)));
+      pool = pool.concat(extras);
+    }
+  }
+  const rivais = pool.slice(0,19).map(c => ({ id:c.id, nome:c.nome, nivelBase:c.nivelBase, reputacao:c.reputacao, divisao:c.divisao, cidade:c.cidade, uf:c.uf }));
+  const clubes = [{ id:GAME.clube.id, nome:GAME.clube.nome, nivelBase:GAME.clube.nivelBase, reputacao:GAME.clube.reputacao, divisao:GAME.clube.divisao, cidade:GAME.clube.cidade, uf:GAME.clube.uf }, ...rivais];
+  const tabela = {};
+  clubes.forEach(c => { tabela[c.id] = { pj:0, v:0, e:0, d:0, gp:0, gc:0, sg:0, pts:0 }; });
+  return { clubes, tabela, divisao: meuTier, calendario: gerarCalendarioRoundRobin(clubes.map(c=>c.id)), rodadaAtual:0, historico:[] };
+}
+// Acesso e rebaixamento: com base na posição final do SEU clube na tabela,
+// sobe uma divisão (zona de acesso) ou cai uma divisão (zona de rebaixamento).
+// A divisão mais alta que existe na base (Série C) não tem acesso pra lugar
+// nenhum, e a mais baixa (Estadual) não tem rebaixamento pra lugar nenhum —
+// exatamente como pedido: sem "quinta divisão" nem "divisão acima da Série C".
+const ZONA_ACESSO = 4;
+const ZONA_REBAIXAMENTO = 4;
+function aplicarAcessoRebaixamento(){
+  const liga = GAME.temporadaState && GAME.temporadaState.liga;
+  if(!liga) return null;
+  const linhas = liga.clubes.map(c => ({ c, t: liga.tabela[c.id] }))
+    .sort((a,b) => b.t.pts-a.t.pts || b.t.sg-a.t.sg || b.t.gp-a.t.gp);
+  const posicao = linhas.findIndex(l => l.c.id === GAME.clube.id) + 1;
+  if(posicao <= 0) return null;
+  const total = linhas.length;
+  const meuTier = tierDoClube(GAME.clube);
+  const indiceTier = TIERS_ORDEM.indexOf(meuTier);
+  let resultado = null;
+  if(posicao <= ZONA_ACESSO && indiceTier < TIERS_ORDEM.length-1){
+    const novoTier = TIERS_ORDEM[indiceTier+1];
+    GAME.clube.divisao = novoTier;
+    resultado = { tipo:'acesso', tierAnterior:meuTier, novoTier, posicao, total };
+    pushNoticia('geral', `Acesso! O ${GAME.clube.nome} terminou a temporada em ${posicao}º lugar e conquistou o acesso para a ${novoTier}.`);
+  } else if(posicao > total-ZONA_REBAIXAMENTO && indiceTier > 0){
+    const novoTier = TIERS_ORDEM[indiceTier-1];
+    GAME.clube.divisao = novoTier;
+    resultado = { tipo:'rebaixamento', tierAnterior:meuTier, novoTier, posicao, total };
+    pushNoticia('geral', `Rebaixamento. O ${GAME.clube.nome} terminou a temporada em ${posicao}º lugar e caiu para a ${novoTier}.`);
+  }
+  return resultado;
+}
+function atualizarLinhaTabela(tabela, idMandante, idVisitante, golsMandante, golsVisitante){
+  const m = tabela[idMandante], v = tabela[idVisitante];
+  if(!m || !v) return;
+  m.pj++; v.pj++;
+  m.gp += golsMandante; m.gc += golsVisitante; m.sg = m.gp - m.gc;
+  v.gp += golsVisitante; v.gc += golsMandante; v.sg = v.gp - v.gc;
+  if(golsMandante > golsVisitante){ m.v++; m.pts += 3; v.d++; }
+  else if(golsMandante < golsVisitante){ v.v++; v.pts += 3; m.d++; }
+  else { m.e++; v.e++; m.pts++; v.pts++; }
+}
+// Simula (sem lances interativos) o confronto entre dois clubes que não envolve o jogador,
+// só para manter o resto da tabela da liga viva rodada a rodada
+function simularPartidaGenerica(clubeA, clubeB){
+  const forcaA = clamp((clubeA.nivelBase||50)*0.6 + (clubeA.reputacao||50)*0.25 + 4 + rand(-10,14), 10, 98);
+  const forcaB = clamp((clubeB.nivelBase||50)*0.6 + (clubeB.reputacao||50)*0.25 - 2 + rand(-10,14), 10, 98);
+  return { golsA: golsPoisson(forcaA), golsB: golsPoisson(forcaB) };
+}
+// Descobre, na rodada atual do calendário da liga, quem é o adversário do clube do jogador
+function obterConfrontoAtual(){
+  const ts = GAME.temporadaState;
+  const liga = ts && ts.liga;
+  if(!liga) return null;
+  const rodada = liga.calendario[liga.rodadaAtual];
+  if(!rodada) return null;
+  const par = rodada.find(p => p[0]===GAME.clube.id || p[1]===GAME.clube.id);
+  if(!par) return null;
+  const mandante = par[0] === GAME.clube.id;
+  const oponenteId = mandante ? par[1] : par[0];
+  return { oponente: liga.clubes.find(c => c.id === oponenteId), oponenteId, mandante, rodada };
+}
+// Fecha a rodada: registra o resultado da sua partida na tabela e simula os
+// outros jogos da mesma rodada, devolvendo um resumo textual deles
+function processarRodadaLiga(confronto, golsJogador, golsAdversario){
+  const liga = GAME.temporadaState.liga;
+  if(!liga || !confronto) return [];
+  const { rodada, mandante, oponenteId } = confronto;
+  const idMandante = mandante ? GAME.clube.id : oponenteId;
+  const idVisitante = mandante ? oponenteId : GAME.clube.id;
+  const golsMandante = mandante ? golsJogador : golsAdversario;
+  const golsVisitante = mandante ? golsAdversario : golsJogador;
+  atualizarLinhaTabela(liga.tabela, idMandante, idVisitante, golsMandante, golsVisitante);
+  const oponenteClube = liga.clubes.find(c => c.id === oponenteId);
+  liga.historico.push({ rodada: liga.rodadaAtual, oponenteId, oponenteNome: oponenteClube ? oponenteClube.nome : '?', mandante, golsMeu: golsJogador, golsAdversario });
+  const outros = [];
+  rodada.forEach(([homeId, awayId]) => {
+    if(homeId === GAME.clube.id || awayId === GAME.clube.id) return;
+    const home = liga.clubes.find(c=>c.id===homeId), away = liga.clubes.find(c=>c.id===awayId);
+    if(!home || !away) return;
+    const sim = simularPartidaGenerica(home, away);
+    atualizarLinhaTabela(liga.tabela, home.id, away.id, sim.golsA, sim.golsB);
+    outros.push(`${home.nome} ${sim.golsA}x${sim.golsB} ${away.nome}`);
+  });
+  liga.rodadaAtual += 1;
+  return outros;
+}
+
 function iniciarTemporada(){
   GAME.fase = 'temporada';
   GAME.atributosIniciaisSnapshot = { ...GAME.atributos };
   GAME.temporadaState = {
     periodoIndex:0, semanaNoPeriodo:0, subFase:'treino',
     eventoAtual:null, jogoAtual:null, mediaTreinoRecente:50, empresarioOfertado:false, seguimentoEvento:null,
-    eventosObscurosOcorridos:0, lutoOcorrido:false
+    eventosObscurosOcorridos:0, lutoOcorrido:false, liga: montarLigaTemporada()
   };
   pushNoticia('geral', `Pré-temporada iniciada no ${GAME.clube.nome}.`);
   decidirInicioDeSemana();
@@ -1195,6 +1471,8 @@ function avancarSemana(){
   GAME.status.semanaGlobal += 1;
   // recuperação natural leve de energia entre semanas
   GAME.status.energia = clamp(GAME.status.energia + 6, 0, 100);
+  // fase de recondicionamento pós-lesão: evolução de atributos mais lenta por um tempo
+  if(GAME.recondicionamentoSemanas > 0) GAME.recondicionamentoSemanas -= 1;
   // bolsa/salário e eventual patrocínio caem na conta toda semana (valor mensal / 4),
   // descontada a comissão do empresário, se houver
   const ganhoSemanal = (GAME.contrato.bolsa||0)/4 + (GAME.patrocinioAtual ? GAME.patrocinioAtual.valorMensal/4 : 0);
@@ -1273,7 +1551,8 @@ const EVENTOS_RECORRENTES = [
   { id:'familia_financas', categoria:'familia',
     texto:(g)=>`No fim de semana em casa, você percebe que as contas estão apertadas. Seu pai tenta disfarçar, mas o clima é tenso.`,
     escolhas:[
-      { label:'Oferecer a bolsa/ajuda de custo para casa', efeitos:{relacaoFamilia:8, pressao:4, tracos:{humilde:1}} },
+      { label:'Oferecer a bolsa/ajuda de custo para casa', efeitos:{relacaoFamilia:8, pressao:4, tracos:{humilde:1}},
+        extra:(g)=>{ const doado = Math.min(g.carteira||0, Math.round((g.carteira||0)*0.4)); if(doado>0){ g.carteira = Math.max(0,(g.carteira||0)-doado); pushNoticia('familia', `${g.identidade.apelido} repassou R$ ${doado.toLocaleString('pt-BR')} para ajudar em casa.`); } } },
       { label:'Conversar e prometer ajudar quando possível', efeitos:{relacaoFamilia:4, pressaoPsicologica:3, tracos:{serio:1}} },
       { label:'Focar no futebol e não se envolver agora', efeitos:{relacaoFamilia:-5, confianca:2, tracos:{confiante:1}} }
     ] },
@@ -1321,14 +1600,260 @@ const EVENTOS_RECORRENTES = [
   { id:'disciplina_extra', categoria:'disciplina',
     texto:(g)=>`Depois do treino coletivo, o preparador físico pergunta se alguém quer ficar para um trabalho extra de reforço.`,
     escolhas:[
-      { label:'Ficar para o trabalho extra', efeitos:{energia:-10, relacaoTreinador:5, atributos:{resistencia:1}, tracos:{serio:1}} },
-      { label:'Ir para casa descansar', efeitos:{energia:6, tracos:{humilde:1}} }
+      { label:'Ficar para o trabalho extra', efeitos:{energia:-10, relacaoTreinador:5, atributos:{resistencia:1}, cuidadoFisico:-2, tracos:{serio:1}} },
+      { label:'Ir para casa descansar', efeitos:{energia:6, cuidadoFisico:3, tracos:{humilde:1}} }
     ] },
   { id:'observador_externo', categoria:'midia',
     texto:(g)=>`Circula no CT o boato de que um olheiro de um clube maior esteve observando o treino coletivo desta semana.`,
     escolhas:[
       { label:'Tentar jogar seu melhor futebol na frente dele', efeitos:{pressaoPsicologica:6, chanceDestaque:4, tracos:{confiante:1}} },
       { label:'Manter a rotina normal, sem se abalar', efeitos:{atributos:{controleEmocional:1}, tracos:{serio:1}} }
+    ] },
+  { id:'rec_sono_ruim', categoria:'geral',
+    texto:(g)=>pick([
+      `Você passa a noite rolando na cama, olhando o teto do quarto no alojamento. O despertador vai tocar cedo para o treino técnico.`,
+      `Já é quase uma da manhã e você ainda está acordado, sem sono de verdade, sabendo que amanhã tem treino puxado marcado pelo ${g.tecnico}.`
+    ]),
+    escolhas:[
+      { label:'Desligar tudo e forçar o sono', efeitos:{cuidadoFisico:5, energia:4, disciplina:1} },
+      { label:'Ficar mais um pouco no celular mesmo assim', efeitos:{cuidadoFisico:-4, energia:-3, tracos:{descontraido:1}} },
+      { label:'Tentar compensar com uma soneca à tarde depois do treino', efeitos:{cuidadoFisico:2, energia:2} }
+    ] },
+  { id:'rec_nutricionista', categoria:'geral',
+    texto:(g)=>`O nutricionista do ${g.clube.nome} monta um novo plano alimentar pra categoria de base, com horários certos pra comer antes e depois dos treinos.`,
+    escolhas:[
+      { label:'Seguir o plano à risca', efeitos:{cuidadoFisico:6, disciplina:1, relacaoTreinador:2} },
+      { label:'Seguir na maior parte, mas comer besteira escondido de vez em quando', efeitos:{cuidadoFisico:-2, moral:2, tracos:{rebelde:1}} },
+      { label:'Ignorar o plano, achando que já come bem o suficiente', efeitos:{cuidadoFisico:-3, relacaoTreinador:-2} }
+    ] },
+  { id:'rec_fisioterapia_preventiva', categoria:'geral',
+    texto:(g)=>pick([
+      `As pernas estão pesadas depois de uma semana de treino dobrado. O departamento médico abre uma sessão de fisioterapia preventiva pra quem quiser.`,
+      `O fisioterapeuta do clube passa pelo vestiário oferecendo uma sessão rápida de alongamento e liberação muscular antes que vire dor de verdade.`
+    ]),
+    escolhas:[
+      { label:'Aproveitar a sessão preventiva', efeitos:{cuidadoFisico:5, atributos:{resistencia:1}} },
+      { label:'Pular e ir direto descansar em casa', efeitos:{cuidadoFisico:-3, energia:2} },
+      { label:'Pedir uma sessão extra por conta própria, pagando à parte', efeitos:{cuidadoFisico:4, carteira:-50, atributos:{resistencia:1}} }
+    ] },
+  { id:'rec_dor_ignorada', categoria:'geral',
+    texto:(g)=>`No meio do treino coletivo, você sente uma fisgada leve na parte de trás da coxa. Não parece grave, mas incomoda a cada arrancada.`,
+    escolhas:[
+      { label:'Avisar o preparador físico na hora', efeitos:{relacaoTreinador:1},
+        seguimento:{ texto:(g)=>`O preparador físico apalpa a região e franze a testa.\n\n— Não parece sério, mas é melhor não arriscar. Vou te tirar do treino de hoje pra avaliar amanhã com calma.`,
+          escolhas:[
+            { label:'Aceitar e seguir a recomendação', efeitos:{cuidadoFisico:6, relacaoTreinador:3, energia:3} },
+            { label:'Insistir em continuar o treino mesmo assim', efeitos:{cuidadoFisico:-5, relacaoTreinador:-3, pressao:3} }
+          ] } },
+      { label:'Tentar continuar sem falar nada pra ninguém', efeitos:{cuidadoFisico:-6, pressao:3} },
+      { label:'Diminuir o ritmo discretamente, sem avisar', efeitos:{cuidadoFisico:1, relacaoTreinador:-1} }
+    ] },
+  { id:'rec_entrevista_local', categoria:'midia',
+    texto:(g)=>`Depois do treino, um jornalista de um site local de esportes te aborda pedindo uma entrevista rápida sobre a temporada da base.`,
+    escolhas:[
+      { label:'Responder com humildade, elogiando o grupo', efeitos:{relacaoMidia:5, imagemMidia:4, tracos:{humilde:1}} },
+      { label:'Soltar uma frase de efeito mais ousada', efeitos:{relacaoMidia:2, popularidade:5, pressao:3, tracos:{confiante:1}} },
+      { label:'Recusar educadamente, não se sentindo à vontade', efeitos:{relacaoMidia:-4, tracos:{serio:1}} }
+    ] },
+  { id:'rec_reporter_curioso', categoria:'midia',
+    texto:(g)=>`Um jornalista local quer detalhes da sua história pra uma matéria maior: de onde você vem, como é sua família, as dificuldades até chegar ao ${g.clube.nome}.`,
+    escolhas:[
+      { label:'Contar sua história pessoal com detalhes', efeitos:{relacaoMidia:5, relacaoFamilia:-2, popularidade:3} },
+      { label:'Dar respostas mais genéricas, sem entrar em detalhes', efeitos:{relacaoMidia:1} },
+      { label:'Pedir para não publicar nada sobre a família', efeitos:{relacaoFamilia:4, relacaoMidia:-2} }
+    ] },
+  { id:'rec_patrocinio_teaser', categoria:'geral',
+    texto:(g)=>`O dono de uma loja de material esportivo da região te procura na saída do treino: oferece chuteiras e roupas de graça em troca de umas fotos usando a marca.`,
+    escolhas:[
+      { label:'Aceitar a parceria informal', efeitos:{popularidade:4, reputacaoLocal:3, carteira:100},
+        extra:(g)=>{ pushNoticia('midia', `${g.identidade.apelido} fechou uma pequena parceria com uma loja esportiva local.`); } },
+      { label:'Recusar, preferindo manter um perfil mais discreto', efeitos:{relacaoMidia:-1, tracos:{serio:1}} },
+      { label:'Tentar negociar mais coisas antes de topar', efeitos:{atributos:{ambicao:1}, confianca:3} }
+    ] },
+  { id:'rec_zoeira_vestiario', categoria:'vestiario',
+    texto:(g)=>pick([
+      `O elenco descobre um apelido novo pra você depois de um corte de cabelo diferente, e a zoeira não para no vestiário.`,
+      `Alguém do time imita seu jeito de comemorar gol e o vestiário inteiro cai na risada às suas custas.`
+    ]),
+    escolhas:[
+      { label:'Rir junto e entrar na brincadeira', efeitos:{relacaoElenco:5, moral:3, tracos:{descontraido:1}} },
+      { label:'Revidar com uma zoeira também', efeitos:{relacaoElenco:3, tracos:{confiante:1}} },
+      { label:'Ficar incomodado e se afastar do grupo', efeitos:{relacaoElenco:-4, moral:-2} }
+    ] },
+  { id:'rec_atrito_preparador', categoria:'disciplina',
+    texto:(g)=>`Durante o treino, o preparador físico corrige sua postura de corrida de forma seca, na frente de todo mundo.`,
+    escolhas:[
+      { label:'Aceitar a correção sem reclamar', efeitos:{relacaoTreinador:3, disciplina:1} },
+      { label:'Responder na mesma moeda, ali mesmo', efeitos:{relacaoTreinador:-5, tracos:{rebelde:1}} },
+      { label:'Pedir pra conversar em particular depois do treino', efeitos:{relacaoTreinador:4, tracos:{serio:1}} }
+    ] },
+  { id:'rec_onibus_atrasado', categoria:'geral',
+    texto:(g)=>`O ônibus que leva a categoria de base até o CT quebra no meio do caminho. Vocês chegam quase uma hora atrasados pro treino.`,
+    escolhas:[
+      { label:'Se desculpar com o técnico e explicar a situação', efeitos:{relacaoTreinador:1, pressao:2} },
+      { label:'Aproveitar o tempo parado pra descansar e se hidratar', efeitos:{cuidadoFisico:2, moral:1} },
+      { label:'Reclamar abertamente da estrutura precária do clube', efeitos:{relacaoDiretoria:-4, popularidade:1, tracos:{rebelde:1}} }
+    ] },
+  { id:'rec_chuva_treino', categoria:'geral',
+    texto:(g)=>`Uma chuva forte cai bem na hora do treino tático no campo de terra do CT, deixando tudo escorregadio.`,
+    escolhas:[
+      { label:'Treinar debaixo de chuva com a mesma intensidade', efeitos:{atributos:{resistencia:1}, cuidadoFisico:-2, relacaoTreinador:2} },
+      { label:'Pedir pra reduzir o ritmo por segurança', efeitos:{cuidadoFisico:2, relacaoTreinador:-1} },
+      { label:'Esperar estiar e treinar finalização sozinho depois', efeitos:{atributos:{finalizacao:1}, energia:-3} }
+    ] },
+  { id:'rec_confianca_abalada', categoria:'geral',
+    texto:(g)=>`Num coletivo de treino, você erra um passe simples e trava a jogada. Alguns colegas resmungam baixinho.`,
+    escolhas:[
+      { label:'Pedir a bola de novo pra corrigir na hora', efeitos:{confianca:3, atributos:{passeCurto:1}} },
+      { label:'Ficar remoendo o erro pelo resto do treino', efeitos:{confianca:-5, pressaoPsicologica:3} },
+      { label:'Rir de si mesmo e seguir em frente', efeitos:{moral:2, tracos:{descontraido:1}} }
+    ] },
+  { id:'rec_gol_bonito', categoria:'geral',
+    texto:(g)=>`Você marca um gol bonito no coletivo de treino, driblando dois zagueiros antes de bater no ângulo. O elenco vai à loucura na comemoração.`,
+    escolhas:[
+      { label:'Comemorar com humildade, valorizando os companheiros', efeitos:{relacaoElenco:4, confianca:4} },
+      { label:'Exagerar na comemoração, curtindo o momento', efeitos:{popularidade:2, relacaoElenco:-2, tracos:{confiante:1}} },
+      { label:'Dedicar o gol a alguém da família', efeitos:{relacaoFamilia:5, moral:3} }
+    ] },
+  { id:'rec_pegadinha_vestiario', categoria:'vestiario',
+    texto:(g)=>`Você chega no vestiário e descobre que colocaram suas chuteiras cheias de gelo dentro do armário. O time inteiro segura o riso te olhando.`,
+    escolhas:[
+      { label:'Rir e calçar assim mesmo', efeitos:{relacaoElenco:5, moral:2} },
+      { label:'Reclamar sério com quem sempre apronta essas coisas', efeitos:{relacaoElenco:-2} },
+      { label:'Prometer revidar com uma pegadinha maior depois', efeitos:{relacaoElenco:3, tracos:{rebelde:1}} }
+    ] },
+  { id:'rec_celular_treino', categoria:'geral',
+    texto:(g)=>pick([
+      `Depois do treino, você fica horas rolando o feed vendo comentários sobre seu último jogo, boa parte deles nem tão gentis.`,
+      `Já é tarde da noite e você ainda está com o celular na cara, lendo e relendo comentários de estranhos sobre sua atuação.`
+    ]),
+    escolhas:[
+      { label:'Desligar o celular e focar em descansar', efeitos:{cuidadoFisico:3, saudeMental:3} },
+      { label:'Continuar lendo os comentários mesmo incomodado', efeitos:{saudeMental:-4, pressaoPsicologica:4} },
+      { label:'Responder a um comentário mais grosseiro', efeitos:{saudeMental:-2, popularidade:-1, tracos:{rebelde:1}} }
+    ] },
+  { id:'rec_gasto_bobo', categoria:'geral',
+    texto:(g)=>`Assim que a ajuda de custo cai na conta, você sente uma vontade forte de gastar tudo em roupa e tênis de marca.`,
+    escolhas:[
+      { label:'Gastar boa parte só com você mesmo', efeitos:{moral:3, relacaoFamilia:-2, tracos:{confiante:1}},
+        extra:(g)=>{ const gasto = Math.min(g.carteira||0, Math.round((g.carteira||0)*0.5)); if(gasto>0){ g.carteira = Math.max(0,(g.carteira||0)-gasto); } } },
+      { label:'Guardar quase tudo e não se empolgar', efeitos:{moral:1, relacaoFamilia:2} },
+      { label:'Comprar algo simples e guardar o resto', efeitos:{moral:2, relacaoFamilia:1} }
+    ] },
+  { id:'rec_veterano_conselho', categoria:'vestiario',
+    texto:(g)=>`Um jogador mais velho do elenco, que já rodou por vários clubes menores, te chama de lado depois do treino.\n\n— Vem cá, senta um pouco comigo. Quero te falar uma coisa.`,
+    escolhas:[
+      { label:'Ouvir com atenção o que ele tem a dizer', efeitos:{relacaoElenco:2},
+        seguimento:{ texto:(g)=>`Ele conta, sem rodeios, sobre os erros que cometeu na carreira dele: festas demais, promessas de empresários, lesões que ignorou até ser tarde.\n\n— Não repete o que eu fiz. Você ainda tem tempo de fazer diferente.`,
+          escolhas:[
+            { label:'Guardar o conselho com seriedade', efeitos:{moral:4, atributos:{controleEmocional:1}} },
+            { label:'Agradecer, mas achar que a sua trajetória vai ser diferente', efeitos:{relacaoElenco:-1, tracos:{confiante:1}} }
+          ] } },
+      { label:'Agradecer, mas dizer que já sabe o caminho que quer seguir', efeitos:{relacaoElenco:-1, tracos:{confiante:1}} },
+      { label:'Pedir pra ele ser uma referência mais próxima daqui pra frente', efeitos:{relacaoElenco:5, atributos:{decisao:1}} }
+    ] },
+  { id:'rec_joelho_inchado', categoria:'geral',
+    texto:(g)=>`Depois do treino, você percebe que o joelho está um pouco inchado. Nada muito grave à primeira vista, mas incomoda ao dobrar a perna.`,
+    escolhas:[
+      { label:'Procurar o departamento médico do clube', efeitos:{relacaoTreinador:1},
+        seguimento:{ texto:(g)=>`O médico examina com calma e pede uma bateria de exames por precaução.\n\n— Provavelmente é só uma inflamação, mas prefiro não arriscar. Recomendo três dias de repouso total.`,
+          escolhas:[
+            { label:'Seguir a recomendação à risca', efeitos:{cuidadoFisico:6, energia:5, relacaoTreinador:1} },
+            { label:'Pedir para liberar mais rápido por causa de um jogo importante', efeitos:{cuidadoFisico:-4, pressao:3} }
+          ] } },
+      { label:'Colocar gelo por conta própria e não falar nada a ninguém', efeitos:{cuidadoFisico:-3, pressao:2} },
+      { label:'Ignorar e jogar uma pelada com os amigos no fim de semana mesmo assim', efeitos:{cuidadoFisico:-6} }
+    ] },
+  { id:'rec_saudade_casa', categoria:'familia',
+    texto:(g)=>`À noite, o alojamento fica quieto demais e uma saudade forte de casa aperta o peito. Parece que faz tempo que você não sente aquele clima de família por perto.`,
+    escolhas:[
+      { label:'Ligar pra família só pra conversar', efeitos:{relacaoFamilia:5, saudeMental:4} },
+      { label:'Distrair-se conversando com os colegas de quarto', efeitos:{relacaoElenco:3, saudeMental:2} },
+      { label:'Guardar tudo pra si e ficar quieto no escuro', efeitos:{saudeMental:-4, pressaoPsicologica:3} }
+    ] },
+  { id:'rec_primeira_convocacao', categoria:'geral',
+    texto:(g)=>`No mural do CT, sai a lista de relacionados pro próximo jogo da categoria — e o seu nome está lá pela primeira vez.`,
+    escolhas:[
+      { label:'Comemorar com moderação e já pensar no próximo passo', efeitos:{confianca:5, moral:4},
+        extra:(g)=>{ pushNoticia('geral', `${g.identidade.apelido} foi relacionado pela primeira vez para um jogo pela base do ${g.clube.nome}.`); } },
+      { label:'Postar nas redes sociais bem empolgado', efeitos:{popularidade:5, imagemMidia:2, pressao:3} },
+      { label:'Ligar pra família pra contar a novidade primeiro', efeitos:{relacaoFamilia:6, moral:5} }
+    ] },
+  { id:'rec_criticas_torcida', categoria:'midia',
+    texto:(g)=>`Depois de uma atuação apagada num jogo-treino, comentários duros de torcedores começam a circular num fórum local sobre times de base.`,
+    escolhas:[
+      { label:'Ignorar e seguir focado no trabalho', efeitos:{saudeMental:2, atributos:{controleEmocional:1}} },
+      { label:'Ler tudo e remoer cada comentário', efeitos:{saudeMental:-5, pressaoPsicologica:5},
+        seguimento:{ texto:(g)=>`O ${g.tecnico} percebe que você anda cabisbaixo nos últimos treinos e te chama pra uma conversa rápida.\n\n— Aconteceu alguma coisa? Você não parece o mesmo.`,
+          escolhas:[
+            { label:'Abrir o jogo sobre a pressão que sentiu', efeitos:{relacaoTreinador:5, pressaoPsicologica:-6} },
+            { label:'Dizer que está tudo bem, sem entrar em detalhes', efeitos:{relacaoTreinador:1, pressaoPsicologica:2} }
+          ] } },
+      { label:'Responder a um dos comentários se defendendo', efeitos:{relacaoTorcida:-3, saudeMental:-2, tracos:{rebelde:1}} }
+    ] },
+  { id:'rec_reuniao_comissao', categoria:'disciplina',
+    texto:(g)=>`A comissão técnica reúne toda a categoria de base numa sala pra falar sobre postura, horários e comprometimento dentro do clube.`,
+    escolhas:[
+      { label:'Prestar atenção total e anotar os pontos principais', efeitos:{relacaoTreinador:3, disciplina:1} },
+      { label:'Ficar disperso, pensando em outra coisa', efeitos:{relacaoTreinador:-2, tracos:{descontraido:1}} },
+      { label:'Fazer uma pergunta pertinente durante a reunião', efeitos:{relacaoTreinador:4, atributos:{decisao:1}} }
+    ] },
+  { id:'rec_chuteira_furada', categoria:'geral',
+    texto:(g)=>`Sua chuteira principal rasga durante o treino. Não tem verba do clube pra repor material de imediato.`,
+    escolhas:[
+      { label:'Pedir uma chuteira emprestada do material do clube', efeitos:{moral:1, relacaoDiretoria:-1} },
+      { label:'Comprar uma nova com o próprio dinheiro', efeitos:{moral:3, carteira:-150} },
+      { label:'Pedir ajuda aos pais pra comprar uma nova', efeitos:{relacaoFamilia:-2, moral:2} }
+    ] },
+  { id:'rec_happy_hour_elenco', categoria:'vestiario',
+    texto:(g)=>`Alguns jogadores mais velhos do elenco chamam pra uma resenha numa noite de folga, com direito a bebida e conversa até tarde.`,
+    escolhas:[
+      { label:'Ir, mas moderar e voltar cedo pra casa', efeitos:{relacaoElenco:4, cuidadoFisico:-1} },
+      { label:'Ir e aproveitar sem pensar no treino do dia seguinte', efeitos:{relacaoElenco:6, cuidadoFisico:-7, energia:-5} },
+      { label:'Recusar e ficar em casa descansando', efeitos:{relacaoElenco:-3, cuidadoFisico:5, tracos:{serio:1}} }
+    ] },
+  { id:'rec_exame_medico_rotina', categoria:'geral',
+    texto:(g)=>`É dia de exame médico de rotina no clube: avaliação física completa, exames de sangue e teste de condicionamento.`,
+    escolhas:[
+      { label:'Se preparar direito, dormindo cedo e chegando em jejum como pedido', efeitos:{cuidadoFisico:5, relacaoTreinador:2} },
+      { label:'Ir sem nenhum preparo especial', efeitos:{cuidadoFisico:-3, moral:-2} },
+      { label:'Aproveitar pra perguntar dicas de saúde ao médico do clube', efeitos:{cuidadoFisico:4, atributos:{resistencia:1}} }
+    ] },
+  { id:'rec_professor_escola', categoria:'familia',
+    texto:(g)=>`Um professor da escola cobra sua atenção às provas e reclama das faltas por causa dos jogos e treinos da base.`,
+    escolhas:[
+      { label:'Se esforçar pra conciliar os estudos com o futebol', efeitos:{disciplina:2, relacaoFamilia:3, energia:-3} },
+      { label:'Priorizar só o futebol por enquanto', efeitos:{relacaoFamilia:-4, energia:2, atributos:{ambicao:1}} },
+      { label:'Pedir ajuda ao clube pra flexibilizar os horários de treino', efeitos:{relacaoDiretoria:1, disciplina:1} }
+    ] },
+  { id:'rec_fila_autografo', categoria:'midia',
+    texto:(g)=>`Na saída do CT depois de um jogo, um grupinho de crianças da vizinhança pede autógrafo e foto com você.`,
+    escolhas:[
+      { label:'Parar com calma e atender todo mundo', efeitos:{relacaoTorcida:6, popularidade:3, moral:3} },
+      { label:'Tirar uma foto rápida e seguir seu caminho', efeitos:{relacaoTorcida:2} },
+      { label:'Ignorar porque está cansado e só quer ir pra casa', efeitos:{relacaoTorcida:-5, energia:2} }
+    ] },
+  { id:'rec_treino_extra_solo', categoria:'geral',
+    texto:(g)=>`Depois do treino oficial, o campo esvazia, mas você decide ficar mais um pouco treinando finalizações sozinho.`,
+    escolhas:[
+      { label:'Fazer um treino extra moderado e parar na hora certa', efeitos:{atributos:{finalizacao:1}, cuidadoFisico:2} },
+      { label:'Exagerar e ficar até o campo escurecer de vez', efeitos:{atributos:{finalizacao:2}, cuidadoFisico:-5, energia:-6} },
+      { label:'Pedir a um preparador pra acompanhar o treino extra', efeitos:{atributos:{finalizacao:1}, relacaoTreinador:2} }
+    ] },
+  { id:'rec_noticia_falsa', categoria:'midia',
+    texto:(g)=>`Um perfil anônimo nas redes espalha um boato de que você estaria insatisfeito e querendo deixar o ${g.clube.nome}.`,
+    escolhas:[
+      { label:'Desmentir publicamente com calma', efeitos:{relacaoDiretoria:3, relacaoMidia:2},
+        extra:(g)=>{ pushNoticia('midia', `${g.identidade.apelido} desmentiu boatos de saída do ${g.clube.nome} nas redes sociais.`); } },
+      { label:'Ignorar e deixar o boato passar', efeitos:{saudeMental:-1} },
+      { label:'Responder de forma irritada nas redes', efeitos:{relacaoDiretoria:-3, saudeMental:-3, tracos:{rebelde:1}} }
+    ] },
+  { id:'rec_amizade_rival', categoria:'geral',
+    texto:(g)=>`Num torneio entre categorias de base, você troca camisa e conversa com um adversário de outro clube depois do jogo. Vocês acabam trocando contato.`,
+    escolhas:[
+      { label:'Manter contato e trocar ideias sobre treino e jogo', efeitos:{atributos:{visaoDeJogo:1}, moral:2} },
+      { label:'Manter distância, afinal é só um adversário', efeitos:{tracos:{serio:1}} },
+      { label:'Postar uma foto da amizade nas redes sociais', efeitos:{popularidade:2, relacaoTorcida:-1} }
     ] }
 ];
 
@@ -1368,14 +1893,180 @@ const EVENTOS_ADOLESCENTE = [
   { id:'jogo_online_tarde', categoria:'disciplina',
     texto:(g)=>`Você entra "só uma partidinha" de videogame online com os amigos à noite — e o relógio passa da meia-noite sem você perceber, com treino cedo no dia seguinte.`,
     escolhas:[
-      { label:'Desligar tudo na hora e tentar dormir', efeitos:{energia:2, atributos:{disciplina:1}, tracos:{serio:1}} },
-      { label:'Jogar mais uma partida "só essa"', efeitos:{energia:-6, moral:2, tracos:{descontraido:1}} }
+      { label:'Desligar tudo na hora e tentar dormir', efeitos:{energia:2, atributos:{disciplina:1}, cuidadoFisico:2, tracos:{serio:1}} },
+      { label:'Jogar mais uma partida "só essa"', efeitos:{energia:-6, moral:2, cuidadoFisico:-2, tracos:{descontraido:1}} }
     ] },
   { id:'identidade_regional', categoria:'geral',
     texto:(g)=>`No vestiário, rola uma conversa animada sobre de onde cada um veio — sotaques diferentes, comidas diferentes, histórias diferentes de como cada garoto chegou até ali.`,
     escolhas:[
       { label:'Contar com orgulho de onde você veio', efeitos:{relacaoElenco:5, moral:4, tracos:{descontraido:1}} },
       { label:'Ouvir mais do que falar, curioso com as histórias dos outros', efeitos:{relacaoElenco:4, tracos:{humilde:1}} }
+    ] },
+  { id:'adol_termino', categoria:'geral',
+    texto:(g)=>`O relacionamento que você mantém há meses com uma pessoa lá da sua cidade natal começa a esfriar. As ligações ficam mais curtas, as mensagens demoram mais para chegar — a distância e a rotina de treinos estão cobrando o preço.`,
+    escolhas:[
+      { label:'Conversar com sinceridade e terminar em bons termos', efeitos:{moral:2, atributos:{controleEmocional:1}, tracos:{serio:1}} },
+      { label:'Insistir em manter o namoro à distância, mesmo sabendo que é difícil', efeitos:{pressaoPsicologica:4, moral:-2} },
+      { label:'Evitar o assunto e deixar o namoro morrer aos poucos', efeitos:{moral:-3, relacaoFamilia:-1, tracos:{descontraido:1}} }
+    ],
+    seguimento:{
+      texto:(g)=>`Semanas depois, a poeira baixa. Você percebe que consegue pensar no assunto sem o nó na garganta de antes — mas de vez em quando ainda bate uma saudade de como as coisas eram antes de tudo isso.`,
+      escolhas:[
+        { label:'Focar de cabeça no que está por vir', efeitos:{moral:3, energia:3, atributos:{disciplina:1}} },
+        { label:'Guardar a lembrança sem se cobrar tanto por isso', efeitos:{moral:1, saudeMental:3} }
+      ]
+    } },
+  { id:'adol_beijo_festa', categoria:'geral',
+    texto:(g)=>pick([
+      `Numa festa de aniversário de um colega, alguém se aproxima de um jeito que deixa claro o interesse. Seu coração dispara — e você não faz ideia do que fazer com as mãos.`,
+      `No meio da roda de conversa na festa, os olhares cruzam de um jeito que não é por acaso. Todo mundo ao redor parece perceber, menos vocês dois admitirem.`
+    ]),
+    escolhas:[
+      { label:'Tomar coragem e se aproximar', efeitos:{moral:4, confianca:3, tracos:{confiante:1}} },
+      { label:'Ficar paralisado de nervoso e deixar o momento passar', efeitos:{moral:-2, tracos:{humilde:1}} },
+      { label:'Brincar com a situação para aliviar a tensão', efeitos:{moral:2, tracos:{descontraido:1}} }
+    ] },
+  { id:'adol_formatura', categoria:'geral',
+    texto:(g)=>`A formatura da sua turma do colégio cai exatamente no mesmo fim de semana de um jogo importante do ${g.clube.nome}. Seus amigos de sala já perguntaram várias vezes se você vai aparecer.`,
+    escolhas:[
+      { label:'Priorizar o jogo e mandar um recado carinhoso para a turma', efeitos:{relacaoFamilia:-2, atributos:{disciplina:1}, tracos:{serio:1}} },
+      { label:'Pedir para o clube liberar algumas horas e aparecer só na festa, depois do jogo', efeitos:{energia:-5, moral:4, relacaoTreinador:-2} },
+      { label:'Abrir mão do jogo dessa vez para não perder esse marco com os amigos', efeitos:{relacaoTreinador:-4, moral:3, relacaoFamilia:2} }
+    ] },
+  { id:'adol_amigo_infancia', categoria:'geral',
+    texto:(g)=>`Um amigo de infância, daqueles que você conhece desde antes de saber chutar uma bola direito, manda mensagem contando novidades da vida dele. Vocês dois notam, sem dizer em voz alta, que os caminhos estão cada vez mais distantes.`,
+    escolhas:[
+      { label:'Fazer um esforço para manter contato de verdade, não só curtir postagem', efeitos:{moral:3, relacaoFamilia:1, tracos:{humilde:1}} },
+      { label:'Aceitar que amizades mudam com o tempo e seguir em frente', efeitos:{moral:-1, atributos:{controleEmocional:1}} },
+      { label:'Prometer visitar assim que a rotina permitir, mesmo sem certeza de quando', efeitos:{moral:1} }
+    ] },
+  { id:'adol_amigo_novo_cidade', categoria:'geral',
+    texto:(g)=>pick([
+      `Um colega de escola na nova cidade te chama para sair num grupo que você ainda não conhece direito. É a chance de criar raízes por aqui, mas também um salto no escuro.`,
+      `Depois de semanas comendo sozinho no intervalo, alguém puxa assunto do nada e te convida para sentar com a turma.`
+    ]),
+    escolhas:[
+      { label:'Aceitar o convite e se abrir para gente nova', efeitos:{moral:4, tracos:{confiante:1}} },
+      { label:'Ir com cautela, sem se expor demais no início', efeitos:{moral:1, tracos:{humilde:1}} },
+      { label:'Recusar e continuar isolado, focado só no futebol', efeitos:{moral:-3, saudeMental:-3, atributos:{disciplina:1}} }
+    ] },
+  { id:'adol_corpo_mudanca', categoria:'disciplina',
+    texto:(g)=>`Seu corpo vem mudando rápido nos últimos meses — altura, voz, até o jeito de correr parece diferente. Às vezes bate a insegurança de se comparar com companheiros de time que já parecem "prontos".`,
+    escolhas:[
+      { label:'Conversar com o preparador físico sobre esse momento do corpo', efeitos:{moral:2, cuidadoFisico:4, relacaoTreinador:1} },
+      { label:'Ignorar o assunto e torcer para se acostumar sozinho', efeitos:{saudeMental:-3, moral:-2} },
+      { label:'Desabafar com a família sobre a insegurança', efeitos:{relacaoFamilia:3, saudeMental:3, moral:1} }
+    ] },
+  { id:'adol_rotulo_escola', categoria:'geral',
+    texto:(g)=>`Na escola, virou normal ser chamado de "${g.identidade.apelido}, o jogador" antes mesmo do seu nome de verdade. Alguns professores fazem gracinha, outros colegas pedem para "treinar uma bicicleta" bem no meio do intervalo.`,
+    escolhas:[
+      { label:'Levar na esportiva e aproveitar a atenção', efeitos:{moral:2, popularidade:2, tracos:{descontraido:1}} },
+      { label:'Pedir, com educação, para ser tratado como qualquer outro aluno', efeitos:{moral:1, tracos:{serio:1}} },
+      { label:'Se incomodar em silêncio e evitar os corredores mais cheios', efeitos:{moral:-2, saudeMental:-2} }
+    ] },
+  { id:'adol_bullying', categoria:'geral',
+    texto:(g)=>`Um grupo de colegas começou a implicar com você por causa do futebol — as piadas, no começo "de boa", foram ficando mais pesadas, insinuando que você se acha por jogar no ${g.clube.nome}.`,
+    escolhas:[
+      { label:'Confrontar o grupo com calma, deixando claro que passou do ponto', efeitos:{moral:1, atributos:{coragem:1}, tracos:{serio:1}} },
+      { label:'Contar para um adulto de confiança na escola ou em casa', efeitos:{relacaoFamilia:2, saudeMental:2} },
+      { label:'Engolir seco e fingir que não incomoda', efeitos:{saudeMental:-4, moral:-3} }
+    ],
+    seguimento:{
+      texto:(g)=>`Nos dias seguintes, a situação esfria — mas o episódio deixou um gosto amargo, e uma pergunta que não sai da cabeça: será que vale a pena continuar tão exposto na escola?`,
+      escolhas:[
+        { label:'Sair mais fortalecido, sabendo que consegue lidar com pressão', efeitos:{saudeMental:4, atributos:{controleEmocional:1}, tracos:{confiante:1}} },
+        { label:'Guardar a mágoa e ficar mais fechado com os colegas', efeitos:{saudeMental:-2, tracos:{serio:1}} }
+      ]
+    } },
+  { id:'adol_familia_estudos', categoria:'familia',
+    texto:(g)=>`Numa ligação de domingo, seus pais tocam no assunto de sempre: "e se o futebol não der certo? Você precisa continuar levando a escola a sério." A preocupação é sincera, mas pesa.`,
+    escolhas:[
+      { label:'Garantir que vai equilibrar os dois e mostrar as notas para tranquilizá-los', efeitos:{relacaoFamilia:4, atributos:{disciplina:1}, energia:-2} },
+      { label:'Argumentar que o futebol é prioridade agora e pedir confiança', efeitos:{relacaoFamilia:-2, confianca:2, tracos:{confiante:1}} },
+      { label:'Ouvir sem discutir, mesmo sem concordar totalmente', efeitos:{relacaoFamilia:1, moral:-1} }
+    ] },
+  { id:'adol_fim_de_semana_casa', categoria:'familia',
+    texto:(g)=>`Você ganha uma folga rara no fim de semana. Dá tempo de ir para casa rever a família, mas isso significa estrada, comida diferente da dieta e noites mal dormidas em cima da viagem.`,
+    escolhas:[
+      { label:'Ir para casa e aproveitar, cuidando para manter uma rotina razoável', efeitos:{relacaoFamilia:5, moral:4, cuidadoFisico:1} },
+      { label:'Ir e relaxar de vez com a dieta e o sono por dois dias', efeitos:{relacaoFamilia:4, moral:5, cuidadoFisico:-4} },
+      { label:'Ficar na cidade do clube para não atrapalhar a rotina de treinos', efeitos:{relacaoFamilia:-4, atributos:{disciplina:1}, cuidadoFisico:2} }
+    ] },
+  { id:'adol_aniversario_perdido', categoria:'geral',
+    texto:(g)=>`O aniversário de um dos seus melhores amigos de infância cai bem no meio de uma semana cheia de treinos e uma viagem para jogo fora de casa. Ele já avisou que "entende", mas dá para notar a decepção na voz.`,
+    escolhas:[
+      { label:'Gravar um vídeo especial e mandar um presente mesmo de longe', efeitos:{moral:2, relacaoFamilia:1} },
+      { label:'Pedir ao clube um horário certo para pelo menos ligar na hora do bolo', efeitos:{moral:3, relacaoTreinador:-1} },
+      { label:'Deixar para parabenizar depois, sem dar muita importância', efeitos:{moral:-3} }
+    ] },
+  { id:'adol_hobby_novo', categoria:'disciplina',
+    texto:(g)=>pick([
+      `Você descobre um jogo novo online que vicia rápido — e as partidas com os amigos vão liquidando as noites de sono sem você perceber.`,
+      `Você se apaixona por aprender violão nas horas vagas, ficando acordado até tarde tentando decorar os acordes de uma música.`
+    ]),
+    escolhas:[
+      { label:'Definir um horário limite todo dia para essa nova paixão', efeitos:{atributos:{disciplina:1}, cuidadoFisico:2, moral:2} },
+      { label:'Deixar rolar sem controle nenhum, já que é só um hobby', efeitos:{cuidadoFisico:-3, energia:-3, moral:2} },
+      { label:'Abandonar o hobby por enquanto para focar 100% no futebol', efeitos:{moral:-2, atributos:{disciplina:1}} }
+    ] },
+  { id:'adol_independencia_pensao', categoria:'disciplina',
+    texto:(g)=>`Morando fora de casa, você percebe que ninguém vai lembrar de lavar sua roupa, arrumar o quarto ou fazer uma comida decente além de você mesmo. A independência é libertadora e assustadora ao mesmo tempo.`,
+    escolhas:[
+      { label:'Criar uma rotina simples de tarefas e seguir à risca', efeitos:{atributos:{disciplina:1}, cuidadoFisico:3, moral:2} },
+      { label:'Ir aprendendo aos trancos e barrancos, sem muita organização', efeitos:{cuidadoFisico:-1, moral:1} },
+      { label:'Pedir dicas para companheiros mais velhos que já passaram por isso', efeitos:{relacaoElenco:2, cuidadoFisico:1} }
+    ],
+    seguimento:{
+      texto:(g)=>`Depois de um tempo, a rotina começa a fazer sentido — ou vira uma bagunça que ninguém mais aguenta, dependendo do caminho que você escolheu.`,
+      escolhas:[
+        { label:'Comemorar a independência conquistada', efeitos:{moral:3, saudeMental:3, tracos:{confiante:1}} },
+        { label:'Pedir ajuda antes que a bagunça vire um problema maior', efeitos:{moral:1, relacaoElenco:1, tracos:{humilde:1}} }
+      ]
+    } },
+  { id:'adol_primeiro_dinheiro', categoria:'geral',
+    texto:(g)=>`A primeira ajuda de custo do clube cai na sua conta. É pouco perto do que os profissionais ganham, mas para você, que nunca teve dinheiro próprio, parece uma fortuna.`,
+    escolhas:[
+      { label:'Guardar quase tudo e gastar só o necessário', efeitos:{carteira:200, atributos:{disciplina:1}, moral:1, tracos:{serio:1}} },
+      { label:'Gastar parte em algo para os amigos e a família, comemorando com eles', efeitos:{carteira:-150, relacaoFamilia:3, moral:3} },
+      { label:'Torrar boa parte em roupas, comida e lazer pra você mesmo', efeitos:{carteira:-250, moral:4, cuidadoFisico:-1} }
+    ] },
+  { id:'adol_pressao_bebida', categoria:'disciplina',
+    texto:(g)=>`Numa festa depois de um evento na escola, um copo é empurrado pra sua mão em meio às risadas: "vai, só hoje não faz diferença". Os olhos da rodinha estão em você esperando a reação.`,
+    escolhas:[
+      { label:'Recusar com tranquilidade e continuar curtindo a festa sem beber', efeitos:{cuidadoFisico:3, atributos:{disciplina:1}, tracos:{serio:1}} },
+      { label:'Aceitar só um golinho para não parecer estranho', efeitos:{cuidadoFisico:-3, moral:1, tracos:{descontraido:1}} },
+      { label:'Ceder à pressão e beber mais do que pretendia', efeitos:{cuidadoFisico:-6, energia:-4, relacaoFamilia:-1} }
+    ] },
+  { id:'adol_postagem_vergonha', categoria:'midia',
+    texto:(g)=>`Você posta uma foto ou vídeo meio sem pensar direito, tentando bombar nas redes — e minutos depois já está se arrependendo dos comentários que estão chegando.`,
+    escolhas:[
+      { label:'Apagar a postagem antes que vire um problema maior', efeitos:{imagemMidia:1, moral:-1, tracos:{humilde:1}} },
+      { label:'Deixar no ar e enfrentar os comentários de cabeça erguida', efeitos:{imagemMidia:-2, confianca:2, tracos:{confiante:1}} },
+      { label:'Pedir conselho para alguém de confiança sobre o que fazer', efeitos:{relacaoFamilia:2, moral:1} }
+    ] },
+  { id:'adol_amigo_faculdade', categoria:'geral',
+    texto:(g)=>`Um amigo próximo do colégio conta, animado, que já garantiu vaga na faculdade que sempre quis. Vocês dois riem, mas por dentro bate uma pontinha de comparação: caminhos tão diferentes, na mesma idade.`,
+    escolhas:[
+      { label:'Comemorar de verdade a conquista dele, sem se comparar', efeitos:{moral:2, relacaoFamilia:1, tracos:{humilde:1}} },
+      { label:'Sentir uma pontada de dúvida sobre ter apostado tudo no futebol', efeitos:{saudeMental:-2, moral:-1} },
+      { label:'Usar a conversa como combustível para se dedicar ainda mais', efeitos:{atributos:{ambicao:1}, moral:2} }
+    ],
+    seguimento:{
+      texto:(g)=>`Passados alguns dias, a dúvida — ou a confirmação — ainda ecoa. No fim, cada um segue o caminho que escolheu, e o seu, por enquanto, é dentro de campo.`,
+      escolhas:[
+        { label:'Fazer as pazes com a própria escolha e seguir confiante', efeitos:{saudeMental:3, tracos:{confiante:1}} },
+        { label:'Guardar a dúvida como um lembrete para nunca se acomodar', efeitos:{atributos:{disciplina:1}, moral:1} }
+      ]
+    } },
+  { id:'adol_visual_trend', categoria:'midia',
+    texto:(g)=>pick([
+      `Um corte de cabelo que você viu num jogador famoso virou moda entre a garotada. Você pensa em copiar o visual antes do próximo jogo.`,
+      `Uma trend de roupas e acessórios está circulando entre os jogadores mais velhos do elenco, e você se pega pensando se deveria seguir a onda para "parecer" mais um profissional.`
+    ]),
+    escolhas:[
+      { label:'Seguir a tendência e renovar o visual', efeitos:{popularidade:2, moral:2, tracos:{confiante:1}} },
+      { label:'Manter o seu jeito de ser, sem seguir modismos', efeitos:{moral:1, tracos:{humilde:1, serio:1}} },
+      { label:'Ficar na dúvida e perguntar a opinião dos amigos antes', efeitos:{moral:1} }
     ] }
 ];
 
@@ -1415,7 +2106,124 @@ const EVENTOS_EQUIPE = [
     escolhas:[
       { label:'Prestar atenção total e anotar os conselhos', efeitos:{moral:5, atributos:{ambicao:1}, tracos:{serio:1}} },
       { label:'Aproveitar para puxar assunto e trocar contato depois', efeitos:{popularidade:3, relacaoElenco:2, tracos:{confiante:1}} }
-    ] }
+    ] },
+  { id:'equipe_convocacao_selecao', categoria:'geral',
+    texto:(g)=>`Um companheiro de time é convocado para defender a seleção de base, e a notícia corre rápido pelo CT. A alegria é geral, mas dá pra sentir uma pontinha de inveja no ar também.`,
+    escolhas:[
+      { label:'Comemorar com ele de coração, sem segundas intenções', efeitos:{relacaoElenco:6, moral:3, tracos:{humilde:1}} },
+      { label:'Parabenizar por fora, mas usar aquilo como combustível pessoal', efeitos:{pressao:3, atributos:{ambicao:1}, tracos:{confiante:1}} },
+      { label:'Evitar o assunto, o clima te incomoda mais do que devia', efeitos:{relacaoElenco:-3, moral:-2, tracos:{serio:1}} }
+    ] },
+  { id:'equipe_corte_amigo', categoria:'geral',
+    texto:(g)=>`A diretoria dispensa um jogador do elenco sub-20 — justamente um dos garotos com quem você mais tem amizade dentro do CT. Ele vai limpar o armário no fim do treino.`,
+    escolhas:[
+      { label:'Ajudá-lo a arrumar as coisas e trocar contato pra manter a amizade', efeitos:{relacaoElenco:4, relacaoFamilia:2, saudeMental:-2, tracos:{humilde:1}} },
+      { label:'Manter distância, ver aquilo de perto é assustador demais', efeitos:{saudeMental:-4, pressao:4, tracos:{serio:1}} }
+    ],
+    seguimento:{ texto:(g)=>`Semanas depois, o rapaz manda mensagem contando que está treinando em um clube menor, tentando se reerguer. Pergunta se você topa indicá-lo para alguém do seu círculo.`,
+      escolhas:[
+        { label:'Falar bem dele para quem puder ajudar', efeitos:{relacaoElenco:3, moral:2, tracos:{humilde:1}} },
+        { label:'Responder com educação, mas não se comprometer', efeitos:{pressao:1, tracos:{serio:1}} }
+      ] } },
+  { id:'equipe_mudanca_tatica', categoria:'geral',
+    texto:(g)=>`${g.tecnico} anuncia uma mudança de esquema tático para o time sub-20, e sua função dentro de campo muda — mais ou menos responsabilidade, dependendo de como você encarar.`,
+    escolhas:[
+      { label:'Abraçar a nova função e estudar o esquema em casa', efeitos:{relacaoTreinador:5, atributos:{visaoDeJogo:1, disciplina:1}, moral:2} },
+      { label:'Reclamar discretamente com os companheiros sobre a mudança', efeitos:{relacaoElenco:2, relacaoTreinador:-4, tracos:{rebelde:1}} },
+      { label:'Ir direto falar com o treinador para entender o motivo', efeitos:{relacaoTreinador:2, atributos:{decisao:1}, pressao:2} }
+    ] },
+  { id:'equipe_concentracao_retiro', categoria:'vestiario',
+    texto:(g)=>`O clube organiza uma concentração de dois dias fora da cidade, num hotel simples, para fortalecer a união do grupo antes de uma sequência decisiva de jogos. Celular é liberado só à noite.`,
+    escolhas:[
+      { label:'Se jogar nas dinâmicas em grupo, mesmo achando meio bobo', efeitos:{relacaoElenco:7, moral:3, tracos:{descontraido:1}} },
+      { label:'Aproveitar o tempo livre para descansar e recuperar o corpo', efeitos:{cuidadoFisico:6, energia:5, relacaoElenco:1} },
+      { label:'Ficar mais fechado, sem paciência para atividade forçada', efeitos:{relacaoElenco:-4, tracos:{serio:1}} }
+    ] },
+  { id:'equipe_clima_classico', categoria:'midia',
+    texto:(g)=>pick([
+      `A semana é de clássico regional, e o CT muda de clima: cartazes colados no vestiário, provocações no grupo de WhatsApp do time, sensação de que esse jogo vale mais que os outros.`,
+      `Falta pouco para o clássico contra o maior rival, e até os funcionários do CT comentam no corredor. O elenco sente o peso extra da rivalidade.`
+    ]),
+    escolhas:[
+      { label:'Puxar a resenha e alimentar a provocação com os companheiros', efeitos:{relacaoElenco:5, moral:2, pressao:2, tracos:{descontraido:1}} },
+      { label:'Se isolar um pouco para não deixar a ansiedade tomar conta', efeitos:{atributos:{concentracao:1}, relacaoElenco:-2, saudeMental:2} },
+      { label:'Conversar com os mais experientes sobre como lidar com a pressão do clássico', efeitos:{relacaoElenco:3, atributos:{controleEmocional:1}, relacaoTreinador:1} }
+    ] },
+  { id:'equipe_acesso_comemoracao', categoria:'vestiario',
+    texto:(g)=>`${g.clube.nome} garante o acesso de divisão, e o clube libera uma festa para o elenco no próprio CT: churrasco, música alta e goles escondidos circulando entre os mais velhos do grupo.`,
+    escolhas:[
+      { label:'Comemorar com moderação e ir embora antes de virar bagunça', efeitos:{moral:5, cuidadoFisico:3, relacaoElenco:2} },
+      { label:'Entrar de cabeça na festa, seguir o clima até tarde', efeitos:{moral:6, relacaoElenco:6, cuidadoFisico:-8, tracos:{descontraido:1}} },
+      { label:'Não beber nada, mas ficar até o fim só para prestigiar o grupo', efeitos:{relacaoElenco:4, disciplina:2, tracos:{serio:1}} }
+    ] },
+  { id:'equipe_crise_pessoal_colega', categoria:'vestiario',
+    texto:(g)=>`Um companheiro de quarto nas viagens some do grupo, chega atrasado nos treinos e não é mais o mesmo de sempre. Rumores dizem que ele está passando por um momento pessoal difícil em casa.`,
+    escolhas:[
+      { label:'Chamar ele para conversar em particular, com calma', efeitos:{relacaoElenco:6, saudeMental:1, tracos:{humilde:1}} },
+      { label:'Avisar discretamente à comissão técnica que algo não vai bem', efeitos:{relacaoTreinador:3, relacaoElenco:2, pressao:1} },
+      { label:'Não se meter, cada um lida com seus problemas do seu jeito', efeitos:{relacaoElenco:-3, saudeMental:-1} }
+    ] },
+  { id:'equipe_visita_profissionais', categoria:'geral',
+    texto:(g)=>`Jogadores do time principal aparecem para treinar ao lado da base num dia de integração. É a chance de mostrar serviço para quem realmente decide quem sobe.`,
+    escolhas:[
+      { label:'Jogar seu melhor futebol, sem medo de errar na frente deles', efeitos:{pressao:5, confianca:4, atributos:{decisao:1}} },
+      { label:'Aproveitar para puxar assunto e pedir conselhos depois do treino', efeitos:{relacaoElenco:2, atributos:{visaoDeJogo:1}, moral:2} },
+      { label:'Travar com a pressão e jogar abaixo do normal', efeitos:{confianca:-4, pressao:4, saudeMental:-2} }
+    ] },
+  { id:'equipe_documentario_tv', categoria:'midia',
+    texto:(g)=>`Uma equipe de TV passa a semana gravando um documentário sobre a base do ${g.clube.nome}, com câmeras nos treinos, no vestiário e até no ônibus. Alguns companheiros adoram os holofotes, outros odeiam.`,
+    escolhas:[
+      { label:'Ser você mesmo, sem se preocupar com a câmera', efeitos:{imagemMidia:4, relacaoMidia:3, tracos:{descontraido:1}} },
+      { label:'Evitar aparecer, pedir para cortarem suas falas', efeitos:{relacaoMidia:-2, saudeMental:2, tracos:{serio:1}} },
+      { label:'Aproveitar a exposição para construir uma imagem mais forte', efeitos:{popularidade:4, imagemMidia:2, pressao:2, tracos:{confiante:1}} }
+    ] },
+  { id:'equipe_treino_extra_punicao', categoria:'disciplina',
+    texto:(g)=>`Depois de uma derrota vexatória, ${g.tecnico} convoca um treino extra num domingo de manhã, cedo, como forma de corrigir a postura do grupo. Ninguém gosta, mas ninguém questiona em voz alta.`,
+    escolhas:[
+      { label:'Encarar com profissionalismo, sem reclamar', efeitos:{relacaoTreinador:5, disciplina:2, cuidadoFisico:-3} },
+      { label:'Ir, mas comentar baixinho com os colegas que é exagero', efeitos:{relacaoElenco:3, relacaoTreinador:-2, tracos:{rebelde:1}} },
+      { label:'Aproveitar o treino extra para trabalhar pontos fracos específicos', efeitos:{atributos:{concentracao:1, disciplina:1}, energia:-4} }
+    ] },
+  { id:'equipe_racha_grupo_whatsapp', categoria:'vestiario',
+    texto:(g)=>`Uma discussão boba no grupo de WhatsApp do time vira climão de verdade, com direito a print circulando e dois companheiros praticamente sem se falar no CT.`,
+    escolhas:[
+      { label:'Tentar mediar a briga e reaproximar os dois', efeitos:{relacaoElenco:5, atributos:{lideranca:1}, pressao:1} },
+      { label:'Ficar de fora, não é sua praia entrar nessas confusões', efeitos:{relacaoElenco:-1, saudeMental:1} },
+      { label:'Tirar sarro da situação para aliviar a tensão do grupo', efeitos:{relacaoElenco:2, moral:2, tracos:{descontraido:1}} }
+    ] },
+  { id:'equipe_amistoso_interno', categoria:'geral',
+    texto:(g)=>`${g.tecnico} organiza um amistoso interno, "titulares contra reservas", valendo vaga de verdade no time da semana. O clima competitivo toma conta do treino.`,
+    escolhas:[
+      { label:'Jogar duro, sem dar mole nem para os amigos', efeitos:{atributos:{disciplina:1}, confianca:3, relacaoElenco:-1} },
+      { label:'Jogar coletivo, priorizando lance bonito e entrosamento', efeitos:{relacaoElenco:4, atributos:{trabalhoEmEquipe:1}, relacaoTreinador:2} },
+      { label:'Aproveitar para se destacar individualmente na frente da comissão', efeitos:{pressao:3, atributos:{ambicao:1}, relacaoElenco:-2} }
+    ] },
+  { id:'equipe_programa_mentoria', categoria:'geral',
+    texto:(g)=>`O clube lança um programa de mentoria, ligando cada jovem da base a um ex-jogador da casa que passa a acompanhar de perto o desenvolvimento dentro e fora de campo.`,
+    escolhas:[
+      { label:'Se abrir de verdade com o mentor sobre suas dificuldades', efeitos:{saudeMental:4, atributos:{controleEmocional:1}, relacaoTreinador:1} },
+      { label:'Tratar os encontros como formalidade, sem se aprofundar', efeitos:{pressao:-1} },
+      { label:'Usar o contato para pedir dicas técnicas específicas da sua posição', efeitos:{atributos:{decisao:1}, confianca:2, relacaoTreinador:2} }
+    ] },
+  { id:'equipe_avaliacao_fim_temporada', categoria:'geral',
+    texto:(g)=>`Chega o fim da temporada, e a comissão técnica chama o elenco sub-20 para uma reunião de avaliação individual e coletiva. Alguns nomes vão continuar, outros não — ninguém sabe ainda de qual lado vai ficar.`,
+    escolhas:[
+      { label:'Pedir feedback direto e sincero sobre seus pontos fracos', efeitos:{relacaoTreinador:4, pressao:3, atributos:{concentracao:1}} },
+      { label:'Ficar na sua, só ouvir o que tem para ser dito', efeitos:{pressao:2, saudeMental:-1} },
+      { label:'Aproveitar o momento para reafirmar seu comprometimento com o clube', efeitos:{relacaoTreinador:3, relacaoDiretoria:2, tracos:{confiante:1}} }
+    ] },
+  { id:'equipe_troca_comissao_tecnica', categoria:'geral',
+    texto:(g)=>`${g.tecnico} é substituído no comando do sub-20, e um novo nome assume o time em plena temporada. O grupo passa a semana tentando entender o estilo do novo comandante.`,
+    escolhas:[
+      { label:'Se apresentar rapidamente ao novo treinador, mostrar disposição', efeitos:{relacaoTreinador:5, pressao:2, tracos:{confiante:1}} },
+      { label:'Esperar para ver como ele trabalha antes de se expor', efeitos:{pressao:1, atributos:{concentracao:1}} },
+      { label:'Comentar com os colegas que sente falta do comandante anterior', efeitos:{relacaoElenco:2, relacaoTreinador:-3, tracos:{serio:1}} }
+    ],
+    seguimento:{ texto:(g)=>`Nas primeiras semanas, o novo treinador muda a rotina de treinos e cobra um comportamento mais profissional do elenco, algo que gera resistência silenciosa em parte do grupo.`,
+      escolhas:[
+        { label:'Se adaptar rápido às novas exigências', efeitos:{relacaoTreinador:3, disciplina:2} },
+        { label:'Manter os velhos hábitos, mesmo contrariando o pedido', efeitos:{relacaoTreinador:-4, tracos:{rebelde:1}} }
+      ] } }
 ];
 
 /* ---------------------- MAIS CONTATO COM O CLUBE -----------------------------
@@ -1457,6 +2265,124 @@ const EVENTOS_CLUBE = [
     escolhas:[
       { label:'Valorizar o esforço e seguir focado no que importa', efeitos:{relacaoDiretoria:3, moral:3, tracos:{humilde:1}} },
       { label:'Comentar abertamente sobre as limitações estruturais', efeitos:{relacaoDiretoria:-3, imagemMidia:-2, tracos:{rebelde:1}} }
+    ] },
+  { id:'clube_conversa_renovacao', categoria:'geral',
+    texto:(g)=>`${pick(NOMES_DIRIGENTES)} pede para falar com você depois do treino. Sem rodeios, comenta que a diretoria do ${g.clube.nome} está de olho no seu desenvolvimento e que pode haver conversa sobre renovação de contrato em breve.`,
+    escolhas:[
+      { label:'Agradecer e dizer que está motivado para seguir no clube', efeitos:{relacaoDiretoria:5, moral:4, tracos:{humilde:1}},
+        seguimento:{ texto:(g)=>`O dirigente sorri, satisfeito com a resposta.\n\n— Isso é bom de ouvir. Só não posso te prometer nada ainda, tem gente da diretoria que quer ver mais um pouco antes de sentar pra negociar. Mas fica tranquilo.`,
+          escolhas:[
+            { label:'Dizer que vai continuar trabalhando forte, com ou sem promessas', efeitos:{relacaoDiretoria:4, atributos:{ambicao:1}, tracos:{serio:1}} },
+            { label:'Perguntar diretamente quando a proposta deve sair', efeitos:{relacaoDiretoria:-2, atributos:{ambicao:1}, tracos:{confiante:1}} }
+          ] } },
+      { label:'Perguntar sobre números e condições antes de comemorar', efeitos:{relacaoDiretoria:-1, atributos:{ambicao:2}, tracos:{confiante:1}} }
+    ] },
+  { id:'clube_visita_museu', categoria:'geral',
+    texto:(g)=>pick([
+      `A comissão organiza uma visita da base ao museu do ${g.clube.nome}, com troféus antigos, camisas históricas e fotos de times que marcaram época.`,
+      `Antes do treino, vocês são levados para conhecer o museu do clube, cheio de relíquias e histórias de outras gerações que vestiram a camisa do ${g.clube.nome}.`
+    ]),
+    escolhas:[
+      { label:'Prestar atenção nas histórias e levar a sério a tradição do clube', efeitos:{relacaoDiretoria:3, moral:2, tracos:{humilde:1}} },
+      { label:'Passar rápido pela visita, mais interessado no treino do dia', efeitos:{relacaoDiretoria:-1, tracos:{serio:1}} }
+    ] },
+  { id:'clube_lancamento_uniforme', categoria:'midia',
+    texto:(g)=>`O ${g.clube.nome} promove o lançamento oficial do novo uniforme e convida alguns atletas da base, você incluído, para posar ao lado do elenco profissional durante o evento com patrocinadores e imprensa.`,
+    escolhas:[
+      { label:'Aproveitar a exposição e se comportar com profissionalismo', efeitos:{relacaoDiretoria:4, imagemMidia:3, popularidade:2} },
+      { label:'Ficar visivelmente incomodado com tanta atenção', efeitos:{relacaoDiretoria:-2, imagemMidia:-2} }
+    ] },
+  { id:'clube_conteudo_redes', categoria:'midia',
+    texto:(g)=>`A equipe de redes sociais do ${g.clube.nome} te aborda no CT pedindo para gravar um vídeo curto respondendo perguntas dos torcedores, do tipo "qual seu ídolo" e "sonho na carreira".`,
+    escolhas:[
+      { label:'Gravar com bom humor e responder tudo naturalmente', efeitos:{relacaoDiretoria:3, imagemMidia:3, popularidade:3, tracos:{descontraido:1}},
+        seguimento:{ texto:(g)=>`O vídeo viraliza um pouco entre os torcedores do ${g.clube.nome}, e o rapaz das redes sociais volta animado.\n\n— Ficou muito bom! Topa gravar uma série assim, tipo um "dia a dia" seu na base?`,
+          escolhas:[
+            { label:'Topar, desde que não atrapalhe a rotina de treinos', efeitos:{relacaoDiretoria:3, imagemMidia:4, popularidade:4} },
+            { label:'Recusar, preferindo manter o foco só no futebol', efeitos:{relacaoDiretoria:1, tracos:{serio:1}} }
+          ] } },
+      { label:'Gravar de forma seca, só para cumprir o pedido', efeitos:{relacaoDiretoria:-1, imagemMidia:-1, tracos:{serio:1}} }
+    ] },
+  { id:'clube_camarote_jogo', categoria:'geral',
+    texto:(g)=>`${pick(NOMES_DIRIGENTES)} convida você e mais alguns garotos da base para assistir a um jogo do time principal do ${g.clube.nome} direto do camarote de honra, ao lado de outros dirigentes e convidados.`,
+    escolhas:[
+      { label:'Ir, prestar atenção no jogo e conversar educadamente com os presentes', efeitos:{relacaoDiretoria:4, moral:2, reputacaoLocal:1} },
+      { label:'Ir, mas ficar mais isolado, sem interagir muito', efeitos:{relacaoDiretoria:1, tracos:{serio:1}} },
+      { label:'Recusar o convite, alegando preferir descansar', efeitos:{relacaoDiretoria:-3, tracos:{rebelde:1}} }
+    ] },
+  { id:'clube_alojamento', categoria:'geral',
+    texto:(g)=>`No alojamento da base do ${g.clube.nome}, alguns colegas reclamam de camas velhas e do calor sem ar-condicionado direito. Um funcionário pede para vocês preencherem uma pesquisa interna sobre as condições do lugar.`,
+    escolhas:[
+      { label:'Responder com sinceridade, mas de forma construtiva', efeitos:{relacaoDiretoria:2, relacaoElenco:2, moral:1} },
+      { label:'Exagerar nas críticas para forçar uma resposta mais rápida', efeitos:{relacaoDiretoria:-3, relacaoElenco:1, tracos:{rebelde:1}} },
+      { label:'Preencher por preencher, sem se importar muito', efeitos:{moral:1, tracos:{descontraido:1}} }
+    ] },
+  { id:'clube_transporte', categoria:'geral',
+    texto:(g)=>`Para o próximo jogo fora de casa, o ${g.clube.nome} organiza uma viagem longa de ônibus, saindo de madrugada para chegar a tempo do confronto. Alguns jogadores reclamam do desconforto e da falta de descanso adequado.`,
+    escolhas:[
+      { label:'Se organizar para dormir bem na viagem e chegar descansado', efeitos:{cuidadoFisico:4, energia:3, tracos:{serio:1}} },
+      { label:'Passar a viagem toda acordado, conversando e brincando com o grupo', efeitos:{relacaoElenco:3, cuidadoFisico:-3, energia:-2, tracos:{descontraido:1}} }
+    ] },
+  { id:'clube_checkup_medico', categoria:'geral',
+    texto:(g)=>`O departamento médico do ${g.clube.nome} implementa um check-up trimestral obrigatório para os atletas da base, com exames de sangue, avaliação física e conversa sobre hábitos de sono e alimentação.`,
+    escolhas:[
+      { label:'Levar o check-up a sério e seguir as orientações médicas à risca', efeitos:{cuidadoFisico:6, relacaoDiretoria:2, disciplina:2} },
+      { label:'Fazer o exame por obrigação, sem mudar nada na rotina', efeitos:{cuidadoFisico:-2, tracos:{descontraido:1}} }
+    ] },
+  { id:'clube_evento_patrocinador', categoria:'midia',
+    texto:(g)=>`${pick(NOMES_DIRIGENTES)} pede para você participar de um evento com um novo parceiro comercial do ${g.clube.nome}, cumprimentando convidados e posando para fotos institucionais ao lado da marca.`,
+    escolhas:[
+      { label:'Participar com atenção, sendo simpático com os convidados', efeitos:{relacaoDiretoria:4, imagemMidia:2, popularidade:1, carteira:150},
+        extra:(g)=>{ pushNoticia('geral', `O ${g.clube.nome} celebra a parceria com o novo patrocinador, destacando a presença das categorias de base no evento.`); } },
+      { label:'Comparecer apenas por obrigação, sem entusiasmo', efeitos:{relacaoDiretoria:-1, imagemMidia:-1} }
+    ] },
+  { id:'clube_aniversario', categoria:'geral',
+    texto:(g)=>pick([
+      `O ${g.clube.nome} celebra mais um aniversário de fundação com uma festa simples no CT, reunindo funcionários antigos, ex-jogadores e as categorias de base.`,
+      `Para comemorar o aniversário do clube, a diretoria organiza uma pequena confraternização no CT do ${g.clube.nome}, com direito a bolo e discursos emocionados de gente que trabalha ali há décadas.`
+    ]),
+    escolhas:[
+      { label:'Participar animado e conversar com os funcionários mais antigos', efeitos:{relacaoDiretoria:3, moral:3, reputacaoLocal:1} },
+      { label:'Ficar mais afastado, sem muito clima para comemorações', efeitos:{relacaoDiretoria:-1, tracos:{serio:1}} }
+    ] },
+  { id:'clube_audiencia_disciplinar', categoria:'disciplina',
+    texto:(g)=>`Depois de um atraso no horário do alojamento, você é chamado para uma pequena audiência com ${pick(NOMES_DIRIGENTES)} e o supervisor da base, que querem entender o que aconteceu antes de decidir se aplicam alguma penalidade.`,
+    escolhas:[
+      { label:'Assumir o erro e se comprometer a não repetir', efeitos:{relacaoDiretoria:3, disciplina:3, tracos:{humilde:1}},
+        seguimento:{ texto:(g)=>`O dirigente concorda em não registrar nada oficialmente, mas deixa um aviso.\n\n— Da próxima vez não vou poder fechar os olhos. Combinado?`,
+          escolhas:[
+            { label:'Concordar e agradecer a chance', efeitos:{relacaoDiretoria:4, disciplina:2, tracos:{humilde:1}} },
+            { label:'Concordar, mas comentar que a regra é rígida demais', efeitos:{relacaoDiretoria:-2, tracos:{rebelde:1}} }
+          ] } },
+      { label:'Justificar o atraso com desculpas pouco convincentes', efeitos:{relacaoDiretoria:-3, disciplina:-2, tracos:{rebelde:1}} }
+    ] },
+  { id:'clube_departamento_dados', categoria:'geral',
+    texto:(g)=>`O departamento de análise de dados do ${g.clube.nome} começa a acompanhar os treinos da base com planilhas de desempenho, métricas físicas e relatórios individuais para cada atleta.`,
+    escolhas:[
+      { label:'Pedir para ver seus próprios relatórios e usar os dados a seu favor', efeitos:{relacaoDiretoria:3, atributos:{decisao:1}, tracos:{serio:1}} },
+      { label:'Ignorar os números, confiando só no que sente em campo', efeitos:{relacaoDiretoria:-1, tracos:{confiante:1}} }
+    ] },
+  { id:'clube_dia_aberto', categoria:'geral',
+    texto:(g)=>pick([
+      `O ${g.clube.nome} promove um dia aberto no CT para a comunidade local, com crianças e famílias visitando as instalações e pedindo para tirar fotos com os jogadores da base.`,
+      `Numa ação de aproximação com a torcida, o clube abre as portas do CT do ${g.clube.nome} para moradores da região conhecerem o dia a dia da base de perto.`
+    ]),
+    escolhas:[
+      { label:'Tirar fotos e conversar com as crianças com paciência', efeitos:{relacaoDiretoria:3, reputacaoLocal:4, popularidade:2, tracos:{humilde:1}} },
+      { label:'Cumprir rapidamente e voltar ao treino', efeitos:{reputacaoLocal:1} }
+    ] },
+  { id:'clube_corte_orcamento', categoria:'geral',
+    texto:(g)=>`Por causa de um corte no orçamento, o ${g.clube.nome} reduz a equipe de fisioterapeutas disponível para a base e corta parte dos suplementos alimentares que eram oferecidos aos atletas.`,
+    escolhas:[
+      { label:'Se adaptar e buscar cuidar do próprio corpo com mais atenção', efeitos:{cuidadoFisico:3, disciplina:2, tracos:{serio:1}} },
+      { label:'Reclamar abertamente da decisão da diretoria', efeitos:{relacaoDiretoria:-4, cuidadoFisico:-2, tracos:{rebelde:1}} },
+      { label:'Aceitar calado, mesmo sem concordar', efeitos:{relacaoDiretoria:1, cuidadoFisico:-1, tracos:{humilde:1}} }
+    ] },
+  { id:'clube_visita_ex_jogador', categoria:'geral',
+    texto:(g)=>`Um ex-jogador que fez história no ${g.clube.nome} visita o CT para bater um papo informal com a garotada da base, contando histórias de quando também começou ali, cheio de sonhos e incertezas.`,
+    escolhas:[
+      { label:'Aproveitar para fazer perguntas e ouvir os conselhos com atenção', efeitos:{moral:4, relacaoDiretoria:2, atributos:{ambicao:1}, tracos:{humilde:1}} },
+      { label:'Ficar mais tímido e observar de longe', efeitos:{moral:1, tracos:{serio:1}} }
     ] }
 ];
 
@@ -1507,6 +2433,157 @@ const EVENTOS_AMIZADE = [
     escolhas:[
       { label:'Aceitar de bom grado, sempre é bom aprender', efeitos:{amigo:c.id, amigoDelta:11, atributos:{visaoDeJogo:1}, tracos:{humilde:1}} },
       { label:'Agradecer, mas dizer que prefere aprender sozinho', efeitos:{amigo:c.id, amigoDelta:-3, tracos:{confiante:1}} }
+    ] }; },
+  () => { const c = pick(GAME.elenco); return {
+    id:'amizade_emprestimo', categoria:'vestiario',
+    texto:(g)=>`${c.nome} te procura no vestiário, meio sem graça, e fala baixo pra ninguém mais ouvir.\n\n— Cara, será que dá pra me emprestar uma grana? Meu fone quebrou e eu preciso resolver isso ainda hoje. Te pago assim que cair meu vale.`,
+    escolhas:[
+      { label:`Emprestar o dinheiro pra ${c.nome}`, efeitos:{amigo:c.id, amigoDelta:9, carteira:-80, tracos:{humilde:1}} },
+      { label:'Dizer que não pode ajudar dessa vez', efeitos:{amigo:c.id, amigoDelta:-4} },
+      { label:'Não emprestar, mas oferecer o carregador/ajuda de outro jeito', efeitos:{amigo:c.id, amigoDelta:5, tracos:{descontraido:1}} }
+    ] }; },
+  () => { const c = pick(GAME.elenco); return {
+    id:'amizade_favor_faxina', categoria:'vestiario',
+    texto:(g)=>pick([
+      `É sua semana de organizar o material depois do treino, mas ${c.nome} aparece com aquela cara de pidão.\n\n— Troca comigo essa semana? Prometo que cubro a próxima e a que vem também.`,
+      `${c.nome} te chama de lado antes do fisiologista liberar todo mundo.\n\n— Faz um favor, cobre minha faxina do vestiário hoje. Tenho prova de recuperação e não vou dar conta de tudo.`
+    ]),
+    escolhas:[
+      { label:'Cobrir o favor sem cobrar nada', efeitos:{amigo:c.id, amigoDelta:8, energia:-3, tracos:{humilde:1}} },
+      { label:'Recusar, cada um cuida da própria parte', efeitos:{amigo:c.id, amigoDelta:-5} },
+      { label:'Topar, mas deixar claro que ele te deve essa', efeitos:{amigo:c.id, amigoDelta:6, tracos:{confiante:1}, relacaoElenco:1} }
+    ] }; },
+  () => { const c = pick(GAME.elenco); return {
+    id:'amizade_segredo_guardado', categoria:'vestiario',
+    texto:(g)=>`Depois do treino, ${c.nome} pede pra conversar a sós, longe dos outros.\n\n— Preciso desabafar uma coisa e não posso falar isso com qualquer um aqui. Fica entre a gente, tá?`,
+    escolhas:[
+      { label:'Ouvir com atenção e prometer guardar segredo', efeitos:{amigo:c.id, amigoDelta:12, tracos:{humilde:1}} },
+      { label:'Ouvir, mas tentar minimizar o problema dele', efeitos:{amigo:c.id, amigoDelta:-5} }
+    ],
+    seguimento:{
+      texto:(g)=>`${c.nome} relaxa os ombros depois de falar.\n\n— Valeu por ouvir. Faz diferença ter alguém de confiança aqui dentro.`,
+      escolhas:[
+        { label:'Reforçar que ele pode contar com você sempre', efeitos:{amigo:c.id, amigoDelta:6, tracos:{humilde:1}} },
+        { label:'Só balançar a cabeça e voltar pro vestiário', efeitos:{amigo:c.id, amigoDelta:1} }
+      ]
+    } }; },
+  () => { const c = pick(GAME.elenco); return {
+    id:'amizade_desafio_embaixadinhas', categoria:'vestiario',
+    texto:(g)=>`Antes do treino começar, ${c.nome} joga a bola pro alto e sorri, provocando.\n\n— Duelo de embaixadinha, quem errar primeiro paga o lanche. Bora ver quem tem mais categoria.`,
+    escolhas:[
+      { label:'Aceitar o desafio na hora', efeitos:{amigo:c.id, amigoDelta:6, tracos:{confiante:1}} },
+      { label:'Recusar, prefere guardar energia pro treino', efeitos:{amigo:c.id, amigoDelta:-3, energia:2} }
+    ],
+    seguimento:{
+      texto:(g)=>pick([
+        `Depois de uma disputa boa, ${c.nome} acaba errando primeiro e ri, aceitando a derrota.`,
+        `Vocês dois empatam de tanto acertar, e o grupo ao redor já está rindo da cena.`
+      ]),
+      escolhas:[
+        { label:'Comemorar na boa e cobrar o lanche prometido', efeitos:{amigo:c.id, amigoDelta:5, moral:3, atributos:{controleDeBola:1}} },
+        { label:'Dizer que valeu o desafio, sem cobrar nada', efeitos:{amigo:c.id, amigoDelta:8, tracos:{humilde:1}} }
+      ]
+    } }; },
+  () => { const c = pick(GAME.elenco); return {
+    id:'amizade_mesma_paquera', categoria:'vestiario',
+    texto:(g)=>`${c.nome} puxa assunto meio sem jeito no vestiário.\n\n— Vou ser direto contigo: percebi que você também tá de olho na mesma pessoa que eu. Não quero que isso estrague nossa amizade.`,
+    escolhas:[
+      { label:'Dar um passo atrás e priorizar a amizade', efeitos:{amigo:c.id, amigoDelta:9, tracos:{humilde:1}} },
+      { label:'Ser sincero que também está interessado e ver no que dá', efeitos:{amigo:c.id, amigoDelta:-6, tracos:{confiante:1}} },
+      { label:'Propor conversar os três com transparência', efeitos:{amigo:c.id, amigoDelta:4, relacaoElenco:1} }
+    ] }; },
+  () => { const c = pick(GAME.elenco); return {
+    id:'amizade_cobrir_erro_treino', categoria:'vestiario',
+    texto:(g)=>`No coletivo, ${c.nome} erra feio e a bola sobra pro adversário fazer o gol. ${g.tecnico} para tudo, irritado, perguntando de quem foi a falha.\n\n${c.nome} te olha rápido, pedindo em silêncio pra você não entregar que foi ele.`,
+    escolhas:[
+      { label:'Cobrir e assumir a culpa junto com ele', efeitos:{amigo:c.id, amigoDelta:13, relacaoTreinador:-4, tracos:{humilde:1}} },
+      { label:'Ficar calado e deixar o técnico descobrir sozinho', efeitos:{amigo:c.id, amigoDelta:7, relacaoTreinador:-1} },
+      { label:'Contar a verdade quando perguntado diretamente', efeitos:{amigo:c.id, amigoDelta:-9, relacaoTreinador:3, tracos:{serio:1}} }
+    ] }; },
+  () => { const c = pick(GAME.elenco); return {
+    id:'amizade_surpresa_aniversario', categoria:'vestiario',
+    texto:(g)=>`${c.nome} te chama num canto, animado, contando um plano.\n\n— Vamos armar uma surpresa pro aniversário de outro moleque do elenco. Vou precisar que você me ajude a segurar ele lá fora até tarde sem desconfiar de nada.`,
+    escolhas:[
+      { label:'Topar ajudar, mesmo sabendo que vai render uma noite maldormida', efeitos:{amigo:c.id, amigoDelta:11, cuidadoFisico:-10, moral:5} },
+      { label:'Ajudar, mas combinar de voltar cedo pra não afetar o treino', efeitos:{amigo:c.id, amigoDelta:6, cuidadoFisico:3} },
+      { label:'Dizer que prefere não se envolver dessa vez', efeitos:{amigo:c.id, amigoDelta:-4} }
+    ] }; },
+  () => { const c = pick(GAME.elenco); return {
+    id:'amizade_reconciliacao_climao', categoria:'vestiario',
+    texto:(g)=>`Depois de dias de climão por causa de uma discussão boba no treino, ${c.nome} aparece na sua frente no vestiário, sem graça, quebrando o silêncio.\n\n— Isso tá chato. Bora deixar essa bobagem pra trás?`,
+    escolhas:[
+      { label:'Estender a mão e resolver ali mesmo', efeitos:{amigo:c.id, amigoDelta:14, tracos:{humilde:1}, relacaoElenco:1} },
+      { label:'Aceitar, mas deixar claro que ficou magoado', efeitos:{amigo:c.id, amigoDelta:5, tracos:{serio:1}} },
+      { label:'Dizer que ainda precisa de um tempo', efeitos:{amigo:c.id, amigoDelta:-3} }
+    ] }; },
+  () => { const c = pick(GAME.elenco); return {
+    id:'amizade_ensinar_jogada', categoria:'vestiario',
+    texto:(g)=>`No fim do treino, ${c.nome} fica pra trás com você no campo.\n\n— Vi um lance seu que travou hoje. Deixa eu te mostrar um jeito de sair dessa marcação, aprendi com um cara lá no meu antigo clube.`,
+    escolhas:[
+      { label:'Prestar atenção e treinar o movimento junto com ele', efeitos:{amigo:c.id, amigoDelta:10, atributos:{drible:1}, tracos:{humilde:1}} },
+      { label:'Agradecer, mas dizer que prefere o seu próprio estilo', efeitos:{amigo:c.id, amigoDelta:-3, tracos:{confiante:1}} }
+    ] }; },
+  () => { const c = pick(GAME.elenco); return {
+    id:'amizade_duvida_noturna', categoria:'geral',
+    texto:(g)=>pick([
+      `Já é quase meia-noite quando o celular vibra. É ${c.nome}.\n\n— Desculpa te acordar, mas não consigo dormir. E se eu não conseguir acompanhar o nível aqui? Fica difícil calar essa cabeça.`,
+      `Uma mensagem de ${c.nome} chega tarde da noite, véspera de jogo importante.\n\n— Cara, tô com um medo bobo de travar amanhã. Posso desabafar contigo um pouco?`
+    ]),
+    escolhas:[
+      { label:'Ficar acordado conversando até ele se acalmar', efeitos:{amigo:c.id, amigoDelta:9, cuidadoFisico:-8, energia:-4} },
+      { label:'Ouvir rápido, tranquilizar e sugerir os dois dormirem', efeitos:{amigo:c.id, amigoDelta:5, cuidadoFisico:5} },
+      { label:'Responder de forma seca, já estava dormindo', efeitos:{amigo:c.id, amigoDelta:-6} }
+    ] }; },
+  () => { const c = pick(GAME.elenco); return {
+    id:'amizade_marco_comemorado', categoria:'vestiario',
+    texto:(g)=>`${c.nome} vem correndo em sua direção assim que sai do vestiário, eufórico.\n\n— Consegui, cara! Fui relacionado pro time principal pela primeira vez! Não acredito que vai rolar!`,
+    escolhas:[
+      { label:'Comemorar igual se fosse com você mesmo', efeitos:{amigo:c.id, amigoDelta:11, moral:5, tracos:{descontraido:1}} },
+      { label:'Parabenizar, mas sentir uma pontinha de inveja por dentro', efeitos:{amigo:c.id, amigoDelta:3, pressaoPsicologica:2} },
+      { label:'Ficar feliz de forma discreta e seguir seu caminho', efeitos:{amigo:c.id, amigoDelta:1} }
+    ] }; },
+  () => { const c = pick(GAME.elenco); return {
+    id:'amizade_familia_dificil', categoria:'vestiario',
+    texto:(g)=>`${c.nome} chega mais quieto que o normal, se arrasta pelo treino sem o mesmo brilho de sempre. No fim, acaba se abrindo com você.\n\n— Minha família tá passando por um perrengue financeiro em casa. Tá difícil focar em bola pensando nisso.`,
+    escolhas:[
+      { label:'Ficar ao lado dele e ouvir sem pressa', efeitos:{amigo:c.id, amigoDelta:12, tracos:{humilde:1}} },
+      { label:'Tentar animá-lo e mudar de assunto rápido', efeitos:{amigo:c.id, amigoDelta:2} }
+    ],
+    seguimento:{
+      texto:(g)=>`Nos dias seguintes, ${c.nome} volta aos poucos a ser o de sempre, mas ainda carrega um peso na cara.`,
+      escolhas:[
+        { label:`Chamar ${c.nome} pra conversar de novo e ver como ele está`, efeitos:{amigo:c.id, amigoDelta:8, relacaoElenco:1} },
+        { label:'Dar espaço e não tocar mais no assunto', efeitos:{amigo:c.id, amigoDelta:-2} }
+      ]
+    } }; },
+  () => { const c = pick(GAME.elenco); return {
+    id:'amizade_climao_provocacao', categoria:'vestiario',
+    texto:(g)=>`${c.nome} entra no vestiário se achando depois de um treino em que se destacou mais que você.\n\n— Viu como se joga? Vai ter que correr atrás pra não ficar pra trás na briga pela vaga, hein.`,
+    escolhas:[
+      { label:'Rir da provocação e devolver na mesma moeda', efeitos:{amigo:c.id, amigoDelta:6, tracos:{descontraido:1}, confianca:2} },
+      { label:'Levar a sério e revidar com grosseria', efeitos:{amigo:c.id, amigoDelta:-11, tracos:{rebelde:1}, relacaoElenco:-1} },
+      { label:'Ignorar e deixar o jogo falar por você', efeitos:{amigo:c.id, amigoDelta:-2, tracos:{serio:1}} }
+    ] }; },
+  () => { const c = pick(GAME.elenco); return {
+    id:'amizade_despedida_transferencia', categoria:'vestiario',
+    texto:(g)=>`${c.nome} reúne o grupo pra dar uma notícia, mas puxa você de lado antes.\n\n— Fechei com outro clube, vou embora no fim do mês. Queria que você soubesse antes de todo mundo.`,
+    escolhas:[
+      { label:'Apoiar de coração e desejar sucesso', efeitos:{amigo:c.id, amigoDelta:10, tracos:{humilde:1}} },
+      { label:'Ficar magoado por ele não ter contado antes', efeitos:{amigo:c.id, amigoDelta:-5} }
+    ],
+    seguimento:{
+      texto:(g)=>`No último treino junto, ${c.nome} pede seu contato pra continuarem se falando depois que ele for embora.`,
+      escolhas:[
+        { label:'Trocar contato e prometer acompanhar a carreira dele', efeitos:{amigo:c.id, amigoDelta:9, relacaoElenco:1} },
+        { label:'Trocar contato só por educação, sem muita expectativa', efeitos:{amigo:c.id, amigoDelta:1} }
+      ]
+    } }; },
+  () => { const c = pick(GAME.elenco); return {
+    id:'amizade_susto_lesao', categoria:'vestiario',
+    texto:(g)=>`No meio do coletivo, ${c.nome} torce o tornozelo numa dividida e cai gritando de dor. O departamento médico corre pra atender, e o clima no campo fica tenso.`,
+    escolhas:[
+      { label:'Ficar ao lado dele até saber que está tudo bem', efeitos:{amigo:c.id, amigoDelta:13, cuidadoFisico:4, tracos:{humilde:1}} },
+      { label:'Voltar pro treino normalmente, confiando que é só um susto', efeitos:{amigo:c.id, amigoDelta:-6} }
     ] }; }
 ];
 
@@ -1545,6 +2622,70 @@ const EVENTOS_LADO_OBSCURO = [
       { label:'Recusar e não contar a ninguém', efeitos:{pressaoPsicologica:5, tracos:{humilde:1}} },
       { label:'Considerar a proposta por um instante', efeitos:{pressaoPsicologica:14, saudeMental:-10, atributos:{disciplina:-2}},
         extra:(g)=>{ pushNoticia('geral', `Rumores de tentativa de manipulação de resultado circulam discretamente no CT.`); } }
+    ] },
+  { id:'obscuro_direitos_imagem', categoria:'obscuro',
+    texto:(g)=>`Um suposto empresário de marketing esportivo aparece com um contrato de "cessão de direitos de imagem vitalícia" em troca de um adiantamento em dinheiro. As letras miúdas são muitas, e ele pressiona para você assinar ainda hoje.`,
+    escolhas:[
+      { label:'Recusar assinar sem um advogado ou responsável revisar antes', efeitos:{atributos:{decisao:1}, tracos:{serio:1}} },
+      { label:'Levar o contrato para a diretoria do clube analisar', efeitos:{relacaoDiretoria:5, tracos:{humilde:1}} },
+      { label:'Assinar na hora, animado com o dinheiro adiantado', efeitos:{pressaoPsicologica:12, saudeMental:-8, imagemMidia:-10},
+        extra:(g)=>{ pushNoticia('geral', `${g.identidade.apelido} assinou um contrato obscuro de direitos de imagem sem entender direito as cláusulas.`); } }
+    ] },
+  { id:'obscuro_excursao_falsa', categoria:'obscuro',
+    texto:(g)=>`Um homem se apresenta como intermediário de clubes europeus e oferece uma vaga numa "excursão de testes" no exterior — mas cobra, adiantado e em espécie, uma taxa alta para reservar passagem e hospedagem.`,
+    escolhas:[
+      { label:'Pedir referências verificáveis antes de qualquer pagamento', efeitos:{atributos:{decisao:1}, tracos:{serio:1}} },
+      { label:'Contar para o clube e pedir orientação sobre a proposta', efeitos:{relacaoDiretoria:4, tracos:{humilde:1}} },
+      { label:'Pagar a taxa sozinho, sem contar a ninguém', efeitos:{pressaoPsicologica:14, saudeMental:-10},
+        extra:(g)=>{ const perda = Math.min(400, Math.round((g.carteira||0)*0.5)+100); g.carteira = Math.max(0,(g.carteira||0)-perda); pushNoticia('geral', `${g.identidade.apelido} pagou por uma "excursão de testes" no exterior que nunca existiu e perdeu R$ ${perda}.`); } }
+    ] },
+  { id:'obscuro_perfil_falso_clube', categoria:'obscuro',
+    texto:(g)=>`Uma mensagem chega pelas redes sociais: um perfil se identifica como "olheiro oficial" de um grande clube e pede seus dados bancários completos para um suposto "cadastro no sistema de contratação".`,
+    escolhas:[
+      { label:'Bloquear o perfil e denunciar a tentativa de golpe', efeitos:{atributos:{decisao:1}, tracos:{serio:1}} },
+      { label:'Mostrar a conversa para alguém de confiança no clube', efeitos:{relacaoDiretoria:4, tracos:{humilde:1}} },
+      { label:'Enviar os dados, na esperança de que a oportunidade seja real', efeitos:{pressaoPsicologica:16, saudeMental:-10},
+        extra:(g)=>{ const perda = Math.min(350, Math.round((g.carteira||0)*0.4)+80); g.carteira = Math.max(0,(g.carteira||0)-perda); pushNoticia('geral', `${g.identidade.apelido} teve dados bancários usados por golpistas que se passavam por um clube grande e perdeu R$ ${perda}.`); } }
+    ] },
+  { id:'obscuro_emprestimo_futuro', categoria:'obscuro',
+    texto:(g)=>`Um "investidor" oferece dinheiro vivo agora, em troca de um percentual informal sobre seu futuro valor de transferência — um acordo de boca, sem qualquer respaldo legal ou registro.`,
+    escolhas:[
+      { label:'Recusar o empréstimo e conversar com a família sobre as finanças', efeitos:{atributos:{decisao:1}, tracos:{serio:1}, relacaoFamilia:2} },
+      { label:'Buscar orientação financeira formal com o clube antes de decidir', efeitos:{relacaoDiretoria:4} },
+      { label:'Aceitar o dinheiro para resolver um aperto financeiro imediato', efeitos:{pressaoPsicologica:16, saudeMental:-10, relacaoFamilia:-4},
+        extra:(g)=>{ const ganho = Math.min(200, Math.round((g.carteira||0)*0.2)+50); g.carteira = (g.carteira||0)+ganho; pushNoticia('geral', `${g.identidade.apelido} fechou um empréstimo informal atrelado a uma futura transferência, sem qualquer garantia legal.`); } }
+    ] },
+  { id:'obscuro_material_pirata', categoria:'obscuro',
+    texto:(g)=>`Um contato oferece chuteiras e uniformes "de grife" por um preço muito baixo, pedindo que você poste fotos usando o material e o divulgue como se fosse um patrocínio oficial — na verdade, são produtos piratas falsificados.`,
+    escolhas:[
+      { label:'Recusar e comprar material original, mesmo que mais caro', efeitos:{atributos:{decisao:1}, tracos:{serio:1}} },
+      { label:'Perguntar ao departamento de marketing do clube se é permitido', efeitos:{relacaoDiretoria:4} },
+      { label:'Aceitar e divulgar os produtos falsificados nas redes sociais', efeitos:{imagemMidia:-14, relacaoMidia:-8, pressaoPsicologica:8},
+        extra:(g)=>{ pushNoticia('geral', `${g.identidade.apelido} foi flagrado divulgando produtos esportivos falsificados nas redes sociais.`); } }
+    ] },
+  { id:'obscuro_exame_falsificado', categoria:'obscuro',
+    texto:(g)=>`Antes de uma avaliação importante com observadores de outro clube, alguém liga oferecendo "ajeitar" os resultados do seu exame médico para esconder uma lesão que você vem sentindo nos últimos treinos.`,
+    escolhas:[
+      { label:'Recusar e ser transparente sobre sua condição física', efeitos:{atributos:{decisao:1}, tracos:{serio:1}, cuidadoFisico:5} },
+      { label:'Conversar com o departamento médico do clube sobre a situação', efeitos:{relacaoDiretoria:4, cuidadoFisico:5} },
+      { label:'Aceitar a falsificação para não perder a chance de avaliação', efeitos:{pressaoPsicologica:16, saudeMental:-10, cuidadoFisico:-20, energia:-8},
+        extra:(g)=>{ pushNoticia('geral', `${g.identidade.apelido} escondeu uma lesão com um exame médico adulterado para não perder uma avaliação.`); } }
+    ] },
+  { id:'obscuro_aposta_informacao', categoria:'obscuro',
+    texto:(g)=>`Um homem num bar perto do centro de treinamento puxa conversa e, aos poucos, sugere que você poderia "ganhar uma grana extra" repassando informações internas do time para apostas esportivas.`,
+    escolhas:[
+      { label:'Cortar a conversa e se afastar imediatamente', efeitos:{atributos:{decisao:1}, tracos:{serio:1}} },
+      { label:'Relatar a abordagem para a diretoria do clube', efeitos:{relacaoDiretoria:5, tracos:{humilde:1}} },
+      { label:'Aceitar passar informações em troca de dinheiro', efeitos:{pressaoPsicologica:20, saudeMental:-12, disciplina:-10, relacaoDiretoria:-10},
+        extra:(g)=>{ const ganho = Math.min(150, Math.round((g.carteira||0)*0.15)+40); g.carteira = (g.carteira||0)+ganho; pushNoticia('geral', `${g.identidade.apelido} começou a repassar informações internas do time para um esquema de apostas.`); } }
+    ] },
+  { id:'obscuro_empresario_sumido', categoria:'obscuro',
+    texto:(g)=>`Um homem que diz cuidar da carreira de vários jogadores se oferece para intermediar sua luva (bônus de assinatura) e "guardar" o valor com segurança até você decidir o que fazer com o dinheiro.`,
+    escolhas:[
+      { label:'Insistir para que o valor vá direto para sua conta ou da família', efeitos:{atributos:{decisao:1}, tracos:{serio:1}} },
+      { label:'Consultar a diretoria sobre a idoneidade dessa pessoa', efeitos:{relacaoDiretoria:4} },
+      { label:'Deixar o dinheiro sob os cuidados dele', efeitos:{pressaoPsicologica:14, saudeMental:-10},
+        extra:(g)=>{ const perda = Math.min(500, Math.round((g.carteira||0)*0.7)+150); g.carteira = Math.max(0,(g.carteira||0)-perda); pushNoticia('geral', `${g.identidade.apelido} confiou a luva a um "empresário" que sumiu sem deixar rastro, levando R$ ${perda}.`); } }
     ] }
 ];
 
@@ -1564,6 +2705,30 @@ const EVENTOS_LUTO = [
     escolhas:[
       { label:'Participar ativamente das homenagens dentro do clube', efeitos:{relacaoElenco:8, relacaoDiretoria:4, saudeMental:-8, moral:-8} },
       { label:'Lidar com a notícia mais sozinho, à sua maneira', efeitos:{saudeMental:-10, moral:-6} }
+    ] },
+  { id:'luto_pai', categoria:'luto',
+    texto:(g)=>`Uma ligação inesperada da sua mãe muda tudo em segundos: seu pai sofreu um infarto e não resistiu.\n\nO chão que sempre sustentou sua caminhada no futebol some de uma vez. Nada, agora, parece ter o mesmo peso de antes.`,
+    escolhas:[
+      { label:'Pedir para se ausentar e ficar perto da família', efeitos:{relacaoFamilia:12, saudeMental:-14, moral:-14, energia:-10} },
+      { label:'Seguir na rotina do clube, tentando se distrair da dor', efeitos:{relacaoFamilia:-6, saudeMental:-16, moral:-12, disciplina:2} }
+    ] },
+  { id:'luto_amigo_infancia', categoria:'luto',
+    texto:(g)=>`Uma notícia chega pelo celular, curta e seca: seu melhor amigo de infância, aquele que jogava bola com você na rua antes de tudo isso começar, morreu num acidente.\n\nVocês cresceram sonhando juntos o mesmo sonho. Agora, metade dele se foi.`,
+    escolhas:[
+      { label:'Viajar para se despedir e estar com a família dele', efeitos:{relacaoFamilia:6, saudeMental:-14, moral:-12, energia:-8} },
+      { label:'Ficar e carregar a saudade em silêncio, sem contar quase para ninguém', efeitos:{saudeMental:-16, moral:-10, relacaoElenco:-2} }
+    ] },
+  { id:'luto_animal_estimacao', categoria:'luto',
+    texto:(g)=>`Seu cachorro, companheiro desde criança que esperava na porta depois de cada treino, morreu de velhice enquanto você estava no centro de treinamento.\n\nPode parecer pequeno visto de fora. Para você, é como perder um pedaço de casa.`,
+    escolhas:[
+      { label:'Pedir para ir para casa se despedir e enterrar seu companheiro', efeitos:{relacaoFamilia:8, saudeMental:-8, moral:-8, energia:-6} },
+      { label:'Guardar a tristeza para si e seguir o treino do dia normalmente', efeitos:{saudeMental:-10, moral:-6, disciplina:2} }
+    ] },
+  { id:'luto_treinador_base', categoria:'luto',
+    texto:(g)=>`Você recebe a notícia de que o treinador que te descobriu nas categorias de base, ainda criança, muito antes de qualquer contrato profissional, morreu depois de lutar contra uma doença grave.\n\nFoi ele quem primeiro disse que você tinha talento. Sem ele, talvez você nem estivesse aqui.`,
+    escolhas:[
+      { label:'Pedir a folga para comparecer ao velório, mesmo estando longe', efeitos:{relacaoFamilia:4, saudeMental:-12, moral:-12, energia:-10} },
+      { label:'Dedicar o próximo treino à memória dele, sem se ausentar', efeitos:{saudeMental:-12, moral:-10, popularidade:2} }
     ] }
 ];
 
@@ -1615,9 +2780,67 @@ function gerarEventoPatrocinio(marca){
   };
 }
 
+// Últimos resultados oficiais do clube (do ponto de vista do seu time), usados
+// pra travar eventos que citam "sequência de vitórias/derrotas" ou "derrota
+// vexatória" — eles só devem poder sortear quando isso realmente aconteceu.
+function sequenciaAtual(){
+  const historico = GAME.temporadaState && GAME.temporadaState.liga && GAME.temporadaState.liga.historico;
+  if(!historico || !historico.length) return { tipo:null, tamanho:0 };
+  let tamanho = 0, tipo = null;
+  for(let i=historico.length-1; i>=0; i--){
+    const h = historico[i];
+    const t = h.golsMeu > h.golsAdversario ? 'vitoria' : h.golsMeu < h.golsAdversario ? 'derrota' : 'empate';
+    if(tipo===null) tipo = t;
+    if(t !== tipo) break;
+    tamanho++;
+  }
+  return { tipo, tamanho };
+}
+function ultimoResultado(){
+  const historico = GAME.temporadaState && GAME.temporadaState.liga && GAME.temporadaState.liga.historico;
+  if(!historico || !historico.length) return null;
+  const h = historico[historico.length-1];
+  return {
+    tipo: h.golsMeu > h.golsAdversario ? 'vitoria' : h.golsMeu < h.golsAdversario ? 'derrota' : 'empate',
+    margem: h.golsAdversario - h.golsMeu
+  };
+}
+// Acesso matematicamente garantido: mesmo se o primeiro time fora da zona de
+// acesso vencesse TODOS os jogos que restam, ainda assim não alcançaria você.
+// Só nesse ponto faz sentido narrativamente comemorar o acesso — não apenas
+// estar dentro do G-4 no início da temporada, quando ainda pode mudar tudo.
+function acessoMatematicamenteGarantido(){
+  const liga = GAME.temporadaState && GAME.temporadaState.liga;
+  if(!liga) return false;
+  const meuTier = tierDoClube(GAME.clube);
+  if(TIERS_ORDEM.indexOf(meuTier) >= TIERS_ORDEM.length-1) return false; // já na divisão mais alta, não existe "acesso"
+  const restantes = liga.calendario.length - liga.rodadaAtual;
+  if(restantes <= 0) return false; // a temporada já encerrou; isso é tratado no fim de temporada
+  const linhas = liga.clubes.map(c => ({ c, t: liga.tabela[c.id] })).sort((a,b) => b.t.pts-a.t.pts || b.t.sg-a.t.sg || b.t.gp-a.t.gp);
+  const minhaPos = linhas.findIndex(l => l.c.id === GAME.clube.id);
+  if(minhaPos < 0 || minhaPos >= ZONA_ACESSO) return false; // não está no G-4 (ou equivalente) agora
+  const primeiroFora = linhas[ZONA_ACESSO];
+  if(!primeiroFora) return false;
+  const meusPontos = linhas[minhaPos].t.pts;
+  const maxPontosPossiveisChaser = primeiroFora.t.pts + restantes*3;
+  return meusPontos > maxPontosPossiveisChaser;
+}
+// Eventos que citam resultados recentes só entram no sorteio se o que
+// realmente aconteceu bater com o que o texto do evento descreve
+function eventoBateComResultado(id){
+  if(id === 'equipe_sequencia_vitorias'){ const s = sequenciaAtual(); return s.tipo==='vitoria' && s.tamanho>=2; }
+  if(id === 'equipe_sequencia_derrotas'){ const s = sequenciaAtual(); return s.tipo==='derrota' && s.tamanho>=2; }
+  if(id === 'equipe_treino_extra_punicao'){ const u = ultimoResultado(); return !!u && u.tipo==='derrota' && u.margem>=2; }
+  if(id === 'equipe_acesso_comemoracao'){
+    const ts = GAME.temporadaState;
+    return !ts.acessoComemoradoTemporada && acessoMatematicamenteGarantido();
+  }
+  return true;
+}
 function sortearEvento(){
   const ts = GAME.temporadaState;
-  const pool = [...EVENTOS_RECORRENTES, ...EVENTOS_ADOLESCENTE, ...EVENTOS_EQUIPE, ...EVENTOS_CLUBE];
+  const pool = [...EVENTOS_RECORRENTES, ...EVENTOS_ADOLESCENTE, ...EVENTOS_EQUIPE, ...EVENTOS_CLUBE]
+    .filter(e => eventoBateComResultado(e.id));
   if(GAME.elenco && GAME.elenco.length){
     pool.push(...EVENTOS_AMIZADE.map(gerador => gerador()));
   }
@@ -1674,6 +2897,7 @@ function renderEvento(){
       if(esc.extra) esc.extra(GAME);
       pushHistorico(`Evento: ${esc.label}`);
       if(evt.id === 'empresario') ts.empresarioOfertado = true;
+      if(evt.id === 'equipe_acesso_comemoracao') ts.acessoComemoradoTemporada = true;
       ts.eventoAtual = null;
       ts.subFase = 'treino';
       salvarJogo();
@@ -1719,10 +2943,27 @@ function renderSeguimentoEvento(){
 // Risco de lesão: só pesa de verdade quando a energia já está baixa (fadiga
 // acumulada). Com energia em dia, o risco fica perto do mínimo — lesão deve
 // ser exceção ao longo da temporada, não regra.
+// Risco de lesão: baseline bem mais baixo que antes (a temporada agora é
+// bem mais longa, tipo Brasileirão, então a chance por semana precisa ser
+// menor para a taxa de lesões na carreira continuar realista). Em cima
+// disso, três fatores empurram o risco individual pra cima ou pra baixo:
+// histórico (quem já se machucou fica mais frágil), idade (corpo mais velho
+// tende a se machucar mais) e cuidadoFisico — o quanto o jogador vem
+// cuidando do próprio corpo nas escolhas fora de campo (sono, fisioterapia,
+// alimentação) contra ser mais desleixado (noites mal dormidas, ignorar dor).
 function checarLesao(riscoMod){
   if(GAME.lesaoAtual) return;
   const fadiga = Math.max(0, 55 - GAME.status.energia); // 0 se energia >= 55
-  const prob = clamp(fadiga*0.22 + riscoMod*0.6 + (100-GAME.atributos.resistencia)*0.05 - GAME.atributos.forca*0.03 + rand(-4,4), 0, 16);
+  const idade = idadeAtual();
+  const fatorIdade = idade > 27 ? (idade-27)*0.8 : 0;
+  const fatorHistorico = Math.min(GAME.historicoLesoesTotal||0, 6) * 0.55;
+  const cuidado = GAME.cuidadoFisico!=null ? GAME.cuidadoFisico : 50;
+  const fatorCuidado = (50 - cuidado) * 0.06; // desleixado (cuidado baixo) aumenta risco, cuidadoso reduz
+  const prob = clamp(
+    fadiga*0.13 + riscoMod*0.35 + (100-GAME.atributos.resistencia)*0.03 - GAME.atributos.forca*0.02
+    + fatorIdade + fatorHistorico + fatorCuidado + rand(-3,3),
+    0, 13
+  );
   if(chance(prob)){
     let tipo, semanas;
     const grau = rand(1,100);
@@ -1730,8 +2971,9 @@ function checarLesao(riscoMod){
     else if(grau <= 87){ tipo='Entorse leve'; semanas=2; }
     else if(grau <= 97){ tipo='Lesão média'; semanas=rand(3,4); }
     else { tipo='Lesão grave'; semanas=rand(6,8); }
-    GAME.lesaoAtual = { tipo, semanasRestantes:semanas };
+    GAME.lesaoAtual = { tipo, semanasRestantes:semanas, semanasTotais:semanas };
     GAME.stats.lesoes += 1;
+    GAME.historicoLesoesTotal = (GAME.historicoLesoesTotal||0) + 1;
     GAME.sociais.moral = clamp(GAME.sociais.moral - 10, 0, 100);
     GAME.status.pressao = clamp(GAME.status.pressao + 8, 0, 100);
     ajustarSaudeMental(-8);
@@ -1754,9 +2996,15 @@ function renderLesao(){
     GAME.status.condicaoFisica = clamp(GAME.status.condicaoFisica + 8, 0, 100);
     if(GAME.lesaoAtual.semanasRestantes <= 0){
       pushNoticia('geral', `${GAME.identidade.apelido} está recuperado e liberado para retornar.`);
+      // volta aos poucos: por um tempo depois da lesão, os treinos rendem menos
+      GAME.recondicionamentoSemanas = Math.max(GAME.recondicionamentoSemanas||0, Math.ceil(GAME.lesaoAtual.semanasTotais/2));
       GAME.lesaoAtual = null;
     }
-    avancarSemana();
+    // o calendário da liga não pode pular rodada: se essa semana tem jogo marcado,
+    // o time joga mesmo assim (sem você em campo, se ainda estiver lesionado)
+    const periodo = periodoAtualObj();
+    const temJogo = periodo.jogos[GAME.temporadaState.semanaNoPeriodo];
+    if(temJogo){ prepararPartida(); } else { avancarSemana(); }
   };
 }
 
@@ -1789,16 +3037,25 @@ function aplicarTreino(treino){
   const fatorDisciplina = 0.5 + (GAME.atributos.disciplina/100)*0.5;
   const fatorEnergia = GAME.status.energia >= 30 ? 1 : 0.5;
   const fatorMoral = 0.7 + (GAME.sociais.moral/100)*0.3;
+  // recém-voltado de lesão: corpo ainda não respondeu 100%, evolução mais lenta por umas semanas
+  const fatorRecondicionamento = (GAME.recondicionamentoSemanas||0) > 0 ? 0.45 : 1;
   let qualidade = 0;
   treino.attrs.forEach(chave => {
     const atual = GAME.atributos[chave];
-    // retornos decrescentes: fica cada vez mais difícil evoluir perto do topo,
-    // pra ninguém virar craque de atributo 99 em uma ou duas temporadas
-    const fatorTeto = clamp(1 - (atual-30)/95, 0.12, 1);
-    const ganho = atual >= 97 ? 0 : Math.max(1, Math.round(rand(1,2) * fatorDisciplina * fatorEnergia * fatorMoral * fatorTeto));
+    // retornos decrescentes fortes: quanto mais perto do teto, mais raro evoluir —
+    // ninguém deve virar craque de atributo 90+ em uma ou duas temporadas.
+    // Cada treino só tem uma CHANCE de render +1 (não é garantido), então a
+    // evolução real depende de treinar com constância, disciplina e moral em dia.
+    const fatorTeto = clamp(1 - (atual-30)/70, 0.05, 1);
+    const chanceGanho = atual >= 95 ? 0 : clamp(36 * fatorDisciplina * fatorEnergia * fatorMoral * fatorRecondicionamento * fatorTeto, 3, 65);
+    const ganho = chance(chanceGanho) ? 1 : 0;
     GAME.atributos[chave] = clamp(GAME.atributos[chave] + ganho, 1, 99);
     qualidade += ganho;
   });
+  // cuidar do corpo (descanso) ou insistir treinando exausto também molda o
+  // cuidadoFisico de longo prazo, que por sua vez pesa no risco de lesão
+  if(treino.id === 'descanso') GAME.cuidadoFisico = clamp((GAME.cuidadoFisico!=null?GAME.cuidadoFisico:50) + 1, 0, 100);
+  else if(GAME.status.energia < 25) GAME.cuidadoFisico = clamp((GAME.cuidadoFisico!=null?GAME.cuidadoFisico:50) - 1, 0, 100);
   GAME.status.energia = clamp(GAME.status.energia - treino.custo, 0, 100);
   ts.mediaTreinoRecente = clamp(ts.mediaTreinoRecente*0.6 + (treino.id==='descanso'? 55 : (40+qualidade*8))*0.4, 0, 100);
   pushHistorico(`Treino da semana: ${treino.nome}.`);
@@ -1826,6 +3083,7 @@ function prosseguirAposTreino(){
 
 /* ------------------------------ PARTIDA --------------------------------- */
 function decidirEscalacao(){
+  if(GAME.lesaoAtual) return 'naoRelacionado'; // lesionado não entra em campo, mas o time joga do mesmo jeito
   const ts = GAME.temporadaState;
   const score = GAME.relacoes.treinador*0.3 + ts.mediaTreinoRecente*0.3 + GAME.status.energia*0.2 + GAME.atributos.disciplina*0.2 + rand(-15,15);
   if(score >= 65) return 'titular';
@@ -1868,6 +3126,90 @@ const LANCES_ATAQUE = [
     escolhas:[
       { label:'Antecipar e cabecear ao gol', perfil:'finalizar', attr:'impulsao' },
       { label:'Buscar posição, sem se arriscar', perfil:'cauteloso', attr:'concentracao' }
+    ] },
+  { texto:()=>`Bola na entrada da área, um espaço se abre entre dois zagueiros para um chute cruzado.`,
+    escolhas:[
+      { label:'Arriscar o chute cruzado no ângulo', perfil:'finalizar', attr:'chuteDeLonge' },
+      { label:'Ajustar o corpo e buscar o gol mais perto', perfil:'finalizar', attr:'finalizacao' },
+      { label:'Tocar para o companheiro na entrada da área', perfil:'passar', attr:'passeCurto' }
+    ] },
+  { texto:()=>`Lançamento longo cai nas suas costas, com o zagueiro correndo ao seu lado.`,
+    escolhas:[
+      { label:'Disputar o corpo a corpo pela bola', perfil:'driblar', attr:'forca' },
+      { label:'Usar a velocidade para se antecipar', perfil:'finalizar', attr:'velocidade' },
+      { label:'Esperar reforço antes de arriscar', perfil:'cauteloso', attr:'decisao' }
+    ] },
+  { texto:()=>`Na intermediária, você recebe de frente para o gol com espaço para arrancar.`,
+    escolhas:[
+      { label:'Arrancar em velocidade rumo à área', perfil:'driblar', attr:'aceleracao' },
+      { label:'Tentar o chute de longe', perfil:'finalizar', attr:'chuteDeLonge' },
+      { label:'Verticalizar o jogo com um passe em profundidade', perfil:'passar', attr:'visaoDeJogo' }
+    ] },
+  { texto:()=>`Bate-rebate na pequena área depois de um escanteio, a bola sobra livre.`,
+    escolhas:[
+      { label:'Empurrar para o gol de qualquer jeito', perfil:'finalizar', attr:'finalizacao' },
+      { label:'Ajeitar e tocar para o companheiro melhor postado', perfil:'passar', attr:'passeCurto' }
+    ] },
+  { texto:()=>`Contra-ataque pelo lado do campo, o lateral adversário vem recuando marcando de longe.`,
+    escolhas:[
+      { label:'Acelerar e ganhar a corrida', perfil:'driblar', attr:'velocidade' },
+      { label:'Cruzar assim que abrir espaço', perfil:'passar', attr:'cruzamento' },
+      { label:'Segurar a bola e esperar apoio', perfil:'cauteloso', attr:'decisao' }
+    ] },
+  { texto:()=>`Depois de um bate-rebate na entrada da área, a bola sobra para você bater de primeira.`,
+    escolhas:[
+      { label:'Bater sem pensar duas vezes', perfil:'finalizar', attr:'finalizacao' },
+      { label:'Ajustar o corpo antes de arriscar', perfil:'passar', attr:'visaoDeJogo' }
+    ] },
+  { texto:()=>`Falta na entrada da área, na medida certa para você cobrar.`,
+    escolhas:[
+      { label:'Bater direto ao gol', perfil:'finalizar', attr:'bolaParada' },
+      { label:'Rolar curto para a jogada ensaiada', perfil:'passar', attr:'passeCurto' }
+    ] },
+  { texto:()=>`Passe em profundidade te deixa cara a cara com o goleiro, mas com ângulo fechado.`,
+    escolhas:[
+      { label:'Bater cruzado com frieza', perfil:'finalizar', attr:'frieza' },
+      { label:'Ajeitar a bola pro outro lado antes de finalizar', perfil:'driblar', attr:'controleDeBola' },
+      { label:'Rolar para quem chega em melhor posição', perfil:'passar', attr:'visaoDeJogo' }
+    ] },
+  { texto:()=>`Cruzamento rasteiro na pequena área, só empurrar para o gol.`,
+    escolhas:[
+      { label:'Empurrar para as redes', perfil:'finalizar', attr:'finalizacao' },
+      { label:'Deixar passar para quem vem atrás', perfil:'cauteloso', attr:'concentracao' }
+    ] },
+  { texto:()=>`Jogada ensaiada de escanteio: você aparece livre na entrada da área, um pouco mais atrás.`,
+    escolhas:[
+      { label:'Arriscar o chute forte de primeira', perfil:'finalizar', attr:'chuteDeLonge' },
+      { label:'Tocar pro companheiro mais perto do gol', perfil:'passar', attr:'passeCurto' }
+    ] },
+  { texto:()=>`Disputa de bola dividida na entrada da área, ela sobra solta bem na sua frente.`,
+    escolhas:[
+      { label:'Bater de primeira, sem deixar cair', perfil:'finalizar', attr:'finalizacao' },
+      { label:'Dominar antes de decidir', perfil:'driblar', attr:'controleDeBola' }
+    ] },
+  { texto:()=>`Lançamento longo pela ponta te dá espaço de sobra para o cruzamento.`,
+    escolhas:[
+      { label:'Cruzar na área para o centroavante', perfil:'passar', attr:'cruzamento' },
+      { label:'Cortar para dentro e arriscar o chute', perfil:'driblar', attr:'drible' },
+      { label:'Bater cruzado de longe mesmo', perfil:'finalizar', attr:'chuteDeLonge' }
+    ] },
+  { texto:()=>`Depois de uma triangulação rápida no ataque, a bola sobra livre na entrada da área.`,
+    escolhas:[
+      { label:'Finalizar sem titubear', perfil:'finalizar', attr:'finalizacao' },
+      { label:'Mais um toque para abrir o ângulo', perfil:'passar', attr:'passeCurto' },
+      { label:'Tentar mais um drible antes de bater', perfil:'driblar', attr:'drible' }
+    ] },
+  { texto:()=>`Pênalti a seu favor, a torcida grita seu nome pedindo para você bater.`,
+    escolhas:[
+      { label:'Bater forte no canto que estudou', perfil:'finalizar', attr:'decisao' },
+      { label:'Esperar o goleiro se mexer para decidir', perfil:'finalizar', attr:'frieza' },
+      { label:'Arriscar a cavadinha no meio do gol', perfil:'finalizar', attr:'controleDeBola' }
+    ] },
+  { texto:()=>`Você recebe de costas para o gol, na entrada da área, com dois zagueiros grudados.`,
+    escolhas:[
+      { label:'Girar rápido e arriscar de primeira', perfil:'finalizar', attr:'frieza' },
+      { label:'Aliviar tocando para o meio-campo', perfil:'passar', attr:'passeCurto' },
+      { label:'Proteger a bola com o corpo e girar aos poucos', perfil:'driblar', attr:'forca' }
     ] }
 ];
 const LANCES_DEFESA = [
@@ -1892,6 +3234,89 @@ const LANCES_DEFESA = [
     escolhas:[
       { label:'Entrar firme para ganhar a bola', perfil:'desarmar', attr:'forca' },
       { label:'Antecipar a jogada com leitura', perfil:'cauteloso', attr:'interceptacao' }
+    ] },
+  { texto:()=>`Cobrança de falta perigosa na entrada da área adversária — você está na barreira.`,
+    escolhas:[
+      { label:'Saltar para tentar bloquear o chute', perfil:'desarmar', attr:'coragem' },
+      { label:'Manter a posição, sem se mexer antes da hora', perfil:'cauteloso', attr:'concentracao' }
+    ] },
+  { texto:()=>`Bola disputada na lateral do campo, adversário tentando ganhar espaço para cruzar.`,
+    escolhas:[
+      { label:'Fechar o espaço com intensidade', perfil:'desarmar', attr:'desarme' },
+      { label:'Ler a jogada e cortar a linha de passe', perfil:'cauteloso', attr:'interceptacao' }
+    ] },
+  { texto:()=>`Contra-ataque em dois contra um, você é o último homem antes da defesa.`,
+    escolhas:[
+      { label:'Tentar o desarme decisivo mesmo arriscando cartão', perfil:'desarmar', attr:'desarme' },
+      { label:'Recuar e forçar o adversário para um ângulo fechado', perfil:'cauteloso', attr:'decisao' },
+      { label:'Cometer falta tática para cortar o contra-ataque', perfil:'arriscado', attr:'disciplina' }
+    ] },
+  { texto:()=>`Escanteio na sua área, o atacante mais perigoso do adversário se posiciona para a cabeçada.`,
+    escolhas:[
+      { label:'Antecipar e afastar de cabeça', perfil:'desarmar', attr:'impulsao' },
+      { label:'Ficar bem posicionado, sem se atirar', perfil:'cauteloso', attr:'concentracao' }
+    ] },
+  { texto:()=>`O adversário tenta o lançamento nas suas costas, é corrida contra corrida até a linha de fundo.`,
+    escolhas:[
+      { label:'Correr para ganhar a disputa', perfil:'desarmar', attr:'velocidade' },
+      { label:'Calcular o ângulo e cortar antes', perfil:'cauteloso', attr:'decisao' }
+    ] },
+  { texto:()=>`O atacante tenta o giro dentro da área, colado nas suas costas.`,
+    escolhas:[
+      { label:'Segurar a posição com o corpo', perfil:'desarmar', attr:'forca' },
+      { label:'Manter a marcação sem dar espaço', perfil:'cauteloso', attr:'marcacao' },
+      { label:'Puxar a camisa discretamente, se precisar', perfil:'arriscado', attr:'disciplina' }
+    ] },
+  { texto:()=>`Bola alta na grande área, dois atacantes adversários disputando ao mesmo tempo.`,
+    escolhas:[
+      { label:'Subir com força para ganhar no ar', perfil:'desarmar', attr:'impulsao' },
+      { label:'Se posicionar entre os dois, sem arriscar o corpo', perfil:'cauteloso', attr:'concentracao' }
+    ] },
+  { texto:()=>`Você foi ultrapassado na velocidade e precisa correr atrás da jogada.`,
+    escolhas:[
+      { label:'Correr o quanto puder para recuperar', perfil:'desarmar', attr:'velocidade' },
+      { label:'Cometer a falta antes que o perigo cresça', perfil:'arriscado', attr:'disciplina' }
+    ] },
+  { texto:()=>`Bola dividida no meio-campo, decisão rápida de quem vai para cima.`,
+    escolhas:[
+      { label:'Ir junto e marcar de perto', perfil:'desarmar', attr:'marcacao' },
+      { label:'Ficar entrelinhas e cortar o passe seguinte', perfil:'cauteloso', attr:'interceptacao' }
+    ] },
+  { texto:()=>`Cruzamento na área com disputa dura no primeiro pau.`,
+    escolhas:[
+      { label:'Entrar com tudo na disputa de corpo', perfil:'desarmar', attr:'forca' },
+      { label:'Ficar de olho no rebote, sem se arriscar', perfil:'cauteloso', attr:'concentracao' }
+    ] },
+  { texto:()=>`O adversário organiza um contra-ataque veloz, só você entre ele e o goleiro.`,
+    escolhas:[
+      { label:'Encarar a disputa e tentar o desarme', perfil:'desarmar', attr:'desarme' },
+      { label:'Recuar e ganhar tempo para o time se organizar', perfil:'cauteloso', attr:'decisao' },
+      { label:'Fazer a falta tática, mesmo arriscando cartão', perfil:'arriscado', attr:'disciplina' }
+    ] },
+  { texto:()=>`Bola solta na entrada da sua área depois de um rebote, disputa acirrada por ela.`,
+    escolhas:[
+      { label:'Chegar primeiro e cortar o perigo', perfil:'desarmar', attr:'interceptacao' },
+      { label:'Se posicionar para bloquear a finalização', perfil:'cauteloso', attr:'concentracao' }
+    ] },
+  { texto:()=>`Marcação individual apertada no principal armador do time adversário.`,
+    escolhas:[
+      { label:'Grudar na marcação o jogo inteiro', perfil:'desarmar', attr:'marcacao' },
+      { label:'Manter a calma sem cometer falta boba', perfil:'cauteloso', attr:'disciplina' }
+    ] },
+  { texto:()=>`Escanteio cobrado na segunda trave, disputa mais longe do gol.`,
+    escolhas:[
+      { label:'Subir para afastar de cabeça', perfil:'desarmar', attr:'impulsao' },
+      { label:'Antecipar a sobra com leitura de jogo', perfil:'cauteloso', attr:'interceptacao' }
+    ] },
+  { texto:()=>`Bola nas costas da defesa, você é o único que ainda pode alcançar o atacante adversário.`,
+    escolhas:[
+      { label:'Correr o máximo possível para alcançar', perfil:'desarmar', attr:'velocidade' },
+      { label:'Fazer a falta antes que ele fique cara a cara com o gol', perfil:'arriscado', attr:'disciplina' }
+    ] },
+  { texto:()=>`Cobrança de lateral longa cai na área, disputa de posicionamento antes da bola chegar.`,
+    escolhas:[
+      { label:'Se antecipar e afastar antes da disputa', perfil:'desarmar', attr:'interceptacao' },
+      { label:'Ficar bem postado para o corpo a corpo', perfil:'cauteloso', attr:'forca' }
     ] }
 ];
 const LANCES_GOLEIRO = [
@@ -1914,6 +3339,86 @@ const LANCES_GOLEIRO = [
     escolhas:[
       { label:'Se jogar para agarrar antes de todo mundo', perfil:'defender', attr:'coragem' },
       { label:'Espalmar para longe do perigo', perfil:'cauteloso', attr:'agilidade' }
+    ] },
+  { texto:()=>`Bola cruzada na segunda trave, dois atacantes disputando a sobra.`,
+    escolhas:[
+      { label:'Sair rápido para socar a bola para longe', perfil:'defender', attr:'agilidade' },
+      { label:'Confiar na zaga e se posicionar no gol', perfil:'cauteloso', attr:'concentracao' }
+    ] },
+  { texto:()=>`Chute de fora da área sem muito perigo aparente, mas a bola desvia de leve na zaga.`,
+    escolhas:[
+      { label:'Reagir rápido ao desvio', perfil:'defender', attr:'agilidade' },
+      { label:'Manter a postura calma, sem se afobar', perfil:'cauteloso', attr:'frieza' }
+    ] },
+  { texto:()=>`Um a um: o atacante adversário fica sozinho na sua frente, só você e ele.`,
+    escolhas:[
+      { label:'Sair firme para reduzir o ângulo', perfil:'defender', attr:'decisao' },
+      { label:'Esperar ele definir a jogada primeiro', perfil:'cauteloso', attr:'concentracao' }
+    ] },
+  { texto:()=>`Falta na entrada da área, barreira montada, o batedor adversário ajeita a bola.`,
+    escolhas:[
+      { label:'Se postar bem para cobrir o canto mais provável', perfil:'defender', attr:'concentracao' },
+      { label:'Confiar no pulo e reagir na hora', perfil:'cauteloso', attr:'decisao' }
+    ] },
+  { texto:()=>`Chute cruzado sem direção muito clara, a bola pode enganar na trajetória.`,
+    escolhas:[
+      { label:'Reagir rápido, o quanto antes', perfil:'defender', attr:'agilidade' },
+      { label:'Manter a calma e ler o desvio', perfil:'cauteloso', attr:'frieza' }
+    ] },
+  { texto:()=>`Escanteio curto seguido de cruzamento na área, bola alçada na sua direção.`,
+    escolhas:[
+      { label:'Subir para socar bem longe', perfil:'defender', attr:'impulsao' },
+      { label:'Ficar na linha, de olho no desvio', perfil:'cauteloso', attr:'concentracao' }
+    ] },
+  { texto:()=>`Rebote depois da sua primeira defesa, disputa dentro da pequena área.`,
+    escolhas:[
+      { label:'Se jogar sem medo para agarrar', perfil:'defender', attr:'coragem' },
+      { label:'Espalmar pro lado, sem arriscar', perfil:'cauteloso', attr:'agilidade' }
+    ] },
+  { texto:()=>`Chute de bico, esquisito, quicando de um jeito difícil de prever.`,
+    escolhas:[
+      { label:'Reagir na bola mesmo sem tempo de pensar', perfil:'defender', attr:'agilidade' },
+      { label:'Ficar concentrado, sem se atirar cedo demais', perfil:'cauteloso', attr:'concentracao' }
+    ] },
+  { texto:()=>`Você fica frente a frente com o batedor num pênalti decisivo para o jogo.`,
+    escolhas:[
+      { label:'Estudar o batedor até o último instante', perfil:'defender', attr:'concentracao' },
+      { label:'Confiar na frieza e esperar ele se decidir', perfil:'cauteloso', attr:'frieza' }
+    ] },
+  { texto:()=>`Cruzamento fechado, disputa de posição dentro da pequena área.`,
+    escolhas:[
+      { label:'Sair para cortar antes da disputa', perfil:'defender', attr:'agilidade' },
+      { label:'Ficar na linha e confiar na zaga', perfil:'cauteloso', attr:'decisao' }
+    ] },
+  { texto:()=>`Chute forte e rasteiro, na direção do canto, exigindo reflexo imediato.`,
+    escolhas:[
+      { label:'Se esticar todo para alcançar', perfil:'defender', attr:'agilidade' },
+      { label:'Reduzir o ângulo antes da finalização', perfil:'cauteloso', attr:'concentracao' }
+    ] },
+  { texto:()=>`Bola alçada na entrada da pequena área logo depois de um cruzamento.`,
+    escolhas:[
+      { label:'Sair com força para afastar', perfil:'defender', attr:'impulsao' },
+      { label:'Se jogar com coragem na bola', perfil:'cauteloso', attr:'coragem' }
+    ] },
+  { texto:()=>`Chute colocado no ângulo, parece quase impossível de alcançar.`,
+    escolhas:[
+      { label:'Se esticar ao máximo mesmo assim', perfil:'defender', attr:'agilidade' },
+      { label:'Aceitar que talvez não dê e já se preparar pro rebote', perfil:'cauteloso', attr:'frieza' }
+    ] },
+  { texto:()=>`Disputa de saída de gol, dividida bem na entrada da área com o atacante adversário.`,
+    escolhas:[
+      { label:'Sair sem medo para ganhar a bola', perfil:'defender', attr:'coragem' },
+      { label:'Recuar e proteger o gol, sem arriscar', perfil:'cauteloso', attr:'decisao' }
+    ] },
+  { texto:()=>`Escanteio cobrado direto, tentando surpreender no primeiro pau.`,
+    escolhas:[
+      { label:'Sair rápido para afastar o perigo', perfil:'defender', attr:'agilidade' },
+      { label:'Ficar concentrado, de olho na trajetória', perfil:'cauteloso', attr:'concentracao' }
+    ] },
+  { texto:()=>`Bola cruzada da direita, o cruzamento vem tenso na direção do travessão.`,
+    escolhas:[
+      { label:'Saltar para desviar por cima do travessão', perfil:'defender', attr:'agilidade' },
+      { label:'Confiar na trajetória e deixar passar', perfil:'cauteloso', attr:'concentracao' }
     ] }
 ];
 
@@ -1931,7 +3436,10 @@ function resolverNivelLance(attr, dificuldade){
 
 function prepararPartida(){
   const status = decidirEscalacao();
-  const adversario = `${pick(['Atlético','União','Esporte Clube','Operário','Grêmio','Ferroviário'])} ${pick(['Regional','da Serra','Novo Horizonte','Popular','do Vale'])}`;
+  const confronto = obterConfrontoAtual();
+  const oponente = confronto ? confronto.oponente : null;
+  const mandante = confronto ? confronto.mandante : true;
+  const adversario = oponente ? oponente.nome : `${pick(['Atlético','União','Esporte Clube','Operário','Grêmio','Ferroviário'])} ${pick(['Regional','da Serra','Novo Horizonte','Popular','do Vale'])}`;
   let minutos = 0, entrouBanco=false, titular=false;
   if(status === 'titular'){ titular = true; minutos = clamp(rand(65,90) - Math.round((100-GAME.status.condicaoFisica)/10), 20, 90); }
   else if(status === 'reserva'){
@@ -1942,18 +3450,36 @@ function prepararPartida(){
   const ehGoleiro = posicao === 'Goleiro';
   const ehAtacante = ['Ponta-direita','Ponta-esquerda','Segundo atacante','Centroavante','Meia ofensivo'].includes(posicao);
   const ehDefensor = ['Zagueiro','Lateral-direito','Lateral-esquerdo','Volante'].includes(posicao);
-  const dificuldade = clamp(GAME.clube.reputacao*0.6 + rand(-10,15), 15, 95);
+  const forcaOponente = oponente ? oponente.reputacao : GAME.clube.reputacao;
+  const dificuldade = clamp(forcaOponente*0.6 + (mandante?-3:3) + rand(-10,15), 15, 95);
+
+  // Viagem: jogos fora de casa cansam mais quanto mais longe fica a cidade do
+  // adversário — desconta energia real antes da partida (o desgaste da estrada)
+  const distanciaKm = oponente ? distanciaKmClubes(GAME.clube.uf, oponente.uf) : 300;
+  const desgasteViagem = mandante ? 0 : clamp(Math.round(distanciaKm/180), 0, 10);
+  if(desgasteViagem > 0) GAME.status.energia = clamp(GAME.status.energia - desgasteViagem, 0, 100);
 
   const numLances = titular ? 2 : (entrouBanco ? 1 : 0);
   const pool = ehGoleiro ? LANCES_GOLEIRO : ehDefensor ? LANCES_DEFESA : LANCES_ATAQUE;
   const lances = [];
   for(let i=0;i<numLances;i++) lances.push(pick(pool));
 
+  // Distribui os lances dentro da janela de minutos que o jogador realmente
+  // esteve em campo, pra poder citar o minuto exato de um gol/assistência depois
+  const entradaMin = titular ? 0 : clamp(90-minutos, 0, 89);
+  const saidaMin = titular ? clamp(minutos, 1, 90) : 90;
+  const minutosLances = lances.map((_,i) => {
+    const fatia = (saidaMin-entradaMin) / (lances.length+1);
+    return clamp(Math.round(entradaMin + fatia*(i+1) + rand(-4,4)), entradaMin+1, Math.max(entradaMin+1, saidaMin-1));
+  });
+
   GAME.temporadaState.partidaEmAndamento = {
-    status, adversario, minutos, entrouBanco, titular, dificuldade,
+    status, adversario, minutos, entrouBanco, titular, dificuldade, mandante,
+    oponenteId: oponente ? oponente.id : null,
+    distanciaKm, desgasteViagem,
     ehGoleiro, ehAtacante, ehDefensor,
-    lances, indiceLance:0,
-    acumulado: { gols:0, assist:0, erros:0, amarelo:0, vermelho:0, defesaImportante:0, eventos:[] }
+    lances, minutosLances, indiceLance:0,
+    acumulado: { gols:0, assist:0, erros:0, amarelo:0, vermelho:0, defesaImportante:0, eventos:[], golsMinutos:[], assistMinutos:[] }
   };
   if(lances.length === 0){
     finalizarPartida(); // já salva e renderiza
@@ -1988,19 +3514,19 @@ function resolverEscolhaLance(escolha){
   const nivel = resolverNivelLance(escolha.attr, p.dificuldade);
   let texto = '';
   if(escolha.perfil === 'finalizar'){
-    if(nivel==='otimo'){ ac.gols++; texto = 'Bola na rede! Um golaço seu.'; GAME.sociais.moral = clamp(GAME.sociais.moral+4,0,100); }
+    if(nivel==='otimo'){ ac.gols++; ac.golsMinutos.push(p.minutosLances[p.indiceLance]); texto = 'Bola na rede! Um golaço seu.'; GAME.sociais.moral = clamp(GAME.sociais.moral+4,0,100); }
     else if(nivel==='bom'){ texto = 'Quase! A bola passou raspando a trave.'; }
     else if(nivel==='neutro'){ texto = 'O goleiro conseguiu encaixar a finalização.'; }
     else if(nivel==='ruim'){ ac.erros++; texto = 'Você chutou muito mal, a torcida reclamou.'; GAME.sociais.moral = clamp(GAME.sociais.moral-3,0,100); }
     else { ac.erros++; texto = 'Chute horrível, foi longe do gol. Frustração total.'; GAME.sociais.moral = clamp(GAME.sociais.moral-6,0,100); }
   } else if(escolha.perfil === 'passar'){
-    if(nivel==='otimo'){ ac.assist++; texto = 'Passe perfeito — seu companheiro só empurrou para o gol!'; GAME.sociais.moral = clamp(GAME.sociais.moral+3,0,100); }
+    if(nivel==='otimo'){ ac.assist++; ac.assistMinutos.push(p.minutosLances[p.indiceLance]); texto = 'Passe perfeito — seu companheiro só empurrou para o gol!'; GAME.sociais.moral = clamp(GAME.sociais.moral+3,0,100); }
     else if(nivel==='bom'){ texto = 'Bom passe, mas o companheiro não conseguiu concluir.'; }
     else if(nivel==='neutro'){ texto = 'O passe chegou fraco e a defesa cortou.'; }
     else if(nivel==='ruim'){ ac.erros++; texto = 'Passe errado, perdeu a bola numa área perigosa.'; GAME.sociais.moral = clamp(GAME.sociais.moral-3,0,100); }
     else { ac.erros++; texto = 'Errou feio o passe e o adversário quase aproveitou no contra-ataque.'; GAME.sociais.moral = clamp(GAME.sociais.moral-6,0,100); }
   } else if(escolha.perfil === 'driblar'){
-    if(nivel==='otimo'){ ac.gols++; texto = 'Driblou todo mundo e ainda balançou as redes! A torcida foi à loucura.'; GAME.sociais.moral = clamp(GAME.sociais.moral+6,0,100); atualizarRedesSociais(rand(20,60),'elogio'); }
+    if(nivel==='otimo'){ ac.gols++; ac.golsMinutos.push(p.minutosLances[p.indiceLance]); texto = 'Driblou todo mundo e ainda balançou as redes! A torcida foi à loucura.'; GAME.sociais.moral = clamp(GAME.sociais.moral+6,0,100); atualizarRedesSociais(rand(20,60),'elogio'); }
     else if(nivel==='bom'){ texto = 'Ótimo drible, mas a jogada não terminou em gol.'; }
     else if(nivel==='neutro'){ texto = 'Tentou o drible, mas a defesa se recompôs a tempo.'; }
     else if(nivel==='ruim'){ ac.erros++; texto = 'Perdeu a bola no drible, torcida vaiou.'; GAME.sociais.moral = clamp(GAME.sociais.moral-4,0,100); }
@@ -2041,9 +3567,35 @@ function resolverEscolhaLance(escolha){
   if(p.indiceLance >= p.lances.length){ finalizarPartida(); } else { render(); }
 }
 
+// Sorteia 1-3 colegas do círculo de amizade que também estiveram em campo,
+// com uma pequena chance de cartão, só para dar corpo à súmula pós-jogo
+// Monta uma mini-súmula do time: quem do seu círculo de elenco começou jogando,
+// quem entrou depois (substituição), e quem levou cartão — pra dar mais corpo
+// à tela de resultado do que só "alguns companheiros também jogaram".
+function gerarSumulaTime(minutos){
+  if(!GAME.elenco || !GAME.elenco.length || minutos <= 0) return null;
+  const titulares = [], entraram = [];
+  GAME.elenco.forEach(c => {
+    const r = rand(1,100);
+    if(r <= 65) titulares.push({ nome:c.nome, papel:c.papel });
+    else if(r <= 88) entraram.push({ nome:c.nome, papel:c.papel });
+    // os outros ~12% ficam de fora dos relacionados nessa partida
+  });
+  const emCampo = [...titulares, ...entraram];
+  const cartoes = [];
+  emCampo.forEach(j => {
+    if(chance(9)) cartoes.push({ nome:j.nome, tipo: chance(12) ? 'vermelho' : 'amarelo' });
+  });
+  const substituicoes = [];
+  for(let i=0; i<entraram.length && i<titulares.length; i++){
+    substituicoes.push({ saiu: titulares[titulares.length-1-i].nome, entrou: entraram[i].nome });
+  }
+  return { titulares, entraram, cartoes, substituicoes };
+}
+
 function finalizarPartida(){
   const p = GAME.temporadaState.partidaEmAndamento;
-  const { status, adversario, entrouBanco, titular, ehGoleiro, ehDefensor } = p;
+  const { status, adversario, entrouBanco, titular, ehGoleiro, ehDefensor, mandante, oponenteId, distanciaKm } = p;
   let { minutos } = p;
   const ac = p.acumulado;
   const { gols, assist, erros, amarelo, vermelho, defesaImportante, eventos } = ac;
@@ -2056,36 +3608,46 @@ function finalizarPartida(){
   if(minutos > 0) checarLesao(Math.round(minutos/10));
   // Simula o resultado coletivo da partida (o time todo, não só você),
   // garantindo que os gols que você marcou entrem na conta do placar.
-  const forcaTime = clamp(GAME.clube.nivelBase + (GAME.relacoes.elenco-50)*0.2 + (GAME.temporadaState.mediaTreinoRecente-50)*0.15 + rand(-12,12), 15, 95);
-  const forcaAdversario = clamp(GAME.clube.reputacao*0.6 + rand(-15,20), 15, 95);
-  function golsPoisson(forca){
-    const lambda = clamp(forca/38, 0.2, 3.5);
-    let n = 0;
-    for(let i=0;i<6;i++){ if(chance(lambda/6*100)) n++; }
-    return n;
-  }
+  const liga = GAME.temporadaState.liga;
+  const oponente = liga && oponenteId ? liga.clubes.find(c => c.id === oponenteId) : null;
+  // quanto mais longe a viagem (jogo fora), maior o desgaste coletivo do time
+  const penalidadeViagem = mandante ? 0 : clamp((distanciaKm||300)/350, 0, 5);
+  const forcaTime = clamp(GAME.clube.nivelBase + (GAME.relacoes.elenco-50)*0.2 + (GAME.temporadaState.mediaTreinoRecente-50)*0.15 + (mandante?4:-2-penalidadeViagem) + rand(-12,12), 15, 95);
+  const forcaAdversario = clamp((oponente ? oponente.reputacao*0.6 + oponente.nivelBase*0.3 : GAME.clube.reputacao*0.6) + (mandante?-2:4) + rand(-15,20), 15, 95);
   let golsTime = golsPoisson(forcaTime);
   const golsAdversario = golsPoisson(forcaAdversario);
   // seus gols E suas assistências sempre entram no placar do time — cada assistência
   // é, por definição, um gol de um companheiro que você serviu
   if(golsTime < gols + assist) golsTime = gols + assist;
   const artilheiros = [];
+  // cronologia: minuto a minuto de cada gol da partida (seus, de companheiros e do adversário)
+  const cronologiaGols = [];
+  (ac.golsMinutos||[]).forEach(m => cronologiaGols.push({ minuto:m, texto:'Você' }));
   if(gols > 0) artilheiros.push({ nome:'Você', gols });
   function golPara(nome){
     const existente = artilheiros.find(a => a.nome === nome);
     if(existente) existente.gols++; else artilheiros.push({ nome, gols:1 });
   }
   // gols que vieram das SUAS assistências, atribuídos a um companheiro específico
-  for(let i=0;i<assist;i++){
-    golPara(GAME.elenco && GAME.elenco.length ? pick(GAME.elenco).nome : 'um companheiro');
-  }
+  (ac.assistMinutos||[]).forEach(m => {
+    const nome = GAME.elenco && GAME.elenco.length ? pick(GAME.elenco).nome : 'um companheiro';
+    golPara(nome);
+    cronologiaGols.push({ minuto:m, texto:`${nome} (assist. sua)` });
+  });
   // gols do time que não têm relação com você (nem seus, nem de suas assistências)
   let golsRestantes = golsTime - gols - assist;
   if(golsRestantes > 0 && GAME.elenco && GAME.elenco.length){
-    for(let i=0;i<golsRestantes;i++) golPara(pick(GAME.elenco).nome);
+    for(let i=0;i<golsRestantes;i++){
+      const nome = pick(GAME.elenco).nome;
+      golPara(nome);
+      cronologiaGols.push({ minuto: rand(1,90), texto: nome });
+    }
   } else if(golsRestantes > 0){
     artilheiros.push({ nome:'Time', gols:golsRestantes });
+    for(let i=0;i<golsRestantes;i++) cronologiaGols.push({ minuto: rand(1,90), texto:'Time' });
   }
+  for(let i=0;i<golsAdversario;i++) cronologiaGols.push({ minuto: rand(1,90), texto: adversario, adversario:true });
+  cronologiaGols.sort((a,b) => a.minuto-b.minuto);
   const resultadoJogo = golsTime > golsAdversario ? 'vitoria' : golsTime < golsAdversario ? 'derrota' : 'empate';
 
   let nota = 0;
@@ -2094,9 +3656,10 @@ function finalizarPartida(){
     nota = clamp(nota, 0, 10);
   }
 
-  // Atualiza estatísticas
+  // Atualiza estatísticas — só contam como "jogo" as partidas em que o jogador
+  // realmente entrou em campo (titular ou saindo do banco), não só ser relacionado
   const s = GAME.stats;
-  if(status !== 'naoRelacionado') s.jogos += 1;
+  if(minutos > 0) s.jogos += 1;
   if(titular) s.titular += 1;
   if(entrouBanco) s.entrouBanco += 1;
   s.minutos += minutos;
@@ -2122,6 +3685,7 @@ function finalizarPartida(){
     concluirObjetivo('serRelacionado');
     if(s.jogos===1 && nota>=6.5) concluirObjetivo('boaEstreia');
     if(GAME.relacoes.treinador>=65) concluirObjetivo('boaRelacaoTreinador');
+    if(s.titular>=15) concluirObjetivo('serTitularRegular');
   } else if(status === 'naoRelacionado'){
     ajustarSaudeMental(-2);
   }
@@ -2131,9 +3695,15 @@ function finalizarPartida(){
   GAME.relacoes.torcida = clamp(GAME.relacoes.torcida + (resultadoJogo==='vitoria'?3:resultadoJogo==='derrota'?-3:0), 0, 100);
   GAME.sociais.moral = clamp(GAME.sociais.moral + (resultadoJogo==='vitoria'?3:resultadoJogo==='derrota'?-2:0), 0, 100);
 
+  // Fecha a rodada da liga: sua partida entra na tabela e as outras da rodada são simuladas
+  const outrosResultados = (liga && oponenteId)
+    ? processarRodadaLiga({ rodada: liga.calendario[liga.rodadaAtual], mandante, oponenteId }, golsTime, golsAdversario)
+    : [];
+  const sumulaTime = gerarSumulaTime(minutos);
+
   const resultado = {
     adversario, status, titular, entrouBanco, minutos, gols, assist, erros, amarelo, vermelho, defesaImportante, nota, eventos,
-    golsTime, golsAdversario, resultadoJogo, artilheiros
+    golsTime, golsAdversario, resultadoJogo, artilheiros, mandante, outrosResultados, sumulaTime, cronologiaGols
   };
 
   // Notícia pós-jogo
@@ -2158,12 +3728,20 @@ function finalizarPartida(){
 }
 
 function renderPreJogo(){
+  const confronto = obterConfrontoAtual();
+  const oponente = confronto ? confronto.oponente : null;
+  const mandante = confronto ? confronto.mandante : true;
+  const distanciaKm = oponente ? distanciaKmClubes(GAME.clube.uf, oponente.uf) : null;
+  const viagemTxt = !mandante && oponente
+    ? `<p class="small muted">Jogo fora de casa, em ${escapeHtml(oponente.cidade||oponente.nome)}${oponente.uf?'/'+oponente.uf:''} — viagem de aproximadamente ${distanciaKm} km.</p>`
+    : mandante ? `<p class="small muted">Jogo em casa.</p>` : '';
   app.innerHTML = `
     ${statusBarHtml()}
     <div class="card">
       <div class="card-title">${periodoAtualObj().nome}</div>
-      <h2>Dia de jogo</h2>
+      <h2>Dia de jogo${oponente ? ' — contra o '+escapeHtml(oponente.nome) : ''}</h2>
       <p>O ônibus do ${GAME.clube.nome} já está de prontidão. Mais uma partida na temporada, mais uma chance de mostrar serviço — ou de ficar só observando.</p>
+      ${viagemTxt}
       <div class="choices"><button class="btn btn-primary" id="btn-jogar">Ir para a partida</button></div>
     </div>
   `;
@@ -2183,18 +3761,57 @@ function renderResultadoJogo(){
   }
   const resultBadge = j.resultadoJogo==='vitoria' ? 'good' : j.resultadoJogo==='derrota' ? 'bad' : '';
   const resultLabel = j.resultadoJogo==='vitoria' ? 'Vitória' : j.resultadoJogo==='derrota' ? 'Derrota' : 'Empate';
+  const mandoTxt = j.mandante===true ? 'Jogo em casa' : j.mandante===false ? 'Jogo fora de casa' : '';
+  const st = j.sumulaTime;
+  const outros = j.outrosResultados || [];
+
+  // Cartões: os seus (já contabilizados no placar do lance) + os dos companheiros sorteados na súmula
+  const cartoesTodos = [];
+  if(j.amarelo>0) cartoesTodos.push({ nome:'Você', tipo:'amarelo', qtd:j.amarelo });
+  if(j.vermelho>0) cartoesTodos.push({ nome:'Você', tipo:'vermelho', qtd:j.vermelho });
+  if(st) st.cartoes.forEach(c => cartoesTodos.push({ nome:c.nome, tipo:c.tipo, qtd:1 }));
+
+  const escalacaoHtml = st ? `
+      <p class="small muted" style="margin-bottom:4px"><b>Titulares:</b></p>
+      <p class="small">Você${j.status!=='titular'?' (banco)':''}${st.titulares.length?', '+st.titulares.map(t=>escapeHtml(t.nome)).join(', '):''}</p>
+      ${st.substituicoes.length ? `<p class="small muted" style="margin:8px 0 4px"><b>Substituições:</b></p>`
+        + st.substituicoes.map(s=>`<p class="small">• Saiu: ${escapeHtml(s.saiu)} → Entrou: ${escapeHtml(s.entrou)}</p>`).join('') : ''}
+      ${st.entraram.length > st.substituicoes.length ? `<p class="small muted" style="margin-top:4px">Também entraram no jogo: ${st.entraram.slice(st.substituicoes.length).map(e=>escapeHtml(e.nome)).join(', ')}</p>` : ''}
+    ` : '';
+  const cartoesHtml = cartoesTodos.length ? `
+      <p class="small muted" style="margin:${st?'10px':'0'} 0 4px"><b>Cartões:</b></p>
+      ${cartoesTodos.map(c=>`<p class="small">• ${escapeHtml(c.nome)} — ${c.qtd>1?c.qtd+'x ':''}cartão ${c.tipo}</p>`).join('')}
+    ` : '';
+  const outrosHtml = outros.length ? `
+      <p class="small muted" style="margin:${(st||cartoesTodos.length)?'10px':'0'} 0 4px"><b>Outros resultados da rodada:</b></p>
+      ${outros.map(r=>`<p class="small">• ${escapeHtml(r)}</p>`).join('')}
+    ` : '';
+  const sumulaHtml = (st || cartoesTodos.length || outros.length) ? `
+    <div class="card">
+      <div class="card-title">Súmula da partida</div>
+      ${escalacaoHtml}${cartoesHtml}${outrosHtml}
+    </div>` : '';
+  const cronologia = j.cronologiaGols || [];
+  const cronologiaHtml = cronologia.length ? `
+    <div class="card">
+      <div class="card-title">Cronologia dos gols</div>
+      ${cronologia.map(gc => `<p class="small">⚽ <b>${gc.minuto}'</b> — ${gc.adversario ? escapeHtml(gc.texto)+' <span class="muted">(adversário)</span>' : escapeHtml(gc.texto)}</p>`).join('')}
+    </div>` : '';
   app.innerHTML = `
     ${statusBarHtml()}
     <div class="card">
       <div class="card-title">Resultado da Partida</div>
       <h2>${GAME.clube.nome} ${j.golsTime} x ${j.golsAdversario} ${j.adversario}</h2>
       <span class="badge ${resultBadge}">${resultLabel}</span>
+      ${mandoTxt ? `<p class="small muted" style="margin-top:6px">${mandoTxt}</p>` : ''}
       <div class="spacer"></div>
       ${j.artilheiros.length ? `<p class="small muted">Gols do ${GAME.clube.nome}: ${j.artilheiros.map(a=>`${a.nome} (${a.gols})`).join(', ')}</p>` : ''}
       <div class="spacer"></div>
       <div id="scene-text">${escapeHtml(corpo).replace(/\n/g,'<br>')}</div>
-      <div class="choices"><button class="btn btn-primary" id="btn-continuar-jogo">Continuar temporada</button></div>
     </div>
+    ${cronologiaHtml}
+    ${sumulaHtml}
+    <div class="card"><div class="choices"><button class="btn btn-primary" id="btn-continuar-jogo">Continuar temporada</button></div></div>
   `;
   document.getElementById('btn-continuar-jogo').onclick = () => { GAME.temporadaState.jogoAtual=null; avancarSemana(); };
 }
@@ -2204,10 +3821,11 @@ function statusBarHtml(){
   const s = GAME.stats;
   return `<div id="status-bar">
     <div class="sb-item"><span class="lbl">Clube</span><b>${GAME.clube.nome}</b></div>
+    <div class="sb-item"><span class="lbl">Overall</span><b>${calcularOverall()}</b></div>
     <div class="sb-item"><span class="lbl">Temporada</span><b>${GAME.numeroTemporada||1}</b></div>
     <div class="sb-item"><span class="lbl">Período</span><b>${periodoAtualObj().nome}</b></div>
     <div class="sb-divider"></div>
-    <div class="sb-item"><span class="lbl">Jogos</span><b>${s.jogos}</b></div>
+    <div class="sb-item"><span class="lbl">Jogos</span><b>${s.jogos} (${s.titular})</b></div>
     <div class="sb-item"><span class="lbl">Gols</span><b>${s.gols}</b></div>
     <div class="sb-item"><span class="lbl">Assist.</span><b>${s.assistencias}</b></div>
     <div class="sb-divider"></div>
@@ -2236,11 +3854,11 @@ function renderTemporada(){
    Modal em abas, acessível a qualquer momento durante a peneira/temporada,
    sem interromper o estado do jogo (apenas leitura + botões de salvar/apagar).
    ========================================================================= */
-const PAINEL_ABAS = ['dados','status','atributos','relacoes','estatisticas','contrato','social','noticias','historico','objetivos','calendario'];
+const PAINEL_ABAS = ['dados','status','atributos','relacoes','estatisticas','contrato','social','noticias','historico','objetivos','calendario','tabela'];
 const PAINEL_LABELS = {
   dados:'Dados', status:'Status', atributos:'Atributos', relacoes:'Relações',
   estatisticas:'Estatísticas', contrato:'Contrato', social:'Redes Sociais', noticias:'Notícias',
-  historico:'Histórico', objetivos:'Objetivos', calendario:'Calendário'
+  historico:'Histórico', objetivos:'Objetivos', calendario:'Calendário', tabela:'Classificação'
 };
 let painelAbaAtiva = 'dados';
 
@@ -2280,7 +3898,7 @@ function renderPainelBody(){
     dados: painelDados, status: painelStatus, atributos: painelAtributos,
     relacoes: painelRelacoes, estatisticas: painelEstatisticas, contrato: painelContrato,
     social: painelSocial, noticias: painelNoticias, historico: painelHistorico, objetivos: painelObjetivos,
-    calendario: painelCalendario
+    calendario: painelCalendario, tabela: painelTabela
   };
   body.innerHTML = fns[painelAbaAtiva]();
 }
@@ -2288,6 +3906,7 @@ function renderPainelBody(){
 function painelDados(){
   const g = GAME;
   return `<div class="card">
+    <p style="font-size:26px"><b>${calcularOverall()}</b> <span class="muted small">OVERALL — força geral atual</span></p>
     <p><b>Nome completo:</b> ${escapeHtml(g.identidade.nomeCompleto)}</p>
     <p><b>Chamado de:</b> ${escapeHtml(g.identidade.apelido)}</p>
     <p><b>Idade:</b> ${idadeAtual()} anos (nascido em ${fmtData(new Date(g.identidade.nascimento))})</p>
@@ -2313,13 +3932,17 @@ function painelStatus(){
     ${barraHtml('Pressão psicológica', so.pressaoPsicologica, so.pressaoPsicologica>60?'danger':undefined)}
     ${barraHtml('Saúde mental', s.saudeMental, s.saudeMental<35?'danger':s.saudeMental<55?'warn':undefined)}
     <p class="small muted">${statusSaudeMentalLabel()}</p>
+    ${barraHtml('Cuidado com o corpo', GAME.cuidadoFisico!=null?GAME.cuidadoFisico:50, (GAME.cuidadoFisico||50)<35?'danger':(GAME.cuidadoFisico||50)<55?'warn':undefined)}
+    <p class="small muted">Reflete o quanto você tem cuidado do corpo fora de campo (sono, recuperação, hábitos) — quanto mais baixo, maior a chance de lesão.</p>
     <p class="spacer"><b>Status no elenco:</b> ${s.statusElenco}</p>
+    ${GAME.historicoLesoesTotal ? `<p class="small muted">Histórico de lesões na carreira: ${GAME.historicoLesoesTotal}</p>` : ''}
     ${GAME.lesaoAtual ? `<p class="badge bad">Lesionado: ${GAME.lesaoAtual.tipo} (${GAME.lesaoAtual.semanasRestantes} sem.)</p>` : ''}
   </div>`;
 }
 function painelAtributos(){
   const grupo = (titulo, lista) => `<div class="card"><div class="card-title">${titulo}</div><div class="attr-grid">${lista.map(([k,nome])=>barraHtml(nome, GAME.atributos[k], 'info')).join('')}</div></div>`;
-  return grupo('Técnicos', ATRIBUTOS_DEF.tecnicos) + grupo('Físicos', ATRIBUTOS_DEF.fisicos) + grupo('Mentais', ATRIBUTOS_DEF.mentais)
+  const overallCard = `<div class="card center"><p style="font-size:32px;margin-bottom:2px"><b>${calcularOverall()}</b></p><p class="muted small">OVERALL (${GAME.identidade.posicaoPrincipal})</p></div>`;
+  return overallCard + grupo('Técnicos', ATRIBUTOS_DEF.tecnicos) + grupo('Físicos', ATRIBUTOS_DEF.fisicos) + grupo('Mentais', ATRIBUTOS_DEF.mentais)
     + `<div class="card"><div class="card-title">Sociais / Reputação</div><div class="attr-grid">${SOCIAIS_DEF.map(([k,nome])=>barraHtml(nome, GAME.sociais[k]!==undefined?GAME.sociais[k]:GAME.relacoes[k])).join('')}</div></div>`;
 }
 function painelRelacoes(){
@@ -2344,7 +3967,8 @@ function painelEstatisticas(){
   const s = GAME.stats;
   const linha = (label,val) => `<p><b>${label}:</b> ${val}</p>`;
   return `<div class="card">
-    ${linha('Jogos relacionados', s.jogos)}
+    ${linha('Jogos disputados', `${s.jogos} (${s.titular})`)}
+    <p class="small muted" style="margin-top:-6px">Fora dos parênteses: titular + entrou do banco. Dentro: só como titular.</p>
     ${linha('Jogos como titular', s.titular)}
     ${linha('Jogos entrando do banco', s.entrouBanco)}
     ${linha('Minutos jogados', s.minutos)}
@@ -2407,10 +4031,75 @@ function painelObjetivos(){
 }
 function painelCalendario(){
   if(!GAME.temporadaState) return `<div class="card muted">A temporada ainda não começou.</div>`;
-  return `<div class="card">${PERIODOS.map((p,i) => `
+  const periodosHtml = `<div class="card">${PERIODOS.map((p,i) => `
     <p><b>${i+1}. ${p.nome}</b> ${i===GAME.temporadaState.periodoIndex?'<span class="badge good">atual</span>':(i<GAME.temporadaState.periodoIndex?'<span class="badge">concluído</span>':'')}</p>
     <p class="small muted">${p.semanas} semana(s) • jogos: ${p.jogos.filter(Boolean).length}</p>
   `).join('<hr style="border-color:#232b3a;margin:8px 0">')}</div>`;
+
+  const liga = GAME.temporadaState.liga;
+  if(!liga) return periodosHtml;
+  const historico = liga.historico || [];
+  const linhas = liga.calendario.map((rodada, i) => {
+    const par = rodada.find(p => p[0]===GAME.clube.id || p[1]===GAME.clube.id);
+    if(!par) return null;
+    const mandante = par[0] === GAME.clube.id;
+    const oponenteId = mandante ? par[1] : par[0];
+    const oponente = liga.clubes.find(c => c.id === oponenteId);
+    const jogado = historico.find(h => h.rodada === i);
+    let placarTxt, statusTag;
+    if(jogado){
+      placarTxt = mandante ? `${GAME.clube.nome} ${jogado.golsMeu} x ${jogado.golsAdversario} ${jogado.oponenteNome}`
+                            : `${jogado.oponenteNome} ${jogado.golsAdversario} x ${jogado.golsMeu} ${GAME.clube.nome}`;
+      statusTag = '<span class="badge">encerrado</span>';
+    } else if(i === liga.rodadaAtual){
+      placarTxt = `${mandante ? GAME.clube.nome+' x '+ (oponente?oponente.nome:'?') : (oponente?oponente.nome:'?')+' x '+GAME.clube.nome}`;
+      statusTag = '<span class="badge good">próximo jogo</span>';
+    } else {
+      placarTxt = `${mandante ? GAME.clube.nome+' x '+ (oponente?oponente.nome:'?') : (oponente?oponente.nome:'?')+' x '+GAME.clube.nome}`;
+      statusTag = '';
+    }
+    return `<tr style="border-top:1px solid #232b3a;${i===liga.rodadaAtual?'background:rgba(42,157,111,.10)':''}">
+      <td style="padding:4px 6px">${i+1}</td>
+      <td style="padding:4px 6px">${mandante?'Casa':'Fora'}</td>
+      <td style="padding:4px 6px">${escapeHtml(placarTxt)}</td>
+      <td style="padding:4px 6px">${statusTag}</td>
+    </tr>`;
+  }).filter(Boolean).join('');
+
+  const tabelaJogosHtml = `<div class="card">
+    <div class="card-title">Rodadas — ${liga.divisao}</div>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px">
+      <thead><tr style="color:#7c8aa5;text-align:left">
+        <th style="padding:4px 6px">#</th><th style="padding:4px 6px">Mando</th><th style="padding:4px 6px">Confronto</th><th style="padding:4px 6px"></th>
+      </tr></thead>
+      <tbody>${linhas}</tbody>
+    </table></div>
+  </div>`;
+
+  return periodosHtml + tabelaJogosHtml;
+}
+function painelTabela(){
+  const liga = GAME.temporadaState && GAME.temporadaState.liga;
+  if(!liga) return `<div class="card muted">A temporada ainda não começou.</div>`;
+  const linhas = liga.clubes.map(c => ({ c, t: liga.tabela[c.id] }))
+    .sort((a,b) => b.t.pts-a.t.pts || b.t.sg-a.t.sg || b.t.gp-a.t.gp);
+  const cel = (v) => `<td style="padding:4px 6px">${v}</td>`;
+  return `<div class="card">
+    <div class="card-title">Classificação — ${GAME.numeroTemporada||1}ª temporada (rodada ${liga.rodadaAtual}/${liga.calendario.length})</div>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px">
+      <thead><tr style="color:#7c8aa5;text-align:left">
+        <th style="padding:4px 6px">#</th><th style="padding:4px 6px">Clube</th>
+        <th style="padding:4px 6px">J</th><th style="padding:4px 6px">V</th><th style="padding:4px 6px">E</th><th style="padding:4px 6px">D</th>
+        <th style="padding:4px 6px">GP</th><th style="padding:4px 6px">GC</th><th style="padding:4px 6px">SG</th><th style="padding:4px 6px">Pts</th>
+      </tr></thead>
+      <tbody>
+      ${linhas.map((l,i) => `<tr style="border-top:1px solid #232b3a;${l.c.id===GAME.clube.id?'background:rgba(42,157,111,.14);font-weight:600':''}">
+        ${cel(i+1)}<td style="padding:4px 6px">${escapeHtml(l.c.nome)}</td>
+        ${cel(l.t.pj)}${cel(l.t.v)}${cel(l.t.e)}${cel(l.t.d)}${cel(l.t.gp)}${cel(l.t.gc)}${cel(l.t.sg)}<td style="padding:4px 6px"><b>${l.t.pts}</b></td>
+      </tr>`).join('')}
+      </tbody>
+    </table></div>
+  </div>`;
 }
 
 /* ============================ FIM DE TEMPORADA ==============================
@@ -2441,17 +4130,20 @@ const FINAIS = {
     texto:(g)=>`Fisicamente você entregou o que podia, mas a pressão foi maior do que o esperado para alguém de 16 anos longe de casa. O ${g.clube.nome} entende, e reserva um espaço para você recuperar o equilíbrio antes da próxima temporada — o futebol vai esperar.` }
 };
 
+// Limiares calibrados para uma temporada de 38 rodadas (turno + returno,
+// como no Brasileirão) — bem mais jogos disponíveis do que num campeonato
+// estadual curto, então os patamares de "titular"/"pouco utilizado" sobem junto.
 function calcularFinalTemporada(){
   const s = GAME.stats, r = GAME.relacoes;
   if(GAME.status.saudeMental <= 20) return 'saude_mental_fragil';
-  if(s.lesoes >= 2) return 'lesao_atrapalhou';
+  if(s.lesoes >= 3) return 'lesao_atrapalhou';
   if(r.treinador < 35) return 'conflito_treinador';
   if(GAME.empresarioAtual && r.diretoria < 45) return 'empresario_polemica';
   if(GAME.stats.interesseClubes >= 70 && s.notaMedia >= 7.5) return 'promessa_serie_b_a';
   if(GAME.stats.interesseClubes >= 55 && s.notaMedia >= 7 && r.torcida >= 60) return 'revelacao_regional';
-  if(s.titular >= 10 && s.notaMedia >= 7) return 'destaque_sub20';
-  if(s.jogos >= 11 && s.notaMedia >= 6) return 'consolidado_base';
-  if(s.jogos <= 5) return 'pouco_utilizado';
+  if(s.titular >= 24 && s.notaMedia >= 7) return 'destaque_sub20';
+  if(s.jogos >= 26 && s.notaMedia >= 6) return 'consolidado_base';
+  if(s.jogos <= 12) return 'pouco_utilizado';
   return 'equilibrado_incerto';
 }
 
@@ -2463,6 +4155,7 @@ function finalizarTemporada(){
   let ajuste = (s.notaMedia-6)*4 + s.gols*1.5 + s.assistencias*1 + (GAME.relacoes.treinador-50)*0.2 - s.lesoes*5 + (GAME.atributos.ambicao-50)*0.15;
   GAME.potencialOculto = clamp(Math.round(GAME.potencialOculto + ajuste), 1, 99);
   if(s.notaMedia >= 6.5) concluirObjetivo('evolucaoPositiva');
+  GAME.acessoRebaixamentoResultado = GAME.finalTipo !== 'reprovado' ? aplicarAcessoRebaixamento() : null;
   salvarJogo();
   render();
 }
@@ -2503,10 +4196,17 @@ function renderFimDeTemporada(){
       <div class="card-title">Resumo da Jornada</div>
       <p>${GAME.numeroTemporada===1 ? `Você tentou a peneira do <b>${GAME.clube.nome}</b> (${GAME.clube.cidade}/${GAME.clube.uf}) e foi aprovado com um ${GAME.contrato.tipo.toLowerCase()}.` : `Você encerrou sua Temporada ${GAME.numeroTemporada} no <b>${GAME.clube.nome}</b> (${GAME.clube.cidade}/${GAME.clube.uf}).`}</p>
       <p>Encerrou a temporada com status: <b>${GAME.status.statusElenco}</b>, aos ${idadeAtual()} anos.</p>
+      ${GAME.temporadaState && GAME.temporadaState.liga ? (() => {
+        const liga = GAME.temporadaState.liga;
+        const linhas = liga.clubes.map(c => ({ c, t: liga.tabela[c.id] })).sort((a,b) => b.t.pts-a.t.pts || b.t.sg-a.t.sg || b.t.gp-a.t.gp);
+        const posicao = linhas.findIndex(l => l.c.id === GAME.clube.id) + 1;
+        return posicao > 0 ? `<p class="spacer">Terminou a ${liga.divisao} na <b>${posicao}ª colocação</b> de ${linhas.length}.</p>` : '';
+      })() : ''}
+      ${GAME.acessoRebaixamentoResultado ? `<p class="badge ${GAME.acessoRebaixamentoResultado.tipo==='acesso'?'good':'bad'}">${GAME.acessoRebaixamentoResultado.tipo==='acesso' ? `Acesso para a ${GAME.acessoRebaixamentoResultado.novoTier}!` : `Rebaixado para a ${GAME.acessoRebaixamentoResultado.novoTier}.`}</p>` : ''}
     </div>
     <div class="card">
       <div class="card-title">Estatísticas da Temporada</div>
-      <p>${s.jogos} jogos relacionados (${s.titular} como titular) • ${s.minutos} minutos • ${s.gols} gols • ${s.assistencias} assistências</p>
+      <p>${s.jogos} jogos disputados (${s.titular} como titular) • ${s.minutos} minutos • ${s.gols} gols • ${s.assistencias} assistências</p>
       <p>Nota média: ${s.notaMedia.toFixed(2)} • Cartões: ${s.amarelos}A/${s.vermelhos}V • Lesões: ${s.lesoes}</p>
       ${barraHtml('Interesse de clubes', s.interesseClubes)}
     </div>
@@ -2559,7 +4259,7 @@ function renderFimDeTemporada(){
    ========================================================================= */
 const OBJETIVOS_TEMPORADA_SEGUINTE = [
   ['evoluir5','Melhorar 5 pontos em algum atributo'],
-  ['serTitularRegular','Ser titular em pelo menos 8 jogos'],
+  ['serTitularRegular','Ser titular em pelo menos 15 jogos'],
   ['boaRelacaoTreinador','Manter boa relação com o treinador'],
   ['evolucaoPositiva','Encerrar a temporada com evolução positiva'],
   ['cuidarSaudeMental','Manter a saúde mental estável (acima de 50) a temporada toda']
