@@ -159,6 +159,38 @@ function resolverEscolhaLance(escolha){
   if(p.indiceLance >= p.lances.length){ finalizarPartida(); } else { render(); }
 }
 
+/* ============================== FORMA RECENTE ================================
+   Janela das últimas 5 notas reais (minutos>0) — mais sensível a um momento
+   bom/ruim do que a média acumulada da temporada inteira (notaMedia).
+   ========================================================================= */
+const MOMENTO_FORMA = [[8.3,'fase iluminada'],[7,'boa fase'],[5.3,'regular'],[4,'em baixa'],[0,'péssima fase']];
+function atualizarForma(nota){
+  if(!GAME.forma) GAME.forma = { ultimasNotas: [], media: 0, momento: 'regular' };
+  GAME.forma.ultimasNotas.push(nota);
+  if(GAME.forma.ultimasNotas.length > 5) GAME.forma.ultimasNotas.shift();
+  GAME.forma.media = GAME.forma.ultimasNotas.reduce((a,b) => a+b, 0) / GAME.forma.ultimasNotas.length;
+  GAME.forma.momento = (MOMENTO_FORMA.find(([min]) => GAME.forma.media >= min) || [0,'regular'])[1];
+}
+
+/* ============================== STATUS NO ELENCO =============================
+   Calculado a partir da forma recente (não da notaMedia acumulada — fica mais
+   sensível a fases) + titularidade + relações. Tem efeito real em
+   decidirEscalacao() (js/sistemas/treino.js), não é só decorativo.
+   ========================================================================= */
+const STATUS_ESCALACAO_BONUS = { 'Ídolo':10, 'Peça importante':7, 'Titular':3, 'Reserva':0, 'Garoto da base':-3, 'Negociável':-12, 'Afastado':0 };
+function atualizarStatusElenco(){
+  if(GAME.lesaoAtual){ GAME.status.statusElenco = 'Afastado'; return; }
+  const s = GAME.stats;
+  if(s.jogos < 6){ if(GAME.status.statusElenco === 'Afastado') GAME.status.statusElenco = 'Garoto da base'; return; }
+  const forma = GAME.forma ? GAME.forma.media : s.notaMedia;
+  const titularidade = s.jogos ? s.titular/s.jogos : 0;
+  if(GAME.relacoes.torcida >= 78 && forma >= 7.3) GAME.status.statusElenco = 'Ídolo';
+  else if(forma <= 4.8 && GAME.relacoes.treinador < 32) GAME.status.statusElenco = 'Negociável';
+  else if(titularidade >= 0.55 && forma >= 6.8) GAME.status.statusElenco = 'Peça importante';
+  else if(titularidade >= 0.35) GAME.status.statusElenco = 'Titular';
+  else GAME.status.statusElenco = 'Reserva';
+}
+
 // Sorteia 1-3 colegas do círculo de amizade que também estiveram em campo,
 // com uma pequena chance de cartão, só para dar corpo à súmula pós-jogo
 // Monta uma mini-súmula do time: quem do seu círculo de elenco começou jogando,
@@ -290,8 +322,14 @@ function finalizarPartida(){
   s.gols += gols; s.assistencias += assist; s.finalizacoes += finalizacoes;
   s.passesDecisivos += assist; s.desarmes += desarmes; s.interceptacoes += interceptacoes;
   s.amarelos += amarelo; s.vermelhos += vermelho;
-  if(minutos > 0){ s.somaNotas += nota; s.notaMedia = s.somaNotas / Math.max(1, s.titular + s.entrouBanco); if(nota >= 8.5) s.melhorEmCampo += 1; }
-  s.valorEstimado = Math.round(s.valorEstimado * (1 + (nota-6)*0.02 + gols*0.03 + assist*0.02));
+  s.defesasImportantes = (s.defesasImportantes||0) + defesaImportante;
+  if(minutos > 0){ s.somaNotas += nota; s.notaMedia = s.somaNotas / Math.max(1, s.titular + s.entrouBanco); if(nota >= 8.5) s.melhorEmCampo += 1; atualizarForma(nota); }
+  // crescimento amortecido: a taxa desacelera perto do teto (que sobe com o overall),
+  // em vez de crescer sem limite pra sempre ou travar de repente ao bater um teto fixo
+  const tetoValor = Math.round(3000 + calcularOverall()*15000);
+  const deltaValor = (nota-6)*0.02 + gols*0.03 + assist*0.02;
+  const fatorAmortecimento = clamp(1 - (s.valorEstimado / tetoValor), 0.08, 1);
+  s.valorEstimado = clamp(Math.round(s.valorEstimado * (1 + deltaValor*fatorAmortecimento)), 2000, tetoValor);
   s.interesseClubes = clamp(s.interesseClubes + (nota>=7.5?4:0) + gols*3 + assist*2 - (vermelho*2), 0, 100);
 
   // Relações
@@ -313,6 +351,8 @@ function finalizarPartida(){
   } else if(status === 'naoRelacionado'){
     ajustarSaudeMental(-2);
   }
+  atualizarStatusElenco();
+  verificarObjetivosContador();
   GAME.status.energia = clamp(GAME.status.energia - Math.round(minutos/6), 0, 100);
 
   // O resultado coletivo também pesa um pouco nas relações, além do seu desempenho individual

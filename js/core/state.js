@@ -5,17 +5,57 @@
 const SAVE_KEY = 'modoCarreira_save_v1';
 let GAME = null; // populado por novaCarreira() ou carregarJogo()
 
-function novoObjetivo(id, titulo, concluido){ return {id, titulo, concluido: !!concluido}; }
+function novoObjetivo(cfg){
+  return { id:cfg.id, titulo:cfg.titulo, descricao:cfg.descricao||'', tipo:cfg.tipo||'evento',
+    campo:cfg.campo||null, meta:cfg.meta||null, recompensa:cfg.recompensa||null, concluido:!!cfg.concluido };
+}
 
 const OBJETIVOS_INICIAIS = [
-  ['aprovadoPeneira','Ser aprovado na peneira'],
-  ['contratoBase','Ganhar contrato ou vaga na base'],
-  ['evoluir5','Melhorar 5 pontos em algum atributo'],
-  ['serRelacionado','Ser relacionado para uma partida'],
-  ['boaEstreia','Fazer boa estreia'],
-  ['boaRelacaoTreinador','Manter boa relação com o treinador'],
-  ['evolucaoPositiva','Encerrar a temporada com evolução positiva']
+  { id:'aprovadoPeneira', titulo:'Ser aprovado na peneira' },
+  { id:'contratoBase', titulo:'Ganhar contrato ou vaga na base' },
+  { id:'evoluir5', titulo:'Melhorar 5 pontos em algum atributo', recompensa:{confianca:4} },
+  { id:'serRelacionado', titulo:'Ser relacionado para uma partida' },
+  { id:'boaEstreia', titulo:'Fazer boa estreia' },
+  { id:'boaRelacaoTreinador', titulo:'Manter boa relação com o treinador', recompensa:{moral:4} },
+  { id:'evolucaoPositiva', titulo:'Encerrar a temporada com evolução positiva', recompensa:{popularidade:6} }
 ];
+
+// Objetivos específicos por grupo de posição (mesma classificação de grupoOverallDaPosicao,
+// js/data/dados-base.js), verificados automaticamente lendo GAME.stats — sem estado duplicado.
+// Grupo "meio" evita desarmes/interceptações de propósito: as posições desse grupo caem no
+// pool LANCES_ATAQUE em prepararPartida() (js/sistemas/partida.js) e nunca geram esses campos.
+const OBJETIVOS_POR_GRUPO = {
+  atacante: [
+    { id:'gols10', titulo:'Artilheiro em ascensão', descricao:'Marque 10 gols na temporada.', tipo:'contador', campo:'gols', meta:10, recompensa:{popularidade:8, moral:5} },
+    { id:'assist6', titulo:'Garçom de área', descricao:'Dê 6 assistências na temporada.', tipo:'contador', campo:'assistencias', meta:6, recompensa:{popularidade:5, relacaoElenco:5} }
+  ],
+  defensor: [
+    { id:'desarmes35', titulo:'Muralha na defesa', descricao:'Acumule 35 desarmes na temporada.', tipo:'contador', campo:'desarmes', meta:35, recompensa:{relacaoTreinador:6, moral:4} },
+    { id:'intercept22', titulo:'Leitura de jogo', descricao:'Acumule 22 interceptações na temporada.', tipo:'contador', campo:'interceptacoes', meta:22, recompensa:{atributos:{decisao:1}} }
+  ],
+  meio: [
+    { id:'passesDecisivos7', titulo:'Cérebro da equipe', descricao:'Dê 7 assistências na temporada.', tipo:'contador', campo:'passesDecisivos', meta:7, recompensa:{popularidade:5, relacaoElenco:4} },
+    { id:'presenca28', titulo:'Presença constante', descricao:'Jogue 28 partidas na temporada.', tipo:'contador', campo:'jogos', meta:28, recompensa:{confianca:5} }
+  ],
+  Goleiro: [
+    { id:'defesas15', titulo:'Paredão', descricao:'Faça 15 defesas importantes na temporada.', tipo:'contador', campo:'defesasImportantes', meta:15, recompensa:{relacaoTreinador:6, popularidade:5} },
+    { id:'titular25j', titulo:'Titular incontestável', descricao:'Jogue 25 partidas na temporada.', tipo:'contador', campo:'jogos', meta:25, recompensa:{confianca:6} }
+  ]
+};
+
+// posicaoPrincipal/numeroTemporada vêm como parâmetros (não lidos de GAME) porque em
+// criarNovoJogador() o objeto GAME ainda não existe no momento em que isso é chamado.
+function gerarObjetivosTemporada(posicaoPrincipal, numeroTemporada){
+  const universais = numeroTemporada <= 1 ? OBJETIVOS_INICIAIS : OBJETIVOS_TEMPORADA_SEGUINTE;
+  const especificos = OBJETIVOS_POR_GRUPO[grupoOverallDaPosicao(posicaoPrincipal)] || [];
+  return [...universais, ...especificos].map(cfg => novoObjetivo(cfg));
+}
+
+function verificarObjetivosContador(){
+  GAME.objetivos.filter(o => o.tipo==='contador' && !o.concluido).forEach(o => {
+    if((GAME.stats[o.campo]||0) >= o.meta) concluirObjetivo(o.id);
+  });
+}
 
 /* Gera os atributos iniciais (35-65) somando os modificadores do estilo escolhido */
 function gerarAtributosIniciais(estiloKey){
@@ -43,6 +83,7 @@ function calcularNascimento(dia, mes){
 function criarNovoJogador(dados){
   const atributos = gerarAtributosIniciais(dados.estilo);
   const nascimento = calcularNascimento(dados.dia, dados.mes);
+  const objetivosIniciais = gerarObjetivosTemporada(dados.posicaoPrincipal, 1);
   GAME = {
     versao: 1,
     fase: 'historia', // historia -> clubes -> peneira -> temporada -> fim
@@ -73,7 +114,7 @@ function criarNovoJogador(dados){
       jogos:0, titular:0, entrouBanco:0, minutos:0, gols:0, assistencias:0,
       finalizacoes:0, passesDecisivos:0, desarmes:0, interceptacoes:0,
       amarelos:0, vermelhos:0, lesoes:0, somaNotas:0, notaMedia:0,
-      melhorEmCampo:0, valorEstimado:5000, interesseClubes:0
+      melhorEmCampo:0, valorEstimado:5000, interesseClubes:0, defesasImportantes:0
     },
     clube: null,
     clubesOferecidos: [],
@@ -83,7 +124,7 @@ function criarNovoJogador(dados){
     potencialOculto: rand(40,90),
     noticias: [],
     historico: [],
-    objetivos: OBJETIVOS_INICIAIS.map(([id,t]) => novoObjetivo(id,t)),
+    objetivos: objetivosIniciais,
     consequenciasPendentes: [],
     vidaPessoal: { ultimaAcaoSemana: {} },
     peneiraState: null,
@@ -94,10 +135,11 @@ function criarNovoJogador(dados){
     cuidadoFisico: 50,
     historicoLesoesTotal: 0,
     tracos: { humilde:0, confiante:0, descontraido:0, serio:0, rebelde:0 },
+    forma: { ultimasNotas: [], media: 0, momento: 'regular' },
     carteira: 0,
     patrocinioAtual: null,
     numeroTemporada: 1,
-    statsCareer: null,
+    statsCareer: { jogos:0, gols:0, assistencias:0, minutos:0, titular:0, temporadas:0, premios:[] },
     social: { seguidores: rand(120,400), mensagens: [] },
     historiaPassado: pick(HISTORIAS_PASSADO)(dados)
   };
@@ -177,6 +219,10 @@ function atualizarRedesSociais(deltaSeguidores, categoria){
 }
 function concluirObjetivo(id){
   const o = GAME.objetivos.find(o=>o.id===id);
-  if(o && !o.concluido){ o.concluido = true; pushNoticia('geral', `Objetivo concluído: ${o.titulo}.`); }
+  if(o && !o.concluido){
+    o.concluido = true;
+    if(o.recompensa) aplicarEfeitos(o.recompensa);
+    pushNoticia('geral', `Objetivo concluído: ${o.titulo}.`);
+  }
 }
 

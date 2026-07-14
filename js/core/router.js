@@ -34,6 +34,10 @@ function render(){
   if(!GAME.consequenciasPendentes) GAME.consequenciasPendentes = [];
   if(GAME.clube && !GAME.rival) GAME.rival = gerarRival();
   if(!GAME.vidaPessoal) GAME.vidaPessoal = { ultimaAcaoSemana: {} };
+  if(!GAME.forma) GAME.forma = { ultimasNotas: [], media: 0, momento: 'regular' };
+  if(!GAME.statsCareer) GAME.statsCareer = { jogos:0, gols:0, assistencias:0, minutos:0, titular:0, temporadas:0, premios:[] };
+  if(GAME.statsCareer && !GAME.statsCareer.premios) GAME.statsCareer.premios = [];
+  if(GAME.stats && GAME.stats.defesasImportantes == null) GAME.stats.defesasImportantes = 0;
   if(GAME.fase === 'historia') return renderHistoriaPassado();
   if(GAME.fase === 'clubes') return renderSelecaoClubes();
   if(GAME.fase === 'peneira') return renderPeneira();

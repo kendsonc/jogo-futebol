@@ -195,7 +195,7 @@ function renderResultadoPeneira(){
     else if(margem > 0) contrato = { tipo:'Bolsa auxílio', bolsa:rand(300,600), duracao:8, expectativa:'Moderada', confiancaDiretoria:55 };
     else contrato = { tipo:'Promessa de avaliação futura', bolsa:0, duracao:4, expectativa:'Baixa', confiancaDiretoria:40 };
     GAME.contrato = contrato;
-    GAME.status.statusElenco = 'Elenco de base';
+    GAME.status.statusElenco = 'Garoto da base';
     GAME.relacoes.diretoria = clamp(GAME.relacoes.diretoria + 10, 0, 100);
     GAME.elenco = gerarElenco();
     concluirObjetivo('aprovadoPeneira');

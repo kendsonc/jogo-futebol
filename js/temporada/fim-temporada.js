@@ -43,6 +43,21 @@ function calcularFinalTemporada(){
   return 'equilibrado_incerto';
 }
 
+// Prêmios individuais de fim de temporada — não-excludentes entre si (diferente
+// de FINAIS, que é cascata), critérios só com campos que já existem em GAME.
+const PREMIOS_TEMPORADA = [
+  { id:'artilheiro', titulo:'Artilheiro da Posição', criterio:(g)=>g.stats.gols>=10 },
+  { id:'garcom', titulo:'Garçom da Temporada', criterio:(g)=>g.stats.assistencias>=8 },
+  { id:'melhorEmCampo', titulo:'Melhor em Campo', criterio:(g)=>g.stats.melhorEmCampo>=5 },
+  { id:'idoloTorcida', titulo:'Ídolo da Torcida', criterio:(g)=>g.relacoes.torcida>=80 },
+  { id:'revelacaoAno', titulo:'Revelação do Ano', criterio:(g)=>g.numeroTemporada===1 && g.stats.notaMedia>=7 },
+  { id:'pecaChave', titulo:'Peça-chave do Elenco', criterio:(g)=>g.stats.titular>=30 },
+  { id:'acessoConquistado', titulo:'Acesso Conquistado', criterio:(g)=>g.acessoRebaixamentoResultado && g.acessoRebaixamentoResultado.tipo==='acesso' }
+];
+function calcularPremiacoesTemporada(){
+  return PREMIOS_TEMPORADA.filter(p => p.criterio(GAME)).map(p => p.titulo);
+}
+
 function finalizarTemporada(){
   GAME.fase = 'fim';
   GAME.finalTipo = calcularFinalTemporada();
@@ -51,7 +66,10 @@ function finalizarTemporada(){
   let ajuste = (s.notaMedia-6)*4 + s.gols*1.5 + s.assistencias*1 + (GAME.relacoes.treinador-50)*0.2 - s.lesoes*5 + (GAME.atributos.ambicao-50)*0.15;
   GAME.potencialOculto = clamp(Math.round(GAME.potencialOculto + ajuste), 1, 99);
   if(s.notaMedia >= 6.5) concluirObjetivo('evolucaoPositiva');
+  if(GAME.status.saudeMental >= 50) concluirObjetivo('cuidarSaudeMental');
   GAME.acessoRebaixamentoResultado = GAME.finalTipo !== 'reprovado' ? aplicarAcessoRebaixamento() : null;
+  GAME.premiacoesTemporada = calcularPremiacoesTemporada();
+  GAME.statsCareer.premios.push(...GAME.premiacoesTemporada.map(t => `${t} (Temporada ${GAME.numeroTemporada})`));
   salvarJogo();
   render();
 }
@@ -88,6 +106,10 @@ function renderFimDeTemporada(){
       <div class="spacer"></div>
       <div id="scene-text">${escapeHtml(finalObj.texto(GAME)).replace(/\n/g,'<br>')}</div>
     </div>
+    ${(GAME.premiacoesTemporada||[]).length ? `<div class="card">
+      <div class="card-title">🏆 Prêmios da Temporada</div>
+      ${GAME.premiacoesTemporada.map(t => `<p class="badge good" style="display:inline-block;margin:2px">${escapeHtml(t)}</p>`).join('')}
+    </div>` : ''}
     <div class="card">
       <div class="card-title">Resumo da Jornada</div>
       <p>${GAME.numeroTemporada===1 ? `Você tentou a peneira do <b>${GAME.clube.nome}</b> (${GAME.clube.cidade}/${GAME.clube.uf}) e foi aprovado com um ${GAME.contrato.tipo.toLowerCase()}.` : `Você encerrou sua Temporada ${GAME.numeroTemporada} no <b>${GAME.clube.nome}</b> (${GAME.clube.cidade}/${GAME.clube.uf}).`}</p>
@@ -104,6 +126,7 @@ function renderFimDeTemporada(){
       <div class="card-title">Estatísticas da Temporada</div>
       <p>${s.jogos} jogos disputados (${s.titular} como titular) • ${s.minutos} minutos • ${s.gols} gols • ${s.assistencias} assistências</p>
       <p>Nota média: ${s.notaMedia.toFixed(2)} • Cartões: ${s.amarelos}A/${s.vermelhos}V • Lesões: ${s.lesoes}</p>
+      <p>Valor de mercado estimado: <b>R$ ${s.valorEstimado.toLocaleString('pt-BR')}</b></p>
       ${barraHtml('Interesse de clubes', s.interesseClubes)}
     </div>
     <div class="card">

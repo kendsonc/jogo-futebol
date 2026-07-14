@@ -95,6 +95,7 @@ function painelStatus(){
     ${barraHtml('Cuidado com o corpo', GAME.cuidadoFisico!=null?GAME.cuidadoFisico:50, (GAME.cuidadoFisico||50)<35?'danger':(GAME.cuidadoFisico||50)<55?'warn':undefined)}
     <p class="small muted">Reflete o quanto você tem cuidado do corpo fora de campo (sono, recuperação, hábitos) — quanto mais baixo, maior a chance de lesão.</p>
     <p class="spacer"><b>Status no elenco:</b> ${s.statusElenco}</p>
+    ${GAME.forma && GAME.forma.ultimasNotas.length ? `<p class="small muted">Forma recente: <b>${escapeHtml(GAME.forma.momento)}</b> (média das últimas ${GAME.forma.ultimasNotas.length} notas: ${GAME.forma.media.toFixed(1)})</p>` : ''}
     ${GAME.historicoLesoesTotal ? `<p class="small muted">Histórico de lesões na carreira: ${GAME.historicoLesoesTotal}</p>` : ''}
     ${GAME.lesaoAtual ? `<p class="badge bad">Lesionado: ${GAME.lesaoAtual.tipo} (${GAME.lesaoAtual.semanasRestantes} sem.)</p>` : ''}
   </div>`;
@@ -137,6 +138,7 @@ function painelEstatisticas(){
     ${linha('Finalizações', s.finalizacoes)}
     ${linha('Desarmes', s.desarmes)}
     ${linha('Interceptações', s.interceptacoes)}
+    ${linha('Defesas importantes', s.defesasImportantes||0)}
     ${linha('Cartões amarelos', s.amarelos)}
     ${linha('Cartões vermelhos', s.vermelhos)}
     ${linha('Lesões na temporada', s.lesoes)}
@@ -187,7 +189,12 @@ function painelHistorico(){
   return `<div class="card">${GAME.historico.map(h => `<p class="small">• (sem ${h.semana}) ${escapeHtml(h.texto)}</p>`).join('')}</div>`;
 }
 function painelObjetivos(){
-  return `<div class="card">${GAME.objetivos.map(o => `<p>${o.concluido?'✅':'⬜'} ${escapeHtml(o.titulo)}</p>`).join('')}</div>`;
+  return `<div class="card">${GAME.objetivos.map(o => {
+    const progresso = (o.tipo==='contador' && !o.concluido)
+      ? barraHtml(`${Math.min(GAME.stats[o.campo]||0,o.meta)}/${o.meta}`, Math.min(100, Math.round(((GAME.stats[o.campo]||0)/o.meta)*100)))
+      : '';
+    return `<p>${o.concluido?'✅':'⬜'} ${escapeHtml(o.titulo)}</p>${o.descricao?`<p class="small muted" style="margin-top:-6px">${escapeHtml(o.descricao)}</p>`:''}${progresso}`;
+  }).join('<hr style="border-color:#232b3a;margin:8px 0">')}</div>`;
 }
 function painelAgenda(){
   if(!GAME.temporadaState) return `<div class="card muted">A temporada ainda não começou.</div>`;

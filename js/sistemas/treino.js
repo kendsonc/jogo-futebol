@@ -86,7 +86,11 @@ function prosseguirAposTreino(){
 function decidirEscalacao(){
   if(GAME.lesaoAtual) return 'naoRelacionado'; // lesionado não entra em campo, mas o time joga do mesmo jeito
   const ts = GAME.temporadaState;
-  const score = GAME.relacoes.treinador*0.3 + ts.mediaTreinoRecente*0.3 + GAME.status.energia*0.2 + GAME.atributos.disciplina*0.2 + rand(-15,15);
+  // status no elenco e forma recente pesam, mas com teto menor que o ruído
+  // aleatório abaixo — evita um ciclo vicioso (bom status -> sempre titular -> ...)
+  const bonusStatus = STATUS_ESCALACAO_BONUS[GAME.status.statusElenco] || 0;
+  const bonusForma = (GAME.forma && GAME.forma.ultimasNotas.length >= 2) ? clamp((GAME.forma.media-6)*2.5, -8, 8) : 0;
+  const score = GAME.relacoes.treinador*0.3 + ts.mediaTreinoRecente*0.3 + GAME.status.energia*0.2 + GAME.atributos.disciplina*0.2 + bonusStatus + bonusForma + rand(-15,15);
   if(score >= 65) return 'titular';
   if(score >= 38) return 'reserva';
   return 'naoRelacionado';

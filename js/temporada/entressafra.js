@@ -5,16 +5,19 @@
    relações e histórico de carreira.
    ========================================================================= */
 const OBJETIVOS_TEMPORADA_SEGUINTE = [
-  ['evoluir5','Melhorar 5 pontos em algum atributo'],
-  ['serTitularRegular','Ser titular em pelo menos 15 jogos'],
-  ['boaRelacaoTreinador','Manter boa relação com o treinador'],
-  ['evolucaoPositiva','Encerrar a temporada com evolução positiva'],
-  ['cuidarSaudeMental','Manter a saúde mental estável (acima de 50) a temporada toda']
+  { id:'evoluir5', titulo:'Melhorar 5 pontos em algum atributo', recompensa:{confianca:4} },
+  { id:'serTitularRegular', titulo:'Ser titular em pelo menos 15 jogos', recompensa:{relacaoTreinador:5} },
+  { id:'boaRelacaoTreinador', titulo:'Manter boa relação com o treinador', recompensa:{moral:4} },
+  { id:'evolucaoPositiva', titulo:'Encerrar a temporada com evolução positiva', recompensa:{popularidade:6} },
+  { id:'cuidarSaudeMental', titulo:'Encerrar a temporada com a saúde mental estável (acima de 50)', recompensa:{moral:6} }
 ];
 
 function calcularOfertaContrato(){
   const s = GAME.stats, c = GAME.contrato;
-  const desempenho = clamp((s.notaMedia-6)*10 + (GAME.relacoes.diretoria-50)*0.3 + (s.interesseClubes-40)*0.2, -30, 45);
+  // valorEstimado é normalizado em escala log antes de somar — a escala bruta (milhares/milhões)
+  // não pode ser somada direto a uma fórmula que trabalha em 0-100
+  const valorNormalizado = clamp((Math.log10(Math.max(1,s.valorEstimado)) - 3.5) * 8, -10, 15);
+  const desempenho = clamp((s.notaMedia-6)*10 + (GAME.relacoes.diretoria-50)*0.3 + (s.interesseClubes-40)*0.2 + valorNormalizado, -30, 50);
   const bolsaBase = c.bolsa > 0 ? c.bolsa : 300;
   const novaBolsa = Math.max(150, Math.round(bolsaBase * (1 + desempenho/100 + 0.12)));
   const novaExpectativa = desempenho > 15 ? 'Alta' : desempenho > -5 ? 'Moderada' : 'Baixa';
@@ -227,7 +230,6 @@ function avancarParaProximaTemporada(){
   GAME.identidade.nascimento = new Date(nasc.getFullYear()-1, nasc.getMonth(), nasc.getDate()).toISOString();
 
   // Arquiva as estatísticas da temporada que terminou no histórico de carreira
-  if(!GAME.statsCareer) GAME.statsCareer = { jogos:0, gols:0, assistencias:0, minutos:0, titular:0, temporadas:0 };
   GAME.statsCareer.jogos += GAME.stats.jogos;
   GAME.statsCareer.gols += GAME.stats.gols;
   GAME.statsCareer.assistencias += GAME.stats.assistencias;
@@ -240,9 +242,10 @@ function avancarParaProximaTemporada(){
     jogos:0, titular:0, entrouBanco:0, minutos:0, gols:0, assistencias:0,
     finalizacoes:0, passesDecisivos:0, desarmes:0, interceptacoes:0,
     amarelos:0, vermelhos:0, lesoes:0, somaNotas:0, notaMedia:0,
-    melhorEmCampo:0, valorEstimado:GAME.stats.valorEstimado, interesseClubes:Math.round(GAME.stats.interesseClubes*0.7)
+    melhorEmCampo:0, valorEstimado:GAME.stats.valorEstimado, interesseClubes:Math.round(GAME.stats.interesseClubes*0.7),
+    defesasImportantes:0
   };
-  GAME.objetivos = OBJETIVOS_TEMPORADA_SEGUINTE.map(([id,t]) => novoObjetivo(id,t));
+  GAME.objetivos = gerarObjetivosTemporada(GAME.identidade.posicaoPrincipal, GAME.numeroTemporada);
   GAME.lesaoAtual = null;
   GAME.finalTipo = null;
   GAME.entressafraState = null;
