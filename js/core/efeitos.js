@@ -30,7 +30,20 @@ function aplicarEfeitos(efeitos){
   }
   if(efeitos.amigo && GAME.elenco){
     const alvo = GAME.elenco.find(a => a.id === efeitos.amigo);
-    if(alvo) alvo.relacao = clamp(alvo.relacao + (efeitos.amigoDelta||0), 0, 100);
+    if(alvo){
+      const delta = efeitos.amigoDelta||0;
+      alvo.relacao = clamp(alvo.relacao + delta, 0, 100);
+      // liga a amizade individual ao clima geral do elenco (20% do delta), a menos que
+      // o próprio evento já controle relacaoElenco explicitamente (evita dobrar o efeito)
+      if(!efeitos.relacaoElenco) r.elenco = clamp(r.elenco + delta*0.2, 0, 100);
+      if(alvo.relacao >= 85 && !alvo.vinculoForte){
+        alvo.vinculoForte = true;
+        agendarConsequencia('elenco_vinculo_forte', rand(5,10), {amigoId:alvo.id}, `${alvo.nome} pode fazer algo especial por causa da amizade de vocês.`);
+      } else if(alvo.relacao <= 15 && !alvo.atritoSerio){
+        alvo.atritoSerio = true;
+        agendarConsequencia('elenco_atrito_serio', rand(5,10), {amigoId:alvo.id}, `O clima ruim com ${alvo.nome} pode voltar à tona.`);
+      }
+    }
   }
   if(efeitos.saudeMental) ajustarSaudeMental(efeitos.saudeMental);
   if(efeitos.carteira) GAME.carteira = Math.max(0, Math.round((GAME.carteira||0) + efeitos.carteira));

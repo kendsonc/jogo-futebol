@@ -19,7 +19,9 @@ function calcularOfertaContrato(){
   const valorNormalizado = clamp((Math.log10(Math.max(1,s.valorEstimado)) - 3.5) * 8, -10, 15);
   const desempenho = clamp((s.notaMedia-6)*10 + (GAME.relacoes.diretoria-50)*0.3 + (s.interesseClubes-40)*0.2 + valorNormalizado, -30, 50);
   const bolsaBase = c.bolsa > 0 ? c.bolsa : 300;
-  const novaBolsa = Math.max(150, Math.round(bolsaBase * (1 + desempenho/100 + 0.12)));
+  // financeiro do clube só pesa no crescimento (não na base), pra não compor exponencialmente a cada renovação
+  const fatorFinanceiro = clamp(0.85 + (GAME.clube.financeiro-50)/100*0.5, 0.7, 1.3);
+  const novaBolsa = Math.max(150, Math.round(bolsaBase * (1 + (desempenho/100 + 0.12)*fatorFinanceiro)));
   const novaExpectativa = desempenho > 15 ? 'Alta' : desempenho > -5 ? 'Moderada' : 'Baixa';
   const novoTipo = novaBolsa >= 1000 ? 'Contrato profissional júnior' : novaBolsa >= 500 ? 'Contrato de base' : 'Bolsa auxílio';
   return { tipo:novoTipo, bolsa:novaBolsa, duracao:12, expectativa:novaExpectativa,
@@ -29,6 +31,21 @@ function clubesMaioresDisponiveis(){
   if(!(GAME.stats.interesseClubes >= 55 && GAME.stats.notaMedia >= 6.8)) return [];
   return CLUBES.filter(c => c.reputacao > GAME.clube.reputacao + 8 && c.id !== GAME.clube.id)
     .sort((a,b) => b.reputacao-a.reputacao).slice(0,2);
+}
+
+// Contrato pós-transferência: reancora no patamar do clube de DESTINO em vez de
+// crescer proporcionalmente ao salário do clube antigo (calcularOfertaContrato
+// é pra renovação no mesmo clube — não serve aqui)
+function calcularOfertaTransferencia(clubeDestino){
+  const s = GAME.stats;
+  const valorNormalizado = clamp((Math.log10(Math.max(1,s.valorEstimado)) - 3.5) * 8, -10, 15);
+  const desempenho = clamp((s.notaMedia-6)*10 + (GAME.relacoes.diretoria-50)*0.3 + (s.interesseClubes-40)*0.2 + valorNormalizado, -30, 50);
+  const bolsaBaseClube = 200 + clubeDestino.financeiro*9 + clubeDestino.reputacao*4;
+  const novaBolsa = Math.max(150, Math.round(bolsaBaseClube * (1 + desempenho/100)));
+  const novaExpectativa = desempenho > 15 ? 'Alta' : desempenho > -5 ? 'Moderada' : 'Baixa';
+  const novoTipo = novaBolsa >= 1000 ? 'Contrato profissional júnior' : novaBolsa >= 500 ? 'Contrato de base' : 'Bolsa auxílio';
+  return { tipo:novoTipo, bolsa:novaBolsa, duracao:12, expectativa:novaExpectativa,
+    confiancaDiretoria: clamp(50 + Math.round(desempenho/4), 10, 95) };
 }
 
 function iniciarEntressafra(){
@@ -184,7 +201,7 @@ function renderEntressafraTransferencia(){
       <div class="card-title">Proposta de Transferência</div>
       <div id="scene-text">${escapeHtml(texto)}</div>
       <div class="choices">
-        ${opcoes.map((c,i) => `<button class="btn" data-i="${i}" style="display:flex;align-items:center;gap:10px">${crestHtml(c,32)}<span>Transferir para o <b>${escapeHtml(c.nome)}</b> — ${escapeHtml(c.cidade)}/${c.uf} ${tierBadgeHtml(c.divisao)}</span></button>`).join('')}
+        ${opcoes.map((c,i) => `<button class="btn" data-i="${i}" style="display:flex;align-items:center;gap:10px;text-align:left">${crestHtml(c,32)}<span>Transferir para o <b>${escapeHtml(c.nome)}</b> — ${escapeHtml(c.cidade)}/${c.uf} ${tierBadgeHtml(c.divisao)}<br><span class="small muted">${escapeHtml(PERFIL_CLUBE_BLURB[perfilClube(c)])}</span></span></button>`).join('')}
         <button class="btn btn-primary" data-i="ficar" style="display:flex;align-items:center;gap:10px">${crestHtml(GAME.clube,32)}<span>Permanecer no <b>${escapeHtml(GAME.clube.nome)}</b> ${tierBadgeHtml(GAME.clube.divisao)}</span></button>
       </div>
     </div>
@@ -199,7 +216,10 @@ function renderEntressafraTransferencia(){
           oportunidadeJovens:novoClube.oportunidadeJovens, financeiro:novoClube.financeiro,
           reputacao:novoClube.reputacao, exigenciaPeneira:novoClube.exigenciaPeneira,
           cor1:novoClube.cor1, cor2:novoClube.cor2 };
-        GAME.tecnico = pick(NOMES_TECNICOS);
+        const ofertaTransferencia = calcularOfertaTransferencia(novoClube);
+        GAME.contrato = { tipo:ofertaTransferencia.tipo, bolsa:ofertaTransferencia.bolsa, duracao:ofertaTransferencia.duracao,
+          expectativa:ofertaTransferencia.expectativa, confiancaDiretoria:ofertaTransferencia.confiancaDiretoria };
+        GAME.tecnico = gerarTecnico();
         GAME.observador = pick(NOMES_OBSERVADORES);
         GAME.elenco = gerarElenco(); // novo clube, novos companheiros de elenco
         GAME.relacoes.treinador = 50; GAME.relacoes.elenco = 50; GAME.relacoes.diretoria = 50; GAME.relacoes.torcida = 15;
@@ -257,7 +277,10 @@ function avancarParaProximaTemporada(){
     const nomesAtuais = GAME.elenco.map(c=>c.nome);
     const novosNomes = NOMES_COMPANHEIROS.filter(n => !nomesAtuais.includes(n));
     if(novosNomes.length){
-      GAME.elenco.push({ id:'comp_'+GAME.status.semanaGlobal, nome:pick(novosNomes), papel:pick(PAPEIS_ELENCO), relacao:50 });
+      const papeisAtuais = GAME.elenco.map(c=>c.papel);
+      const papeisFaltando = PAPEIS_ELENCO.filter(p => !papeisAtuais.includes(p));
+      const novoPapel = papeisFaltando.length ? pick(papeisFaltando) : pick(PAPEIS_ELENCO);
+      GAME.elenco.push({ id:'comp_'+GAME.status.semanaGlobal, nome:pick(novosNomes), papel:novoPapel, relacao:50 });
     }
     pushNoticia('geral', `${saiu.nome} deixou o elenco. Um novo companheiro chegou para a Temporada ${GAME.numeroTemporada}.`);
   }

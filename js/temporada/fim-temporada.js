@@ -13,7 +13,7 @@ const FINAIS = {
   promessa_serie_b_a: { titulo:'Promessa monitorada por clube maior',
     texto:(g)=>`Suas atuações chamaram atenção além das fronteiras do ${g.clube.nome}. Olheiros de clubes de Série B e Série A já monitoram seu desenvolvimento de perto. O próximo passo pode estar próximo.` },
   conflito_treinador: { titulo:'Conflito com o treinador prejudica a evolução',
-    texto:(g)=>`Sua relação com ${g.tecnico} nunca engrenou. As poucas chances que teve vieram cercadas de desconfiança, e isso pesou no seu desenvolvimento nesta primeira temporada.` },
+    texto:(g)=>`Sua relação com ${g.tecnico.nome} nunca engrenou. As poucas chances que teve vieram cercadas de desconfiança, e isso pesou no seu desenvolvimento nesta primeira temporada.` },
   lesao_atrapalhou: { titulo:'Lesão atrapalha a temporada',
     texto:(g)=>`O corpo não aguentou o ritmo em alguns momentos e as lesões tiraram semanas importantes de você. O talento seguiu ali, mas o calendário não perdoou.` },
   empresario_polemica: { titulo:'Empresário abre portas, mas gera polêmica',

@@ -27,9 +27,9 @@ const FASES_PENEIRA = [
   },
   { // 2 - Treino técnico
     texto: (g) => pick([
-      `Estações de passe, drible e finalização. O técnico ${g.tecnico} observa de perto, anotando o nome de alguns garotos. Você sente que essa é sua chance de aparecer — ou de errar feio na frente de todos.`,
-      `${g.tecnico} divide o campo em estações. Em uma delas, um garoto erra três finalizações seguidas e some do resto do treino, cabisbaixo. Você sabe que a mesma coisa pode acontecer com você.`,
-      `O apito de ${g.tecnico} corta o ar. "Próxima estação!" Você tem poucos minutos em cada uma para mostrar o que sabe fazer com a bola no pé.`
+      `Estações de passe, drible e finalização. O técnico ${g.tecnico.nome} observa de perto, anotando o nome de alguns garotos. Você sente que essa é sua chance de aparecer — ou de errar feio na frente de todos.`,
+      `${g.tecnico.nome} divide o campo em estações. Em uma delas, um garoto erra três finalizações seguidas e some do resto do treino, cabisbaixo. Você sabe que a mesma coisa pode acontecer com você.`,
+      `O apito de ${g.tecnico.nome} corta o ar. "Próxima estação!" Você tem poucos minutos em cada uma para mostrar o que sabe fazer com a bola no pé.`
     ]),
     escolhas: [
       { label:'Jogar simples, sem arriscar', efeitos:{relacaoTreinador:5, chanceDestaque:1, moral:2, tracos:{serio:1}} },
@@ -90,7 +90,7 @@ function renderPeneira(){
   if(ps.faseIndex >= FASES_PENEIRA.length){ return renderResultadoPeneira(); }
   if(ps.seguimentoAtual) return renderSeguimentoPeneira();
   const fase = FASES_PENEIRA[ps.faseIndex];
-  const texto = typeof fase.texto === 'function' ? fase.texto(GAME) : pick(fase.texto).replace('{OBS}', GAME.observador).replace('{TEC}', GAME.tecnico).replace('{CLUBE}', GAME.clube.nome);
+  const texto = typeof fase.texto === 'function' ? fase.texto(GAME) : pick(fase.texto).replace('{OBS}', GAME.observador).replace('{TEC}', GAME.tecnico.nome).replace('{CLUBE}', GAME.clube.nome);
   app.innerHTML = `
     <div id="status-bar">
       <div class="sb-item"><span class="lbl">Clube</span><b>${GAME.clube.nome}</b></div>

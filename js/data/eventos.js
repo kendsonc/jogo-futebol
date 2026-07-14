@@ -33,7 +33,7 @@ const EVENTOS_RECORRENTES = [
       { label:'Reclamar abertamente da situação no grupo', efeitos:{relacaoElenco:-3, moral:-2, tracos:{rebelde:1}} }
     ] },
   { id:'midia_treino_fechado', categoria:'midia',
-    texto:(g)=>`Um perfil local de notícias de base publica: "Jovem de 16 anos chama atenção em treino fechado do ${g.clube.nome}."`,
+    texto:(g)=>{ const v = veiculoElegivel(); return `${v ? v.nome+' publica' : 'Um perfil local de notícias de base publica'}: "Jovem de 16 anos chama atenção em treino fechado do ${g.clube.nome}."`; },
     escolhas:[
       { label:'Compartilhar a notícia nas redes', efeitos:{popularidade:6, imagemMidia:3, pressaoPsicologica:4, tracos:{confiante:1}} },
       { label:'Ignorar e manter perfil discreto', efeitos:{imagemMidia:2, pressaoPsicologica:-2, tracos:{humilde:1}} },
@@ -81,7 +81,7 @@ const EVENTOS_RECORRENTES = [
   { id:'rec_sono_ruim', categoria:'geral',
     texto:(g)=>pick([
       `Você passa a noite rolando na cama, olhando o teto do quarto no alojamento. O despertador vai tocar cedo para o treino técnico.`,
-      `Já é quase uma da manhã e você ainda está acordado, sem sono de verdade, sabendo que amanhã tem treino puxado marcado pelo ${g.tecnico}.`
+      `Já é quase uma da manhã e você ainda está acordado, sem sono de verdade, sabendo que amanhã tem treino puxado marcado pelo ${g.tecnico.nome}.`
     ]),
     escolhas:[
       { label:'Desligar tudo e forçar o sono', efeitos:{cuidadoFisico:5, energia:4, disciplina:1} },
@@ -253,7 +253,7 @@ const EVENTOS_RECORRENTES = [
     escolhas:[
       { label:'Ignorar e seguir focado no trabalho', efeitos:{saudeMental:2, atributos:{controleEmocional:1}} },
       { label:'Ler tudo e remoer cada comentário', efeitos:{saudeMental:-5, pressaoPsicologica:5},
-        seguimento:{ texto:(g)=>`O ${g.tecnico} percebe que você anda cabisbaixo nos últimos treinos e te chama pra uma conversa rápida.\n\n— Aconteceu alguma coisa? Você não parece o mesmo.`,
+        seguimento:{ texto:(g)=>`O ${g.tecnico.nome} percebe que você anda cabisbaixo nos últimos treinos e te chama pra uma conversa rápida.\n\n— Aconteceu alguma coisa? Você não parece o mesmo.`,
           escolhas:[
             { label:'Abrir o jogo sobre a pressão que sentiu', efeitos:{relacaoTreinador:5, pressaoPsicologica:-6} },
             { label:'Dizer que está tudo bem, sem entrar em detalhes', efeitos:{relacaoTreinador:1, pressaoPsicologica:2} }
@@ -545,13 +545,13 @@ const EVENTOS_ADOLESCENTE = [
    ------------------------------------------------------------------------- */
 const EVENTOS_EQUIPE = [
   { id:'equipe_sequencia_vitorias', categoria:'geral',
-    texto:(g)=>`O time emenda uma sequência de bons resultados no sub-20, e o clima no CT está leve, quase eufórico. ${g.tecnico} anda mais solto nos treinos.`,
+    texto:(g)=>`O time emenda uma sequência de bons resultados no sub-20, e o clima no CT está leve, quase eufórico. ${g.tecnico.nome} anda mais solto nos treinos.`,
     escolhas:[
       { label:'Aproveitar o embalo para se soltar também', efeitos:{moral:6, relacaoElenco:4, tracos:{descontraido:1}} },
       { label:'Manter os pés no chão e não relaxar', efeitos:{atributos:{concentracao:1}, relacaoTreinador:3, tracos:{serio:1}} }
     ] },
   { id:'equipe_sequencia_derrotas', categoria:'geral',
-    texto:(g)=>`Uma sequência ruim de resultados pesa no ambiente. ${g.tecnico} está mais tenso, e alguns companheiros trocam farpas nos treinos.`,
+    texto:(g)=>`Uma sequência ruim de resultados pesa no ambiente. ${g.tecnico.nome} está mais tenso, e alguns companheiros trocam farpas nos treinos.`,
     escolhas:[
       { label:'Tentar puxar o grupo para cima com atitude', efeitos:{relacaoElenco:6, atributos:{lideranca:1}, tracos:{serio:1}} },
       { label:'Manter distância da confusão e cuidar do seu', efeitos:{energia:2, relacaoElenco:-2, tracos:{humilde:1}} },
@@ -595,7 +595,7 @@ const EVENTOS_EQUIPE = [
         { label:'Responder com educação, mas não se comprometer', efeitos:{pressao:1, tracos:{serio:1}} }
       ] } },
   { id:'equipe_mudanca_tatica', categoria:'geral',
-    texto:(g)=>`${g.tecnico} anuncia uma mudança de esquema tático para o time sub-20, e sua função dentro de campo muda — mais ou menos responsabilidade, dependendo de como você encarar.`,
+    texto:(g)=>`${g.tecnico.nome} anuncia uma mudança de esquema tático para o time sub-20, e sua função dentro de campo muda — mais ou menos responsabilidade, dependendo de como você encarar.`,
     escolhas:[
       { label:'Abraçar a nova função e estudar o esquema em casa', efeitos:{relacaoTreinador:5, atributos:{visaoDeJogo:1, disciplina:1}, moral:2} },
       { label:'Reclamar discretamente com os companheiros sobre a mudança', efeitos:{relacaoElenco:2, relacaoTreinador:-4, tracos:{rebelde:1}} },
@@ -647,7 +647,7 @@ const EVENTOS_EQUIPE = [
       { label:'Aproveitar a exposição para construir uma imagem mais forte', efeitos:{popularidade:4, imagemMidia:2, pressao:2, tracos:{confiante:1}} }
     ] },
   { id:'equipe_treino_extra_punicao', categoria:'disciplina',
-    texto:(g)=>`Depois de uma derrota vexatória, ${g.tecnico} convoca um treino extra num domingo de manhã, cedo, como forma de corrigir a postura do grupo. Ninguém gosta, mas ninguém questiona em voz alta.`,
+    texto:(g)=>`Depois de uma derrota vexatória, ${g.tecnico.nome} convoca um treino extra num domingo de manhã, cedo, como forma de corrigir a postura do grupo. Ninguém gosta, mas ninguém questiona em voz alta.`,
     escolhas:[
       { label:'Encarar com profissionalismo, sem reclamar', efeitos:{relacaoTreinador:5, disciplina:2, cuidadoFisico:-3} },
       { label:'Ir, mas comentar baixinho com os colegas que é exagero', efeitos:{relacaoElenco:3, relacaoTreinador:-2, tracos:{rebelde:1}} },
@@ -661,7 +661,7 @@ const EVENTOS_EQUIPE = [
       { label:'Tirar sarro da situação para aliviar a tensão do grupo', efeitos:{relacaoElenco:2, moral:2, tracos:{descontraido:1}} }
     ] },
   { id:'equipe_amistoso_interno', categoria:'geral',
-    texto:(g)=>`${g.tecnico} organiza um amistoso interno, "titulares contra reservas", valendo vaga de verdade no time da semana. O clima competitivo toma conta do treino.`,
+    texto:(g)=>`${g.tecnico.nome} organiza um amistoso interno, "titulares contra reservas", valendo vaga de verdade no time da semana. O clima competitivo toma conta do treino.`,
     escolhas:[
       { label:'Jogar duro, sem dar mole nem para os amigos', efeitos:{atributos:{disciplina:1}, confianca:3, relacaoElenco:-1} },
       { label:'Jogar coletivo, priorizando lance bonito e entrosamento', efeitos:{relacaoElenco:4, atributos:{trabalhoEmEquipe:1}, relacaoTreinador:2} },
@@ -682,11 +682,11 @@ const EVENTOS_EQUIPE = [
       { label:'Aproveitar o momento para reafirmar seu comprometimento com o clube', efeitos:{relacaoTreinador:3, relacaoDiretoria:2, tracos:{confiante:1}} }
     ] },
   { id:'equipe_troca_comissao_tecnica', categoria:'geral',
-    texto:(g)=>`${g.tecnico} é substituído no comando do sub-20, e um novo nome assume o time em plena temporada. O grupo passa a semana tentando entender o estilo do novo comandante.`,
+    texto:(g)=>`${g.tecnico.nome} é substituído no comando do sub-20, e um novo nome assume o time em plena temporada. O grupo passa a semana tentando entender o estilo do novo comandante.`,
     escolhas:[
-      { label:'Se apresentar rapidamente ao novo treinador, mostrar disposição', efeitos:{relacaoTreinador:5, pressao:2, tracos:{confiante:1}} },
-      { label:'Esperar para ver como ele trabalha antes de se expor', efeitos:{pressao:1, atributos:{concentracao:1}} },
-      { label:'Comentar com os colegas que sente falta do comandante anterior', efeitos:{relacaoElenco:2, relacaoTreinador:-3, tracos:{serio:1}} }
+      { label:'Se apresentar rapidamente ao novo treinador, mostrar disposição', efeitos:{relacaoTreinador:5, pressao:2, tracos:{confiante:1}}, extra:(g)=>{ g.tecnico = gerarTecnico(); } },
+      { label:'Esperar para ver como ele trabalha antes de se expor', efeitos:{pressao:1, atributos:{concentracao:1}}, extra:(g)=>{ g.tecnico = gerarTecnico(); } },
+      { label:'Comentar com os colegas que sente falta do comandante anterior', efeitos:{relacaoElenco:2, relacaoTreinador:-3, tracos:{serio:1}}, extra:(g)=>{ g.tecnico = gerarTecnico(); } }
     ],
     seguimento:{ texto:(g)=>`Nas primeiras semanas, o novo treinador muda a rotina de treinos e cobra um comportamento mais profissional do elenco, algo que gera resistência silenciosa em parte do grupo.`,
       escolhas:[
@@ -964,7 +964,7 @@ const EVENTOS_AMIZADE = [
     ] }; },
   () => { const c = pick(GAME.elenco); return {
     id:'amizade_cobrir_erro_treino', categoria:'vestiario',
-    texto:(g)=>`No coletivo, ${c.nome} erra feio e a bola sobra pro adversário fazer o gol. ${g.tecnico} para tudo, irritado, perguntando de quem foi a falha.\n\n${c.nome} te olha rápido, pedindo em silêncio pra você não entregar que foi ele.`,
+    texto:(g)=>`No coletivo, ${c.nome} erra feio e a bola sobra pro adversário fazer o gol. ${g.tecnico.nome} para tudo, irritado, perguntando de quem foi a falha.\n\n${c.nome} te olha rápido, pedindo em silêncio pra você não entregar que foi ele.`,
     escolhas:[
       { label:'Cobrir e assumir a culpa junto com ele', efeitos:{amigo:c.id, amigoDelta:13, relacaoTreinador:-4, tracos:{humilde:1}} },
       { label:'Ficar calado e deixar o técnico descobrir sozinho', efeitos:{amigo:c.id, amigoDelta:7, relacaoTreinador:-1} },
@@ -1200,4 +1200,76 @@ const EVENTOS_LUTO = [
       { label:'Pedir a folga para comparecer ao velório, mesmo estando longe', efeitos:{relacaoFamilia:4, saudeMental:-12, moral:-12, energia:-10} },
       { label:'Dedicar o próximo treino à memória dele, sem se ausentar', efeitos:{saudeMental:-12, moral:-10, popularidade:2} }
     ] }
+];
+
+/* ============================== EVENTOS: TÉCNICO =============================
+   Texto/efeito condicionado ao estilo de GAME.tecnico (js/sistemas/treino.js
+   calcularBonusTecnico) — dá corpo narrativo à personalidade que já pesa
+   na escalação, em vez de ficar só num número.
+   ========================================================================= */
+const EVENTOS_TECNICO = [
+  () => { if(GAME.tecnico.estilo !== 'disciplinador') return null; return {
+    id:'tecnico_disciplinador_cobranca', categoria:'geral',
+    texto:(g)=>`${g.tecnico.nome} reúne o elenco: "Atraso ou displicência tira qualquer um do jogo, não interessa o nome."`,
+    escolhas:[
+      { label:'Reforçar sua rotina disciplinar', efeitos:{disciplina:2, relacaoTreinador:3} },
+      { label:'Reclamar abertamente do excesso de regras', efeitos:{relacaoTreinador:-5, tracos:{rebelde:1}} }
+    ] }; },
+  () => { if(GAME.tecnico.estilo !== 'paizao') return null; return {
+    id:'tecnico_paizao_conversa', categoria:'geral',
+    texto:(g)=>`Depois de uma sequência ruim, ${g.tecnico.nome} te chama de lado, sem cobrança, só pra saber como você está.`,
+    escolhas:[
+      { label:'Abrir o jogo sobre as dificuldades', efeitos:{saudeMental:6, relacaoTreinador:4, tracos:{humilde:1}} },
+      { label:'Dizer que está tudo bem', efeitos:{relacaoTreinador:2} }
+    ] }; },
+  () => { if(GAME.tecnico.estilo !== 'formador') return null; return {
+    id:'tecnico_formador_oportunidade', categoria:'geral',
+    texto:(g)=>`${g.tecnico.nome} avisa: "Prefiro errar dando minutos pra quem tá começando do que travar o crescimento de vocês."`,
+    escolhas:[
+      { label:'Agradecer e prometer aproveitar', efeitos:{confianca:4, relacaoTreinador:3, tracos:{humilde:1}} },
+      { label:'Cobrar ainda mais minutos', efeitos:{relacaoTreinador:-2, pressao:2, tracos:{confiante:1}} }
+    ] }; },
+  () => { if(GAME.tecnico.estilo !== 'resultadista') return null; return {
+    id:'tecnico_resultadista_pressao', categoria:'geral',
+    texto:(g)=>`${g.tecnico.nome} não disfarça a impaciência: "A gente não tem tempo pra processo longo, o resultado tem que vir agora."`,
+    escolhas:[
+      { label:'Assumir a pressão e tentar responder em campo', efeitos:{pressaoPsicologica:5, confianca:3, tracos:{confiante:1}} },
+      { label:'Pedir calma e defender um trabalho de médio prazo', efeitos:{relacaoTreinador:-3, saudeMental:2, tracos:{serio:1}} }
+    ] }; },
+  () => { if(GAME.tecnico.estilo !== 'professor') return null; return {
+    id:'tecnico_professor_analise', categoria:'geral',
+    texto:(g)=>`${g.tecnico.nome} chama você pra assistir replays dos seus últimos lances, apontando detalhes que passariam despercebidos.`,
+    escolhas:[
+      { label:'Prestar atenção em cada detalhe apontado', efeitos:{atributos:{decisao:1}, relacaoTreinador:3, tracos:{humilde:1}} },
+      { label:'Achar exagero tanto estudo pra um garoto de 16 anos', efeitos:{relacaoTreinador:-2, tracos:{descontraido:1}} }
+    ] }; }
+];
+
+/* ======================== EVENTOS: ELENCO POR PAPEL ==========================
+   Diferente de EVENTOS_AMIZADE (sorteiam qualquer companheiro), estes exigem
+   um papel específico no elenco — dão peso real a PAPEIS_ELENCO, que hoje é
+   só rótulo decorativo.
+   ========================================================================= */
+const EVENTOS_ELENCO_PAPEL = [
+  () => { const c = GAME.elenco.find(x=>x.papel==='Rival direto pela vaga'); if(!c) return null; return {
+    id:'papel_rival_disputa_vaga', categoria:'vestiario',
+    texto:(g)=>`O técnico deixa claro: só um de vocês começa jogando — você ou ${c.nome}, que também briga pela sua posição.`,
+    escolhas:[
+      { label:'Treinar ainda mais forte essa semana', efeitos:{amigo:c.id, amigoDelta:-6, atributos:{concentracao:1}, energia:-6} },
+      { label:'Aceitar a concorrência de forma esportiva', efeitos:{amigo:c.id, amigoDelta:6, relacaoTreinador:2, tracos:{humilde:1}} }
+    ] }; },
+  () => { const c = GAME.elenco.find(x=>x.papel==='Veterano do elenco'); if(!c) return null; return {
+    id:'papel_veterano_mentoria', categoria:'vestiario',
+    texto:(g)=>`${c.nome}, o mais experiente do grupo, te chama pra assistir análise de vídeo junto.`,
+    escolhas:[
+      { label:'Aproveitar cada minuto do conhecimento dele', efeitos:{amigo:c.id, amigoDelta:10, atributos:{decisao:1}, tracos:{humilde:1}} },
+      { label:'Ir só por educação', efeitos:{amigo:c.id, amigoDelta:-2} }
+    ] }; },
+  () => { const c = GAME.elenco.find(x=>x.papel==='Zoeiro do grupo'); if(!c) return null; return {
+    id:'papel_zoeiro_pegadinha', categoria:'vestiario',
+    texto:(g)=>`${c.nome} aprontou uma pegadinha pesada com você na frente do elenco inteiro.`,
+    escolhas:[
+      { label:'Rir e prometer vingança à altura', efeitos:{amigo:c.id, amigoDelta:8, relacaoElenco:3, tracos:{descontraido:1}} },
+      { label:'Ficar irritado e reclamar sério', efeitos:{amigo:c.id, amigoDelta:-10, tracos:{serio:1}} }
+    ] }; }
 ];

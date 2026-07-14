@@ -155,7 +155,12 @@ function salvarJogo(){
 function carregarJogo(){
   const raw = localStorage.getItem(SAVE_KEY);
   if(!raw) return false;
-  try{ GAME = JSON.parse(raw); return true; }
+  try{
+    GAME = JSON.parse(raw);
+    // saves antigos guardavam GAME.tecnico como string solta, antes de ganhar estilo/personalidade
+    if(GAME.tecnico && typeof GAME.tecnico === 'string'){ GAME.tecnico = { nome: GAME.tecnico, estilo: pick(ESTILOS_TECNICO) }; }
+    return true;
+  }
   catch(e){ return false; }
 }
 function existeSave(){ return !!localStorage.getItem(SAVE_KEY); }
@@ -175,6 +180,25 @@ function idadeAtual(){
 function pushNoticia(tipo, texto){
   GAME.noticias.unshift({tipo, texto, semana: GAME.status.semanaGlobal});
   if(GAME.noticias.length > 60) GAME.noticias.pop();
+}
+
+/* ============================== IMPRENSA (VEÍCULOS FICTÍCIOS) ================
+   O que varia entre notícias não é um "requisito" por matéria (como em
+   MARCAS_ESPORTIVAS) — é qual veículo já está apto a cobrir você, dado o
+   tanto de fama que você tem agora.
+   ========================================================================= */
+const VEICULOS_IMPRENSA = [
+  { nome:'GE Base', tier:1 }, { nome:'Bola na Rede', tier:1 }, { nome:'Show de Bola FM', tier:1 },
+  { nome:'Jornal da Várzea', tier:2 }, { nome:'Central do Apito', tier:2 }, { nome:'Rádio Craque', tier:3 }
+];
+function veiculoElegivel(){
+  const fama = GAME.sociais.popularidade;
+  const elegiveis = VEICULOS_IMPRENSA.filter(v => v.tier===1 || (v.tier===2 && fama>=30) || (v.tier===3 && fama>=60));
+  return pick(elegiveis);
+}
+function pushNoticiaImprensa(tipo, texto){
+  const v = veiculoElegivel();
+  pushNoticia(tipo, v ? `${v.nome} — ${texto}` : texto);
 }
 function pushHistorico(texto){
   GAME.historico.unshift({texto, semana: GAME.status.semanaGlobal});

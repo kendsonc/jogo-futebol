@@ -146,6 +146,25 @@ const CLUBES = [
   {id:'juventude', nome:'Juventude', cidade:'Caxias do Sul', uf:'RS', divisao:'Série A', exigenciaPeneira:82, estiloJogo:'Físico e direto', nivelBase:76, chanceAprovacaoBase:16, pressaoTorcida:58, oportunidadeJovens:44, financeiro:66, reputacao:76, cor1:'#0d6b34', cor2:'#ffffff'}
 ];
 
+/* ============================== PERFIL DE CLUBE =============================
+   Derivado dos campos numéricos que já existem em CLUBES (sem precisar
+   catalogar manualmente cada um dos clubes) — usado como contexto/texto no
+   mercado de transferências, não reescreve a simulação de partida.
+   ========================================================================= */
+function perfilClube(c){
+  const gap = c.pressaoTorcida - c.financeiro; // torcida cobra mais do que a estrutura aguenta
+  if(gap >= 15 && c.pressaoTorcida >= 60) return 'gigante_em_crise';
+  if(c.financeiro >= 65 && c.reputacao >= 60) return 'clube_organizado';
+  if(c.oportunidadeJovens >= 60 && c.financeiro < 50) return 'formador';
+  return 'equilibrado';
+}
+const PERFIL_CLUBE_BLURB = {
+  formador: 'Clube conhecido por apostar em jovens da base — chance real de minutos, estrutura financeira mais modesta.',
+  gigante_em_crise: 'Torcida gigante e pressão à altura, mas as finanças não acompanham o tamanho do clube.',
+  clube_organizado: 'Estrutura financeira sólida e ambiente mais estável.',
+  equilibrado: 'Perfil equilibrado, sem grandes excessos nem grandes carências.'
+};
+
 /* ============================== DATA: ESTILOS ==============================
    Perfis de formação escolhidos na criação do jogador. "mods" soma-se aos
    atributos-base aleatórios (35-65) na hora de gerar o jogador.
@@ -238,6 +257,10 @@ function calcularOverall(){
    por uma base de dados real/editável.
    ========================================================================= */
 const NOMES_TECNICOS = ['Aldair Nogueira','Marcão Silveira','Ricardo Prata','Valdir Camargo','Elano Bittencourt','Cassiano Reis'];
+// Estilo do técnico: dá personalidade real (efeito em decidirEscalacao, js/sistemas/treino.js)
+// além de ser só um nome solto em texto narrativo.
+const ESTILOS_TECNICO = ['disciplinador','paizao','retranqueiro','ofensivo','professor','resultadista','formador'];
+function gerarTecnico(){ return { nome: pick(NOMES_TECNICOS), estilo: pick(ESTILOS_TECNICO) }; }
 const NOMES_OBSERVADORES = ['Seu Osvaldo','Dona Marlene','Professor Tadeu','Zé Roberto','Coordenador Nilton'];
 const NOMES_DIRIGENTES = ['Presidente Aguinaldo','Diretor Marcelo Tavares','VP Heitor Andrade'];
 const NOMES_COMPANHEIROS = ['Denner','Kauê','Robinho','Bruno Alves','Wendell','Matheusinho','Igor Bahia','Ranielzinho','Cauê Ribeiro','Pablo Vitor'];

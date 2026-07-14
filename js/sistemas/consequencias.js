@@ -70,6 +70,34 @@ const RESOLVEDORES_CONSEQUENCIA = {
     };
   },
 
+  // Gatilho: aplicarEfeitos (js/core/efeitos.js), quando a relação com um companheiro cruza 85 pela 1ª vez
+  elenco_vinculo_forte: (ctx) => {
+    const amigo = GAME.elenco.find(c => c.id === ctx.amigoId);
+    if(!amigo) return null;
+    return {
+      id: 'elenco_vinculo_forte', categoria: 'vestiario',
+      texto: (g) => `${amigo.nome} te procura, sério: "A gente já é praticamente irmão de CT. Pode contar comigo sempre, dentro ou fora de campo."`,
+      escolhas: [
+        { label: 'Retribuir o gesto de verdade', efeitos: { amigo: amigo.id, amigoDelta: 5, moral: 5, saudeMental: 4 } },
+        { label: 'Agradecer, mais contido', efeitos: { amigo: amigo.id, amigoDelta: 2, moral: 2 } }
+      ]
+    };
+  },
+
+  // Gatilho: aplicarEfeitos (js/core/efeitos.js), quando a relação com um companheiro cruza 15 pra baixo pela 1ª vez
+  elenco_atrito_serio: (ctx) => {
+    const amigo = GAME.elenco.find(c => c.id === ctx.amigoId);
+    if(!amigo) return null;
+    return {
+      id: 'elenco_atrito_serio', categoria: 'vestiario',
+      texto: (g) => `O clima com ${amigo.nome} finalmente estoura — discussão feia no vestiário, na frente de todo mundo.`,
+      escolhas: [
+        { label: 'Tentar resolver e pedir desculpas', efeitos: { amigo: amigo.id, amigoDelta: 15, saudeMental: -2, tracos: { humilde: 1 } } },
+        { label: 'Cortar relações de vez, só o profissional', efeitos: { amigo: amigo.id, amigoDelta: -10, relacaoElenco: -2, tracos: { serio: 1 } } }
+      ]
+    };
+  },
+
   // Gatilho: checarLesao(), quando o grau sorteado é 'Lesão grave'
   lesao_sequela: (ctx) => {
     const nomeAtributo = attrNome(ctx.atributo);

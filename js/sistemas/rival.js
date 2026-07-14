@@ -38,7 +38,7 @@ function evoluirRival(){
     const outros = CLUBES.filter(c => c.id !== r.clubeId && (!GAME.clube || c.id !== GAME.clube.id));
     const novo = pick(outros);
     if(novo){
-      pushNoticia('midia', `${r.nome} foi negociado e agora joga pelo ${novo.nome}.`);
+      pushNoticiaImprensa('midia', `${r.nome} foi negociado e agora joga pelo ${novo.nome}.`);
       r.clubeId = novo.id;
       r.clubeNome = novo.nome;
     }
@@ -62,7 +62,7 @@ function gerarNoticiaComparativaRival(){
       ? `Colunista destaca que ${GAME.identidade.apelido} vem se sobressaindo na comparação direta com ${r.nome}.`
       : `Colunista aponta que ${r.nome} vem se destacando mais do que ${GAME.identidade.apelido} nesta fase.`
   ];
-  pushNoticia('midia', pick(templates)());
+  pushNoticiaImprensa('midia', pick(templates)());
 }
 
 const EVENTOS_RIVAL = [
@@ -97,7 +97,7 @@ function gerarConfrontoRival(){
   const rivalBrilhou = chance(35);
   if(rivalBrilhou){
     r.statsCareer.gols += rand(0, 2);
-    pushNoticia('midia', `${r.nome} também brilhou na rodada, marcando pelo ${r.clubeNome}.`);
+    pushNoticiaImprensa('midia', `${r.nome} também brilhou na rodada, marcando pelo ${r.clubeNome}.`);
   }
   return { rivalBrilhou };
 }

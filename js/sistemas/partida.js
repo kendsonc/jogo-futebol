@@ -3,7 +3,9 @@
 // atributo relevante, da dificuldade do adversário e de um tanto de sorte
 function resolverNivelLance(attr, dificuldade){
   const valor = GAME.atributos[attr] || 45;
-  const score = valor - dificuldade*0.45 + rand(-22,22);
+  // pressão psicológica pesa aqui pra não ficar um número só escrito e nunca sentido em jogo
+  const penalidadePressao = (GAME.sociais.pressaoPsicologica-50)*0.06;
+  const score = valor - dificuldade*0.45 - penalidadePressao + rand(-22,22);
   if(score >= 42) return 'otimo';
   if(score >= 18) return 'bom';
   if(score >= -8) return 'neutro';
@@ -310,6 +312,15 @@ function finalizarPartida(){
   if(minutos > 0){
     nota = 6.0 + gols*0.9 + assist*0.5 + defesaImportante*0.6 - erros*0.5 - amarelo*0.3 - vermelho*1.6 + rand(-3,3)/10;
     nota = clamp(nota, 0, 10);
+    // pressaoTorcida do clube amplifica o baque de uma derrota/nota ruim e o alívio de uma vitória
+    const fatorPressaoClube = clamp((GAME.clube.pressaoTorcida-50)/50, -0.5, 1);
+    if(resultadoJogo==='derrota' || nota<5){
+      GAME.status.pressao = clamp(GAME.status.pressao + Math.round(6*(1+fatorPressaoClube)), 0, 100);
+      GAME.sociais.pressaoPsicologica = clamp(GAME.sociais.pressaoPsicologica + Math.round(5*(1+fatorPressaoClube)), 0, 100);
+    } else if(resultadoJogo==='vitoria' && nota>=7){
+      GAME.status.pressao = clamp(GAME.status.pressao - Math.round(4*(1+Math.max(0,fatorPressaoClube))), 0, 100);
+      GAME.sociais.pressaoPsicologica = clamp(GAME.sociais.pressaoPsicologica - Math.round(3*(1+Math.max(0,fatorPressaoClube))), 0, 100);
+    }
   }
 
   // Atualiza estatísticas — só contam como "jogo" as partidas em que o jogador
