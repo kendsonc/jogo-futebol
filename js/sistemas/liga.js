@@ -81,16 +81,29 @@ function montarLigaTemporada(){
 }
 // Liga do clube internacional: branch isolado, NÃO usa tierDoClube/TIERS_ORDEM
 // (evita que aplicarAcessoRebaixamento promova/rebaixe um clube internacional
-// pra dentro/fora da escala doméstica). Preenche com os outros 3 clubes
-// internacionais + Série A brasileiros mais próximos em reputação.
+// pra dentro/fora da escala doméstica). Prioriza os outros clubes da MESMA
+// liga europeia real do jogador (ex: Premier League contra Premier League);
+// só recorre a clubes de outra liga europeia (por proximidade de reputação)
+// se a liga do jogador não tiver 19 outros clubes cadastrados, e à Série A
+// brasileira apenas como último recurso (não deveria acontecer hoje, já que
+// cada uma das 6 ligas tem clubes de sobra).
 function montarLigaInternacional(){
   const nivelRef = GAME.clube.reputacao;
-  const outros = CLUBES_INTERNACIONAIS.filter(c => c.id !== GAME.clube.id);
-  const preenchimento = CLUBES.filter(c => c.divisao === 'Série A')
-    .sort((a,b) => Math.abs(a.reputacao-nivelRef) - Math.abs(b.reputacao-nivelRef));
-  const pool = [...outros, ...preenchimento].slice(0,19)
-    .map(c => ({ id:c.id, nome:c.nome, nivelBase:c.nivelBase, reputacao:c.reputacao, divisao:c.divisao, cidade:c.cidade, uf:c.uf||null }));
-  const clubes = [{ id:GAME.clube.id, nome:GAME.clube.nome, nivelBase:GAME.clube.nivelBase, reputacao:GAME.clube.reputacao, divisao:GAME.clube.divisao, cidade:GAME.clube.cidade, uf:GAME.clube.uf||null }, ...pool];
+  const ordenarPorProximidade = (lista) => lista.slice().sort((a,b) => Math.abs(a.reputacao-nivelRef) - Math.abs(b.reputacao-nivelRef));
+  const minhaLiga = GAME.clube.liga;
+  let pool = ordenarPorProximidade(CLUBES_INTERNACIONAIS.filter(c => c.id !== GAME.clube.id && c.liga === minhaLiga));
+  if(pool.length < 19){
+    const usados = new Set(pool.map(c=>c.id));
+    const outrasLigas = ordenarPorProximidade(CLUBES_INTERNACIONAIS.filter(c => c.id !== GAME.clube.id && c.liga !== minhaLiga && !usados.has(c.id)));
+    pool = pool.concat(outrasLigas);
+  }
+  if(pool.length < 19){
+    const usados = new Set(pool.map(c=>c.id));
+    const preenchimento = ordenarPorProximidade(CLUBES.filter(c => c.divisao === 'Série A' && !usados.has(c.id)));
+    pool = pool.concat(preenchimento);
+  }
+  const rivais = pool.slice(0,19).map(c => ({ id:c.id, nome:c.nome, nivelBase:c.nivelBase, reputacao:c.reputacao, divisao:c.divisao, cidade:c.cidade, uf:c.uf||null }));
+  const clubes = [{ id:GAME.clube.id, nome:GAME.clube.nome, nivelBase:GAME.clube.nivelBase, reputacao:GAME.clube.reputacao, divisao:GAME.clube.divisao, cidade:GAME.clube.cidade, uf:GAME.clube.uf||null }, ...rivais];
   const tabela = {};
   clubes.forEach(c => { tabela[c.id] = { pj:0, v:0, e:0, d:0, gp:0, gc:0, sg:0, pts:0 }; });
   return { clubes, tabela, divisao:'Internacional', calendario: gerarCalendarioRoundRobin(clubes.map(c=>c.id)), rodadaAtual:0, historico:[] };

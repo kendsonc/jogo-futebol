@@ -50,7 +50,8 @@ function crestHtml(clube, size){
   const cls = size >= 56 ? 'crest lg' : 'crest';
   return `<span class="${cls}" style="--crest-c1:${c1};--crest-c2:${c2};width:${size}px;height:${size}px;font-size:${Math.round(size*0.36)}px">${escapeHtml(iniciais)}</span>`;
 }
-const TIER_CORES = { 'Série A':'#e8c04a', 'Série B':'#c3cad6', 'Série C':'#c98a52', 'Série D':'#7c8aa5', 'Estadual':'#5a6b85', 'Internacional':'#5ac8fa' };
+const TIER_CORES = { 'Série A':'#e8c04a', 'Série B':'#c3cad6', 'Série C':'#c98a52', 'Série D':'#7c8aa5', 'Estadual':'#5a6b85', 'Internacional':'#5ac8fa',
+  'Premier League':'#3d195b', 'La Liga':'#ee8707', 'Serie A':'#008fd7', 'Bundesliga':'#d3010c', 'Ligue 1':'#0d1b5e', 'Primeira Liga':'#e21c21' };
 function tierBadgeHtml(divisao){
   const cor = TIER_CORES[divisao] || '#7c8aa5';
   return `<span class="tier-badge" style="--tier-c:${cor}">${escapeHtml(divisao)}</span>`;

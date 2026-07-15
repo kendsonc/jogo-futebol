@@ -6,7 +6,7 @@ function statusBarHtml(){
       ${crestHtml(GAME.clube, 34)}
       <div>
         <div class="sb-club-name">${escapeHtml(GAME.clube.nome)}</div>
-        ${tierBadgeHtml(GAME.clube.divisao)}
+        ${tierBadgeHtml(GAME.clube.liga || GAME.clube.divisao)}
       </div>
     </div>
     <div class="sb-divider"></div>

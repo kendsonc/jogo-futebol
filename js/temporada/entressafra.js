@@ -201,8 +201,8 @@ function renderEntressafraTransferencia(){
       <div class="card-title">Proposta de Transferência</div>
       <div id="scene-text">${escapeHtml(texto)}</div>
       <div class="choices">
-        ${opcoes.map((c,i) => `<button class="btn" data-i="${i}" style="display:flex;align-items:center;gap:10px;text-align:left">${crestHtml(c,32)}<span>Transferir para o <b>${escapeHtml(c.nome)}</b> — ${escapeHtml(localClube(c))} ${tierBadgeHtml(c.divisao)}<br><span class="small muted">${escapeHtml(PERFIL_CLUBE_BLURB[perfilClube(c)])}</span></span></button>`).join('')}
-        <button class="btn btn-primary" data-i="ficar" style="display:flex;align-items:center;gap:10px">${crestHtml(GAME.clube,32)}<span>Permanecer no <b>${escapeHtml(GAME.clube.nome)}</b> ${tierBadgeHtml(GAME.clube.divisao)}</span></button>
+        ${opcoes.map((c,i) => `<button class="btn" data-i="${i}" style="display:flex;align-items:center;gap:10px;text-align:left">${crestHtml(c,32)}<span>Transferir para o <b>${escapeHtml(c.nome)}</b> — ${escapeHtml(localClube(c))} ${tierBadgeHtml(c.liga || c.divisao)}<br><span class="small muted">${escapeHtml(PERFIL_CLUBE_BLURB[perfilClube(c)])}</span></span></button>`).join('')}
+        <button class="btn btn-primary" data-i="ficar" style="display:flex;align-items:center;gap:10px">${crestHtml(GAME.clube,32)}<span>Permanecer no <b>${escapeHtml(GAME.clube.nome)}</b> ${tierBadgeHtml(GAME.clube.liga || GAME.clube.divisao)}</span></button>
       </div>
     </div>
   `;
@@ -211,6 +211,7 @@ function renderEntressafraTransferencia(){
       if(btn.dataset.i !== 'ficar'){
         const novoClube = opcoes[parseInt(btn.dataset.i,10)];
         GAME.clube = { id:novoClube.id, nome:novoClube.nome, cidade:novoClube.cidade, uf:novoClube.uf,
+          pais:novoClube.pais, liga:novoClube.liga,
           divisao:novoClube.divisao, estiloJogo:novoClube.estiloJogo, nivelBase:novoClube.nivelBase,
           chanceAprovacaoBase:novoClube.chanceAprovacaoBase, pressaoTorcida:novoClube.pressaoTorcida,
           oportunidadeJovens:novoClube.oportunidadeJovens, financeiro:novoClube.financeiro,
@@ -226,7 +227,7 @@ function renderEntressafraTransferencia(){
         GAME.status.statusElenco = 'Novo reforço';
         pushNoticia('midia', `${GAME.identidade.apelido} é anunciado como novo reforço do ${novoClube.nome} (${novoClube.divisao})!`);
         GAME.statsCareer.clubesPassados.push({ nome: novoClube.nome, internacional: novoClube.divisao==='Internacional', temporada: GAME.numeroTemporada });
-        if(novoClube.divisao === 'Internacional') registrarMarco('Rumo à Europa', `Transferência para o ${novoClube.nome} (${novoClube.pais}) na Temporada ${GAME.numeroTemporada}.`, 'alta');
+        if(novoClube.divisao === 'Internacional') registrarMarco('Rumo à Europa', `Transferência para o ${novoClube.nome} (${novoClube.liga}, ${novoClube.pais}) na Temporada ${GAME.numeroTemporada}.`, 'alta');
       }
       GAME.entressafraState.etapa = 3;
       salvarJogo();

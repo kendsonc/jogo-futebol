@@ -149,16 +149,109 @@ const CLUBES = [
 /* ============================== CLUBES INTERNACIONAIS ========================
    Clubes europeus reais (mesmo espírito de CLUBES, que já usa os 93 clubes
    brasileiros reais). Reputação/financeiro calibrados acima do teto real
-   de CLUBES (Flamengo: reputacao 99, financeiro 98).
+   de CLUBES (Flamengo: reputacao 99, financeiro 98). Estruturados nas 6
+   principais ligas europeias (`liga`), cada uma com elenco próprio de clubes
+   reais suficiente pra montar uma tabela de pontos corridos sem precisar de
+   "recheio" de clubes de outra liga (ver montarLigaInternacional, js/sistemas/liga.js).
+   `divisao` continua sempre 'Internacional' (usado em toda a lógica de jogo
+   — acesso/rebaixamento, badges, marcos de carreira); `liga` é só o
+   campeonato específico dentro do universo internacional.
    ========================================================================= */
 const CLUBES_INTERNACIONAIS = [
-  { id:'intl_lisboa', nome:'SL Benfica', pais:'Portugal', cidade:'Lisboa', divisao:'Internacional', nivelBase:88, reputacao:88, financeiro:80, pressaoTorcida:65, oportunidadeJovens:55, estiloJogo:'Técnico', cor1:'#e21c21', cor2:'#ffffff' },
-  { id:'intl_milao', nome:'AC Milan', pais:'Itália', cidade:'Milão', divisao:'Internacional', nivelBase:95, reputacao:97, financeiro:100, pressaoTorcida:80, oportunidadeJovens:35, estiloJogo:'Retranqueiro', cor1:'#ac1e2d', cor2:'#000000' },
-  { id:'intl_madrid', nome:'Real Madrid', pais:'Espanha', cidade:'Madri', divisao:'Internacional', nivelBase:97, reputacao:100, financeiro:110, pressaoTorcida:88, oportunidadeJovens:30, estiloJogo:'Ofensivo e técnico', cor1:'#ffffff', cor2:'#00529f' },
-  { id:'intl_manch', nome:'Manchester City', pais:'Inglaterra', cidade:'Manchester', divisao:'Internacional', nivelBase:99, reputacao:105, financeiro:120, pressaoTorcida:90, oportunidadeJovens:25, estiloJogo:'Físico e direto', cor1:'#6cabdd', cor2:'#1c2c5b' }
+  // --------- Premier League (Inglaterra) ---------
+  { id:'intl_manch', nome:'Manchester City', pais:'Inglaterra', liga:'Premier League', cidade:'Manchester', divisao:'Internacional', nivelBase:99, reputacao:105, financeiro:120, pressaoTorcida:90, oportunidadeJovens:25, estiloJogo:'Físico e direto', cor1:'#6cabdd', cor2:'#1c2c5b' },
+  { id:'intl_liverpool', nome:'Liverpool', pais:'Inglaterra', liga:'Premier League', cidade:'Liverpool', divisao:'Internacional', nivelBase:96, reputacao:98, financeiro:105, pressaoTorcida:92, oportunidadeJovens:28, estiloJogo:'Pressão intensa', cor1:'#c8102e', cor2:'#00b2a9' },
+  { id:'intl_manutd', nome:'Manchester United', pais:'Inglaterra', liga:'Premier League', cidade:'Manchester', divisao:'Internacional', nivelBase:90, reputacao:97, financeiro:108, pressaoTorcida:93, oportunidadeJovens:32, estiloJogo:'Tradicional', cor1:'#da020e', cor2:'#ffe500' },
+  { id:'intl_arsenal', nome:'Arsenal', pais:'Inglaterra', liga:'Premier League', cidade:'Londres', divisao:'Internacional', nivelBase:93, reputacao:92, financeiro:98, pressaoTorcida:82, oportunidadeJovens:36, estiloJogo:'Moderno e propositivo', cor1:'#ef0107', cor2:'#023474' },
+  { id:'intl_chelsea', nome:'Chelsea', pais:'Inglaterra', liga:'Premier League', cidade:'Londres', divisao:'Internacional', nivelBase:89, reputacao:93, financeiro:102, pressaoTorcida:84, oportunidadeJovens:34, estiloJogo:'Físico e pressão', cor1:'#034694', cor2:'#ffffff' },
+  { id:'intl_tottenham', nome:'Tottenham Hotspur', pais:'Inglaterra', liga:'Premier League', cidade:'Londres', divisao:'Internacional', nivelBase:85, reputacao:85, financeiro:90, pressaoTorcida:78, oportunidadeJovens:38, estiloJogo:'Ofensivo e técnico', cor1:'#132257', cor2:'#ffffff' },
+  { id:'intl_newcastle', nome:'Newcastle United', pais:'Inglaterra', liga:'Premier League', cidade:'Newcastle', divisao:'Internacional', nivelBase:82, reputacao:78, financeiro:88, pressaoTorcida:85, oportunidadeJovens:36, estiloJogo:'Físico e direto', cor1:'#241f20', cor2:'#ffffff' },
+  { id:'intl_astonvilla', nome:'Aston Villa', pais:'Inglaterra', liga:'Premier League', cidade:'Birmingham', divisao:'Internacional', nivelBase:80, reputacao:74, financeiro:78, pressaoTorcida:68, oportunidadeJovens:40, estiloJogo:'Organizado taticamente', cor1:'#95bfe5', cor2:'#670e36' },
+  { id:'intl_westham', nome:'West Ham United', pais:'Inglaterra', liga:'Premier League', cidade:'Londres', divisao:'Internacional', nivelBase:76, reputacao:70, financeiro:72, pressaoTorcida:66, oportunidadeJovens:44, estiloJogo:'Contra-ataque', cor1:'#7a263a', cor2:'#1bb1e7' },
+  { id:'intl_brighton', nome:'Brighton & Hove Albion', pais:'Inglaterra', liga:'Premier League', cidade:'Brighton', divisao:'Internacional', nivelBase:74, reputacao:66, financeiro:65, pressaoTorcida:52, oportunidadeJovens:58, estiloJogo:'Moderno e propositivo', cor1:'#0057b8', cor2:'#ffffff' },
+  { id:'intl_everton', nome:'Everton', pais:'Inglaterra', liga:'Premier League', cidade:'Liverpool', divisao:'Internacional', nivelBase:72, reputacao:68, financeiro:60, pressaoTorcida:64, oportunidadeJovens:46, estiloJogo:'Raça e marcação', cor1:'#003399', cor2:'#ffffff' },
+  { id:'intl_wolves', nome:'Wolverhampton Wanderers', pais:'Inglaterra', liga:'Premier League', cidade:'Wolverhampton', divisao:'Internacional', nivelBase:71, reputacao:62, financeiro:58, pressaoTorcida:56, oportunidadeJovens:50, estiloJogo:'Contra-ataque', cor1:'#fdb913', cor2:'#231f20' },
+
+  // --------- La Liga (Espanha) ---------
+  { id:'intl_madrid', nome:'Real Madrid', pais:'Espanha', liga:'La Liga', cidade:'Madri', divisao:'Internacional', nivelBase:97, reputacao:100, financeiro:110, pressaoTorcida:88, oportunidadeJovens:30, estiloJogo:'Ofensivo e técnico', cor1:'#ffffff', cor2:'#00529f' },
+  { id:'intl_barcelona', nome:'Barcelona', pais:'Espanha', liga:'La Liga', cidade:'Barcelona', divisao:'Internacional', nivelBase:95, reputacao:99, financeiro:95, pressaoTorcida:90, oportunidadeJovens:40, estiloJogo:'Posse de bola', cor1:'#a50044', cor2:'#004d98' },
+  { id:'intl_atletico', nome:'Atlético de Madrid', pais:'Espanha', liga:'La Liga', cidade:'Madri', divisao:'Internacional', nivelBase:88, reputacao:88, financeiro:82, pressaoTorcida:80, oportunidadeJovens:34, estiloJogo:'Retranqueiro', cor1:'#cb3524', cor2:'#272e61' },
+  { id:'intl_sevilla', nome:'Sevilla', pais:'Espanha', liga:'La Liga', cidade:'Sevilha', divisao:'Internacional', nivelBase:79, reputacao:75, financeiro:62, pressaoTorcida:66, oportunidadeJovens:42, estiloJogo:'Organizado', cor1:'#d81920', cor2:'#ffffff' },
+  { id:'intl_realsociedad', nome:'Real Sociedad', pais:'Espanha', liga:'La Liga', cidade:'San Sebastián', divisao:'Internacional', nivelBase:78, reputacao:70, financeiro:58, pressaoTorcida:56, oportunidadeJovens:52, estiloJogo:'Posse de bola', cor1:'#0067b1', cor2:'#ffffff' },
+  { id:'intl_betis', nome:'Real Betis', pais:'Espanha', liga:'La Liga', cidade:'Sevilha', divisao:'Internacional', nivelBase:77, reputacao:68, financeiro:56, pressaoTorcida:64, oportunidadeJovens:46, estiloJogo:'Moderno e propositivo', cor1:'#00954c', cor2:'#ffffff' },
+  { id:'intl_athleticbilbao', nome:'Athletic Bilbao', pais:'Espanha', liga:'La Liga', cidade:'Bilbao', divisao:'Internacional', nivelBase:78, reputacao:72, financeiro:60, pressaoTorcida:70, oportunidadeJovens:60, estiloJogo:'Físico e pressão', cor1:'#ee2523', cor2:'#ffffff' },
+  { id:'intl_valencia', nome:'Valencia', pais:'Espanha', liga:'La Liga', cidade:'Valência', divisao:'Internacional', nivelBase:74, reputacao:68, financeiro:54, pressaoTorcida:62, oportunidadeJovens:48, estiloJogo:'Equilibrado', cor1:'#ee8707', cor2:'#000000' },
+  { id:'intl_villarreal', nome:'Villarreal', pais:'Espanha', liga:'La Liga', cidade:'Villarreal', divisao:'Internacional', nivelBase:76, reputacao:66, financeiro:55, pressaoTorcida:44, oportunidadeJovens:54, estiloJogo:'Organizado taticamente', cor1:'#ffe667', cor2:'#005187' },
+  { id:'intl_girona', nome:'Girona', pais:'Espanha', liga:'La Liga', cidade:'Girona', divisao:'Internacional', nivelBase:73, reputacao:58, financeiro:45, pressaoTorcida:36, oportunidadeJovens:56, estiloJogo:'Moderno e propositivo', cor1:'#cb3524', cor2:'#ffffff' },
+  { id:'intl_mallorca', nome:'Real Mallorca', pais:'Espanha', liga:'La Liga', cidade:'Palma de Maiorca', divisao:'Internacional', nivelBase:68, reputacao:52, financeiro:40, pressaoTorcida:34, oportunidadeJovens:52, estiloJogo:'Raçudo', cor1:'#c8102e', cor2:'#000000' },
+  { id:'intl_celtavigo', nome:'Celta de Vigo', pais:'Espanha', liga:'La Liga', cidade:'Vigo', divisao:'Internacional', nivelBase:68, reputacao:54, financeiro:42, pressaoTorcida:38, oportunidadeJovens:54, estiloJogo:'Posse de bola', cor1:'#8ac3ee', cor2:'#ffffff' },
+
+  // --------- Serie A (Itália) ---------
+  { id:'intl_milao', nome:'AC Milan', pais:'Itália', liga:'Serie A', cidade:'Milão', divisao:'Internacional', nivelBase:95, reputacao:97, financeiro:100, pressaoTorcida:80, oportunidadeJovens:35, estiloJogo:'Retranqueiro', cor1:'#ac1e2d', cor2:'#000000' },
+  { id:'intl_inter', nome:'Inter de Milão', pais:'Itália', liga:'Serie A', cidade:'Milão', divisao:'Internacional', nivelBase:94, reputacao:96, financeiro:92, pressaoTorcida:78, oportunidadeJovens:32, estiloJogo:'Organizado taticamente', cor1:'#0068a8', cor2:'#000000' },
+  { id:'intl_juventus', nome:'Juventus', pais:'Itália', liga:'Serie A', cidade:'Turim', divisao:'Internacional', nivelBase:91, reputacao:95, financeiro:90, pressaoTorcida:82, oportunidadeJovens:30, estiloJogo:'Retranqueiro', cor1:'#000000', cor2:'#ffffff' },
+  { id:'intl_napoli', nome:'Napoli', pais:'Itália', liga:'Serie A', cidade:'Nápoles', divisao:'Internacional', nivelBase:88, reputacao:85, financeiro:78, pressaoTorcida:88, oportunidadeJovens:36, estiloJogo:'Ofensivo e técnico', cor1:'#12a0d7', cor2:'#ffffff' },
+  { id:'intl_roma', nome:'Roma', pais:'Itália', liga:'Serie A', cidade:'Roma', divisao:'Internacional', nivelBase:82, reputacao:80, financeiro:70, pressaoTorcida:84, oportunidadeJovens:38, estiloJogo:'Físico e pressão', cor1:'#8e1f2f', cor2:'#f0bc42' },
+  { id:'intl_lazio', nome:'Lazio', pais:'Itália', liga:'Serie A', cidade:'Roma', divisao:'Internacional', nivelBase:80, reputacao:74, financeiro:64, pressaoTorcida:72, oportunidadeJovens:40, estiloJogo:'Organizado', cor1:'#87d8f7', cor2:'#ffffff' },
+  { id:'intl_atalanta', nome:'Atalanta', pais:'Itália', liga:'Serie A', cidade:'Bergamo', divisao:'Internacional', nivelBase:81, reputacao:72, financeiro:62, pressaoTorcida:58, oportunidadeJovens:48, estiloJogo:'Ofensivo', cor1:'#1b6cae', cor2:'#000000' },
+  { id:'intl_fiorentina', nome:'Fiorentina', pais:'Itália', liga:'Serie A', cidade:'Florença', divisao:'Internacional', nivelBase:77, reputacao:68, financeiro:56, pressaoTorcida:62, oportunidadeJovens:44, estiloJogo:'Moderno e propositivo', cor1:'#5a2d81', cor2:'#ffffff' },
+  { id:'intl_bologna', nome:'Bologna', pais:'Itália', liga:'Serie A', cidade:'Bolonha', divisao:'Internacional', nivelBase:75, reputacao:62, financeiro:52, pressaoTorcida:50, oportunidadeJovens:50, estiloJogo:'Organizado taticamente', cor1:'#8c1c30', cor2:'#1c2c5b' },
+  { id:'intl_torino', nome:'Torino', pais:'Itália', liga:'Serie A', cidade:'Turim', divisao:'Internacional', nivelBase:71, reputacao:58, financeiro:46, pressaoTorcida:48, oportunidadeJovens:52, estiloJogo:'Raça e marcação', cor1:'#7b1e3a', cor2:'#ffffff' },
+  { id:'intl_udinese', nome:'Udinese', pais:'Itália', liga:'Serie A', cidade:'Udine', divisao:'Internacional', nivelBase:68, reputacao:52, financeiro:42, pressaoTorcida:40, oportunidadeJovens:56, estiloJogo:'Físico e direto', cor1:'#000000', cor2:'#ffffff' },
+  { id:'intl_sassuolo', nome:'Sassuolo', pais:'Itália', liga:'Serie A', cidade:'Sassuolo', divisao:'Internacional', nivelBase:67, reputacao:50, financeiro:40, pressaoTorcida:32, oportunidadeJovens:58, estiloJogo:'Moderno e propositivo', cor1:'#008a4b', cor2:'#000000' },
+
+  // --------- Bundesliga (Alemanha) ---------
+  { id:'intl_bayern', nome:'Bayern de Munique', pais:'Alemanha', liga:'Bundesliga', cidade:'Munique', divisao:'Internacional', nivelBase:98, reputacao:102, financeiro:108, pressaoTorcida:86, oportunidadeJovens:30, estiloJogo:'Posse de bola', cor1:'#dc052d', cor2:'#0066b2' },
+  { id:'intl_dortmund', nome:'Borussia Dortmund', pais:'Alemanha', liga:'Bundesliga', cidade:'Dortmund', divisao:'Internacional', nivelBase:89, reputacao:88, financeiro:82, pressaoTorcida:90, oportunidadeJovens:44, estiloJogo:'Contra-ataque', cor1:'#fde100', cor2:'#000000' },
+  { id:'intl_leipzig', nome:'RB Leipzig', pais:'Alemanha', liga:'Bundesliga', cidade:'Leipzig', divisao:'Internacional', nivelBase:86, reputacao:76, financeiro:80, pressaoTorcida:48, oportunidadeJovens:46, estiloJogo:'Pressão intensa', cor1:'#dd0741', cor2:'#ffffff' },
+  { id:'intl_leverkusen', nome:'Bayer Leverkusen', pais:'Alemanha', liga:'Bundesliga', cidade:'Leverkusen', divisao:'Internacional', nivelBase:87, reputacao:78, financeiro:76, pressaoTorcida:52, oportunidadeJovens:42, estiloJogo:'Moderno e propositivo', cor1:'#e32221', cor2:'#000000' },
+  { id:'intl_frankfurt', nome:'Eintracht Frankfurt', pais:'Alemanha', liga:'Bundesliga', cidade:'Frankfurt', divisao:'Internacional', nivelBase:79, reputacao:68, financeiro:60, pressaoTorcida:66, oportunidadeJovens:48, estiloJogo:'Físico e pressão', cor1:'#e1000f', cor2:'#000000' },
+  { id:'intl_stuttgart', nome:'VfB Stuttgart', pais:'Alemanha', liga:'Bundesliga', cidade:'Stuttgart', divisao:'Internacional', nivelBase:78, reputacao:64, financeiro:56, pressaoTorcida:56, oportunidadeJovens:50, estiloJogo:'Ofensivo', cor1:'#ffffff', cor2:'#e32219' },
+  { id:'intl_gladbach', nome:'Borussia Mönchengladbach', pais:'Alemanha', liga:'Bundesliga', cidade:'Mönchengladbach', divisao:'Internacional', nivelBase:74, reputacao:62, financeiro:52, pressaoTorcida:54, oportunidadeJovens:52, estiloJogo:'Organizado taticamente', cor1:'#000000', cor2:'#ffffff' },
+  { id:'intl_werder', nome:'Werder Bremen', pais:'Alemanha', liga:'Bundesliga', cidade:'Bremen', divisao:'Internacional', nivelBase:71, reputacao:58, financeiro:46, pressaoTorcida:50, oportunidadeJovens:54, estiloJogo:'Equilibrado', cor1:'#1d9053', cor2:'#ffffff' },
+  { id:'intl_wolfsburg', nome:'Wolfsburg', pais:'Alemanha', liga:'Bundesliga', cidade:'Wolfsburg', divisao:'Internacional', nivelBase:73, reputacao:60, financeiro:54, pressaoTorcida:32, oportunidadeJovens:46, estiloJogo:'Organizado', cor1:'#65b32e', cor2:'#ffffff' },
+  { id:'intl_freiburg', nome:'Freiburg', pais:'Alemanha', liga:'Bundesliga', cidade:'Friburgo', divisao:'Internacional', nivelBase:74, reputacao:58, financeiro:48, pressaoTorcida:38, oportunidadeJovens:56, estiloJogo:'Organizado taticamente', cor1:'#000000', cor2:'#e2001a' },
+  { id:'intl_unionberlin', nome:'Union Berlin', pais:'Alemanha', liga:'Bundesliga', cidade:'Berlim', divisao:'Internacional', nivelBase:72, reputacao:56, financeiro:44, pressaoTorcida:56, oportunidadeJovens:48, estiloJogo:'Raçudo', cor1:'#eb1923', cor2:'#ffcc00' },
+  { id:'intl_hoffenheim', nome:'Hoffenheim', pais:'Alemanha', liga:'Bundesliga', cidade:'Sinsheim', divisao:'Internacional', nivelBase:70, reputacao:52, financeiro:44, pressaoTorcida:26, oportunidadeJovens:58, estiloJogo:'Moderno e propositivo', cor1:'#1c63b7', cor2:'#ffffff' },
+
+  // --------- Ligue 1 (França) ---------
+  { id:'intl_psg', nome:'Paris Saint-Germain', pais:'França', liga:'Ligue 1', cidade:'Paris', divisao:'Internacional', nivelBase:96, reputacao:100, financeiro:115, pressaoTorcida:82, oportunidadeJovens:26, estiloJogo:'Ofensivo e técnico', cor1:'#004170', cor2:'#da291c' },
+  { id:'intl_marselha', nome:'Olympique de Marselha', pais:'França', liga:'Ligue 1', cidade:'Marselha', divisao:'Internacional', nivelBase:80, reputacao:76, financeiro:62, pressaoTorcida:88, oportunidadeJovens:38, estiloJogo:'Físico e pressão', cor1:'#2faee0', cor2:'#ffffff' },
+  { id:'intl_lyon', nome:'Olympique de Lyon', pais:'França', liga:'Ligue 1', cidade:'Lyon', divisao:'Internacional', nivelBase:78, reputacao:74, financeiro:60, pressaoTorcida:64, oportunidadeJovens:46, estiloJogo:'Organizado taticamente', cor1:'#0b3d91', cor2:'#e2001a' },
+  { id:'intl_monaco', nome:'Monaco', pais:'França', liga:'Ligue 1', cidade:'Mônaco', divisao:'Internacional', nivelBase:82, reputacao:72, financeiro:68, pressaoTorcida:34, oportunidadeJovens:50, estiloJogo:'Contra-ataque', cor1:'#e2001a', cor2:'#ffffff' },
+  { id:'intl_lille', nome:'Lille', pais:'França', liga:'Ligue 1', cidade:'Lille', divisao:'Internacional', nivelBase:77, reputacao:66, financeiro:54, pressaoTorcida:48, oportunidadeJovens:52, estiloJogo:'Organizado', cor1:'#e2001a', cor2:'#001c58' },
+  { id:'intl_rennes', nome:'Rennes', pais:'França', liga:'Ligue 1', cidade:'Rennes', divisao:'Internacional', nivelBase:74, reputacao:62, financeiro:50, pressaoTorcida:44, oportunidadeJovens:54, estiloJogo:'Moderno e propositivo', cor1:'#e2001a', cor2:'#000000' },
+  { id:'intl_nice', nome:'Nice', pais:'França', liga:'Ligue 1', cidade:'Nice', divisao:'Internacional', nivelBase:73, reputacao:60, financeiro:48, pressaoTorcida:36, oportunidadeJovens:50, estiloJogo:'Organizado taticamente', cor1:'#e2001a', cor2:'#000000' },
+  { id:'intl_lens', nome:'Lens', pais:'França', liga:'Ligue 1', cidade:'Lens', divisao:'Internacional', nivelBase:74, reputacao:60, financeiro:48, pressaoTorcida:58, oportunidadeJovens:50, estiloJogo:'Físico e pressão', cor1:'#ffe100', cor2:'#e2001a' },
+  { id:'intl_toulouse', nome:'Toulouse', pais:'França', liga:'Ligue 1', cidade:'Toulouse', divisao:'Internacional', nivelBase:68, reputacao:52, financeiro:40, pressaoTorcida:34, oportunidadeJovens:54, estiloJogo:'Equilibrado', cor1:'#762178', cor2:'#ffffff' },
+  { id:'intl_strasbourg', nome:'Strasbourg', pais:'França', liga:'Ligue 1', cidade:'Estrasburgo', divisao:'Internacional', nivelBase:67, reputacao:50, financeiro:38, pressaoTorcida:36, oportunidadeJovens:52, estiloJogo:'Raçudo', cor1:'#0072b1', cor2:'#ffffff' },
+  { id:'intl_nantes', nome:'Nantes', pais:'França', liga:'Ligue 1', cidade:'Nantes', divisao:'Internacional', nivelBase:69, reputacao:54, financeiro:42, pressaoTorcida:46, oportunidadeJovens:50, estiloJogo:'Organizado', cor1:'#fdE100', cor2:'#009036' },
+  { id:'intl_reims', nome:'Reims', pais:'França', liga:'Ligue 1', cidade:'Reims', divisao:'Internacional', nivelBase:67, reputacao:50, financeiro:38, pressaoTorcida:30, oportunidadeJovens:54, estiloJogo:'Organizado taticamente', cor1:'#e2001a', cor2:'#ffffff' },
+
+  // --------- Primeira Liga (Portugal) ---------
+  { id:'intl_lisboa', nome:'SL Benfica', pais:'Portugal', liga:'Primeira Liga', cidade:'Lisboa', divisao:'Internacional', nivelBase:88, reputacao:88, financeiro:80, pressaoTorcida:65, oportunidadeJovens:55, estiloJogo:'Técnico', cor1:'#e21c21', cor2:'#ffffff' },
+  { id:'intl_porto', nome:'FC Porto', pais:'Portugal', liga:'Primeira Liga', cidade:'Porto', divisao:'Internacional', nivelBase:87, reputacao:86, financeiro:74, pressaoTorcida:70, oportunidadeJovens:50, estiloJogo:'Organizado taticamente', cor1:'#0a2b5c', cor2:'#ffffff' },
+  { id:'intl_sporting', nome:'Sporting CP', pais:'Portugal', liga:'Primeira Liga', cidade:'Lisboa', divisao:'Internacional', nivelBase:85, reputacao:82, financeiro:70, pressaoTorcida:68, oportunidadeJovens:56, estiloJogo:'Ofensivo e técnico', cor1:'#118041', cor2:'#ffffff' },
+  { id:'intl_braga', nome:'Braga', pais:'Portugal', liga:'Primeira Liga', cidade:'Braga', divisao:'Internacional', nivelBase:76, reputacao:64, financeiro:52, pressaoTorcida:48, oportunidadeJovens:60, estiloJogo:'Moderno e propositivo', cor1:'#ba1c21', cor2:'#ffffff' },
+  { id:'intl_guimaraes', nome:'Vitória de Guimarães', pais:'Portugal', liga:'Primeira Liga', cidade:'Guimarães', divisao:'Internacional', nivelBase:70, reputacao:55, financeiro:42, pressaoTorcida:44, oportunidadeJovens:62, estiloJogo:'Raçudo', cor1:'#ffffff', cor2:'#000000' },
+  { id:'intl_famalicao', nome:'Famalicão', pais:'Portugal', liga:'Primeira Liga', cidade:'Famalicão', divisao:'Internacional', nivelBase:66, reputacao:48, financeiro:36, pressaoTorcida:30, oportunidadeJovens:66, estiloJogo:'Organizado', cor1:'#000000', cor2:'#ffffff' },
+  { id:'intl_gilvicente', nome:'Gil Vicente', pais:'Portugal', liga:'Primeira Liga', cidade:'Barcelos', divisao:'Internacional', nivelBase:63, reputacao:44, financeiro:32, pressaoTorcida:26, oportunidadeJovens:64, estiloJogo:'Equilibrado', cor1:'#ffffff', cor2:'#000000' },
+  { id:'intl_casapia', nome:'Casa Pia', pais:'Portugal', liga:'Primeira Liga', cidade:'Lisboa', divisao:'Internacional', nivelBase:62, reputacao:42, financeiro:30, pressaoTorcida:24, oportunidadeJovens:68, estiloJogo:'Moderno e propositivo', cor1:'#00843d', cor2:'#000000' },
+  { id:'intl_estoril', nome:'Estoril', pais:'Portugal', liga:'Primeira Liga', cidade:'Estoril', divisao:'Internacional', nivelBase:64, reputacao:44, financeiro:32, pressaoTorcida:22, oportunidadeJovens:66, estiloJogo:'Organizado taticamente', cor1:'#f7b500', cor2:'#000000' },
+  { id:'intl_arouca', nome:'Arouca', pais:'Portugal', liga:'Primeira Liga', cidade:'Arouca', divisao:'Internacional', nivelBase:62, reputacao:40, financeiro:28, pressaoTorcida:20, oportunidadeJovens:68, estiloJogo:'Físico', cor1:'#ffd400', cor2:'#000000' },
+  { id:'intl_rioave', nome:'Rio Ave', pais:'Portugal', liga:'Primeira Liga', cidade:'Vila do Conde', divisao:'Internacional', nivelBase:61, reputacao:40, financeiro:28, pressaoTorcida:22, oportunidadeJovens:66, estiloJogo:'Contra-ataque', cor1:'#00843d', cor2:'#ffffff' },
+  { id:'intl_santaclara', nome:'Santa Clara', pais:'Portugal', liga:'Primeira Liga', cidade:'Ponta Delgada', divisao:'Internacional', nivelBase:60, reputacao:38, financeiro:26, pressaoTorcida:20, oportunidadeJovens:70, estiloJogo:'Base forte', cor1:'#00843d', cor2:'#ffffff' }
 ];
 function clubesInternacionaisDisponiveis(){
   if(!(GAME.clube.divisao==='Série A' && GAME.stats.interesseClubes>=78 && GAME.stats.notaMedia>=7.6)) return [];
+  // Clube brasileiro já "grande" o suficiente (reputação alta): qualquer clube
+  // europeu pode se interessar, mesmo um com reputação menor que a do clube
+  // atual — representa o prestígio internacional do próprio jogador, não só
+  // do clube. Por isso sorteia livremente entre TODOS os clubes internacionais
+  // em vez de ordenar por reputação: se sempre pegasse o topo (slice(0,1) do
+  // maior), o resultado seria sempre o mesmo clube gigante (ex: Man City), já
+  // que ele qualifica em qualquer cenário — não abriria variedade nenhuma.
+  if(GAME.clube.reputacao >= 85) return [pick(CLUBES_INTERNACIONAIS)];
   return CLUBES_INTERNACIONAIS.filter(c => c.reputacao > GAME.clube.reputacao)
     .sort((a,b) => b.reputacao-a.reputacao).slice(0,1);
 }
