@@ -55,6 +55,7 @@ function gerarCalendarioRoundRobin(ids){
   return [...turno, ...returno];
 }
 function montarLigaTemporada(){
+  if(GAME.clube.divisao === 'Internacional') return montarLigaInternacional();
   const meuTier = tierDoClube(GAME.clube);
   const nivelRef = GAME.clube.reputacao;
   const ordenarPorProximidade = (lista) => lista.slice().sort((a,b) => Math.abs(a.reputacao-nivelRef) - Math.abs(b.reputacao-nivelRef));
@@ -78,6 +79,22 @@ function montarLigaTemporada(){
   clubes.forEach(c => { tabela[c.id] = { pj:0, v:0, e:0, d:0, gp:0, gc:0, sg:0, pts:0 }; });
   return { clubes, tabela, divisao: meuTier, calendario: gerarCalendarioRoundRobin(clubes.map(c=>c.id)), rodadaAtual:0, historico:[] };
 }
+// Liga do clube internacional: branch isolado, NÃO usa tierDoClube/TIERS_ORDEM
+// (evita que aplicarAcessoRebaixamento promova/rebaixe um clube internacional
+// pra dentro/fora da escala doméstica). Preenche com os outros 3 clubes
+// internacionais + Série A brasileiros mais próximos em reputação.
+function montarLigaInternacional(){
+  const nivelRef = GAME.clube.reputacao;
+  const outros = CLUBES_INTERNACIONAIS.filter(c => c.id !== GAME.clube.id);
+  const preenchimento = CLUBES.filter(c => c.divisao === 'Série A')
+    .sort((a,b) => Math.abs(a.reputacao-nivelRef) - Math.abs(b.reputacao-nivelRef));
+  const pool = [...outros, ...preenchimento].slice(0,19)
+    .map(c => ({ id:c.id, nome:c.nome, nivelBase:c.nivelBase, reputacao:c.reputacao, divisao:c.divisao, cidade:c.cidade, uf:c.uf||null }));
+  const clubes = [{ id:GAME.clube.id, nome:GAME.clube.nome, nivelBase:GAME.clube.nivelBase, reputacao:GAME.clube.reputacao, divisao:GAME.clube.divisao, cidade:GAME.clube.cidade, uf:GAME.clube.uf||null }, ...pool];
+  const tabela = {};
+  clubes.forEach(c => { tabela[c.id] = { pj:0, v:0, e:0, d:0, gp:0, gc:0, sg:0, pts:0 }; });
+  return { clubes, tabela, divisao:'Internacional', calendario: gerarCalendarioRoundRobin(clubes.map(c=>c.id)), rodadaAtual:0, historico:[] };
+}
 // Acesso e rebaixamento: com base na posição final do SEU clube na tabela,
 // sobe uma divisão (zona de acesso) ou cai uma divisão (zona de rebaixamento).
 // A divisão mais alta que existe na base (Série C) não tem acesso pra lugar
@@ -86,6 +103,7 @@ function montarLigaTemporada(){
 const ZONA_ACESSO = 4;
 const ZONA_REBAIXAMENTO = 4;
 function aplicarAcessoRebaixamento(){
+  if(GAME.clube.divisao === 'Internacional') return null; // sem promoção/rebaixamento jogando fora
   const liga = GAME.temporadaState && GAME.temporadaState.liga;
   if(!liga) return null;
   const linhas = liga.clubes.map(c => ({ c, t: liga.tabela[c.id] }))

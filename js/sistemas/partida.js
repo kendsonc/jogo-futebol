@@ -330,6 +330,7 @@ function finalizarPartida(){
   if(titular) s.titular += 1;
   if(entrouBanco) s.entrouBanco += 1;
   s.minutos += minutos;
+  if(gols > 0 && (GAME.statsCareer.gols + s.gols) === 0) registrarMarco('Primeiro gol', `Primeiro gol da carreira, pelo ${GAME.clube.nome}.`, 'alta');
   s.gols += gols; s.assistencias += assist; s.finalizacoes += finalizacoes;
   s.passesDecisivos += assist; s.desarmes += desarmes; s.interceptacoes += interceptacoes;
   s.amarelos += amarelo; s.vermelhos += vermelho;

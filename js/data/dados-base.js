@@ -146,6 +146,26 @@ const CLUBES = [
   {id:'juventude', nome:'Juventude', cidade:'Caxias do Sul', uf:'RS', divisao:'Série A', exigenciaPeneira:82, estiloJogo:'Físico e direto', nivelBase:76, chanceAprovacaoBase:16, pressaoTorcida:58, oportunidadeJovens:44, financeiro:66, reputacao:76, cor1:'#0d6b34', cor2:'#ffffff'}
 ];
 
+/* ============================== CLUBES INTERNACIONAIS ========================
+   Diferente de CLUBES (93 clubes brasileiros REAIS), estes são fictícios de
+   propósito — mesmo padrão já usado pra técnicos/empresários/companheiros de
+   elenco, mas invertido: aqui o clube-base é real (Brasil) e o destino
+   internacional é fictício, evitando qualquer questão de marca com clubes
+   estrangeiros famosos. Reputação/financeiro calibrados acima do teto real
+   de CLUBES (Flamengo: reputacao 99, financeiro 98).
+   ========================================================================= */
+const CLUBES_INTERNACIONAIS = [
+  { id:'intl_lisboa', nome:'Lisboa Atlético', pais:'Portugal', cidade:'Lisboa', divisao:'Internacional', nivelBase:88, reputacao:88, financeiro:80, pressaoTorcida:65, oportunidadeJovens:55, estiloJogo:'Técnico', cor1:'#0b3d91', cor2:'#ffffff' },
+  { id:'intl_milao', nome:'Milano Calcio', pais:'Itália', cidade:'Milão', divisao:'Internacional', nivelBase:95, reputacao:97, financeiro:100, pressaoTorcida:80, oportunidadeJovens:35, estiloJogo:'Retranqueiro', cor1:'#141414', cor2:'#c8102e' },
+  { id:'intl_madrid', nome:'Real Castilla', pais:'Espanha', cidade:'Madri', divisao:'Internacional', nivelBase:97, reputacao:100, financeiro:110, pressaoTorcida:88, oportunidadeJovens:30, estiloJogo:'Ofensivo e técnico', cor1:'#c8102e', cor2:'#ffffff' },
+  { id:'intl_manch', nome:'Northgate United', pais:'Inglaterra', cidade:'Manchester', divisao:'Internacional', nivelBase:99, reputacao:105, financeiro:120, pressaoTorcida:90, oportunidadeJovens:25, estiloJogo:'Físico e direto', cor1:'#0b3d91', cor2:'#e8c04a' }
+];
+function clubesInternacionaisDisponiveis(){
+  if(!(GAME.clube.divisao==='Série A' && GAME.stats.interesseClubes>=78 && GAME.stats.notaMedia>=7.6)) return [];
+  return CLUBES_INTERNACIONAIS.filter(c => c.reputacao > GAME.clube.reputacao)
+    .sort((a,b) => b.reputacao-a.reputacao).slice(0,1);
+}
+
 /* ============================== PERFIL DE CLUBE =============================
    Derivado dos campos numéricos que já existem em CLUBES (sem precisar
    catalogar manualmente cada um dos clubes) — usado como contexto/texto no

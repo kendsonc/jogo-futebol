@@ -185,8 +185,15 @@ function painelNoticias(){
   return GAME.noticias.map(n => `<div class="news-item ${n.tipo}"><span class="news-tag">${n.tipo} • semana ${n.semana}</span>${escapeHtml(n.texto)}</div>`).join('');
 }
 function painelHistorico(){
-  if(!GAME.historico.length) return `<div class="card muted">Nenhuma decisão registrada ainda.</div>`;
-  return `<div class="card">${GAME.historico.map(h => `<p class="small">• (sem ${h.semana}) ${escapeHtml(h.texto)}</p>`).join('')}</div>`;
+  const marcos = GAME.memorial || [];
+  const blocoMemorial = marcos.length ? `<div class="card">
+    <div class="card-title">⭐ Memorial da Carreira</div>
+    ${marcos.map(m => `<p>⭐ <b>${escapeHtml(m.titulo)}</b> <span class="small muted">(Temporada ${m.temporada})</span><br><span class="small muted">${escapeHtml(m.descricao)}</span></p>`).join('<hr style="border-color:#232b3a;margin:8px 0">')}
+  </div>` : '';
+  const log = GAME.historico.length
+    ? `<div class="card">${GAME.historico.map(h => `<p class="small">• (sem ${h.semana}) ${escapeHtml(h.texto)}</p>`).join('')}</div>`
+    : `<div class="card muted">Nenhuma decisão registrada ainda.</div>`;
+  return blocoMemorial + log;
 }
 function painelObjetivos(){
   return `<div class="card">${GAME.objetivos.map(o => {
@@ -219,7 +226,7 @@ function painelRival(){
   if(!r) return `<div class="card muted">Você ainda não tem um rival de carreira definido.</div>`;
   const meuOverall = calcularOverall();
   const meusGols = (GAME.statsCareer ? GAME.statsCareer.gols : 0) + GAME.stats.gols;
-  const meusTitulos = 0;
+  const meusTitulos = GAME.statsCareer.titulos;
   return `<div class="card">
     <div class="card-title">${escapeHtml(r.nome)}</div>
     <p class="small muted">${escapeHtml(r.posicao)} — atualmente no ${escapeHtml(r.clubeNome)}</p>

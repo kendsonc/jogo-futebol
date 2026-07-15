@@ -124,6 +124,7 @@ function criarNovoJogador(dados){
     potencialOculto: rand(40,90),
     noticias: [],
     historico: [],
+    memorial: [],
     objetivos: objetivosIniciais,
     consequenciasPendentes: [],
     vidaPessoal: { ultimaAcaoSemana: {} },
@@ -139,7 +140,8 @@ function criarNovoJogador(dados){
     carteira: 0,
     patrocinioAtual: null,
     numeroTemporada: 1,
-    statsCareer: { jogos:0, gols:0, assistencias:0, minutos:0, titular:0, temporadas:0, premios:[] },
+    statsCareer: { jogos:0, gols:0, assistencias:0, minutos:0, titular:0, temporadas:0, premios:[],
+      titulos:0, acessos:0, clubesPassados:[], notaMediaCareer:0, convocacoes:[] },
     social: { seguidores: rand(120,400), mensagens: [] },
     historiaPassado: pick(HISTORIAS_PASSADO)(dados)
   };
@@ -202,6 +204,13 @@ function pushNoticiaImprensa(tipo, texto){
 }
 function pushHistorico(texto){
   GAME.historico.unshift({texto, semana: GAME.status.semanaGlobal});
+}
+// Marco de carreira (memorial) — diferente de pushHistorico (log de TODA
+// escolha), aqui só entram momentos curados/marcantes, exibidos com destaque
+// acima do histórico comum (js/ui/painel.js, painelHistorico).
+function registrarMarco(titulo, descricao, importancia){
+  if(!GAME.memorial) GAME.memorial = [];
+  GAME.memorial.push({ titulo, descricao, temporada: GAME.numeroTemporada, importancia });
 }
 
 /* ============================== REDES SOCIAIS ================================

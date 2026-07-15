@@ -58,6 +58,40 @@ function calcularPremiacoesTemporada(){
   return PREMIOS_TEMPORADA.filter(p => p.criterio(GAME)).map(p => p.titulo);
 }
 
+/* ============================== SELEÇÃO DE BASE ==============================
+   Cascata de prioridade (categoria mais alta primeiro, mesmo truque de
+   calcularFinalTemporada) — evita convocar a mesma temporada em 2 categorias.
+   ========================================================================= */
+const CATEGORIAS_SELECAO = [
+  { id:'principal', nome:'Seleção Brasileira Principal', notaMinima:7.5, interesseMinimo:78, overallMinimo:80, chanceBase:22 },
+  { id:'sub23', nome:'Seleção Brasileira Sub-23', idadeMax:23, notaMinima:7.2, interesseMinimo:65, overallMinimo:72, chanceBase:30 },
+  { id:'sub20', nome:'Seleção Brasileira Sub-20', idadeMax:20, notaMinima:7.0, interesseMinimo:55, overallMinimo:65, chanceBase:35 }
+];
+function verificarConvocacaoSelecao(){
+  const s = GAME.stats, overall = calcularOverall(), idade = idadeAtual();
+  for(const cat of CATEGORIAS_SELECAO){
+    if(cat.idadeMax && idade > cat.idadeMax) continue;
+    if(s.notaMedia < cat.notaMinima || s.interesseClubes < cat.interesseMinimo || overall < cat.overallMinimo) continue;
+    if(chance(cat.chanceBase)){
+      GAME.statsCareer.convocacoes.push({ categoria:cat.id, nome:cat.nome, temporada:GAME.numeroTemporada, idade });
+      pushNoticiaImprensa('midia', `${GAME.identidade.apelido} é convocado para a ${cat.nome}!`);
+      aplicarEfeitos({ popularidade:8, confianca:6, pressaoPsicologica:5 });
+      if(GAME.statsCareer.convocacoes.length === 1) registrarMarco('Primeira convocação', `Convocado para a ${cat.nome} na Temporada ${GAME.numeroTemporada}.`, 'alta');
+      return;
+    }
+  }
+}
+
+// Extraído do resumo de fim de temporada pra ser reaproveitado no cálculo de
+// títulos/acessos de carreira (finalizarTemporada) sem duplicar a lógica.
+function posicaoFinalLiga(){
+  if(!(GAME.temporadaState && GAME.temporadaState.liga)) return null;
+  const liga = GAME.temporadaState.liga;
+  const linhas = liga.clubes.map(c => ({ c, t: liga.tabela[c.id] })).sort((a,b) => b.t.pts-a.t.pts || b.t.sg-a.t.sg || b.t.gp-a.t.gp);
+  const posicao = linhas.findIndex(l => l.c.id === GAME.clube.id) + 1;
+  return posicao > 0 ? { posicao, total: linhas.length } : null;
+}
+
 function finalizarTemporada(){
   GAME.fase = 'fim';
   GAME.finalTipo = calcularFinalTemporada();
@@ -70,6 +104,13 @@ function finalizarTemporada(){
   GAME.acessoRebaixamentoResultado = GAME.finalTipo !== 'reprovado' ? aplicarAcessoRebaixamento() : null;
   GAME.premiacoesTemporada = calcularPremiacoesTemporada();
   GAME.statsCareer.premios.push(...GAME.premiacoesTemporada.map(t => `${t} (Temporada ${GAME.numeroTemporada})`));
+  const posFinal = posicaoFinalLiga();
+  if(posFinal && posFinal.posicao === 1){
+    GAME.statsCareer.titulos += 1;
+    registrarMarco('Campeão!', `Título da ${GAME.temporadaState.liga.divisao} na Temporada ${GAME.numeroTemporada} pelo ${GAME.clube.nome}.`, 'alta');
+  }
+  if(GAME.acessoRebaixamentoResultado && GAME.acessoRebaixamentoResultado.tipo === 'acesso') GAME.statsCareer.acessos += 1;
+  verificarConvocacaoSelecao();
   salvarJogo();
   render();
 }
@@ -112,14 +153,12 @@ function renderFimDeTemporada(){
     </div>` : ''}
     <div class="card">
       <div class="card-title">Resumo da Jornada</div>
-      <p>${GAME.numeroTemporada===1 ? `Você tentou a peneira do <b>${GAME.clube.nome}</b> (${GAME.clube.cidade}/${GAME.clube.uf}) e foi aprovado com um ${GAME.contrato.tipo.toLowerCase()}.` : `Você encerrou sua Temporada ${GAME.numeroTemporada} no <b>${GAME.clube.nome}</b> (${GAME.clube.cidade}/${GAME.clube.uf}).`}</p>
+      <p>${GAME.numeroTemporada===1 ? `Você tentou a peneira do <b>${GAME.clube.nome}</b> (${localClube(GAME.clube)}) e foi aprovado com um ${GAME.contrato.tipo.toLowerCase()}.` : `Você encerrou sua Temporada ${GAME.numeroTemporada} no <b>${GAME.clube.nome}</b> (${localClube(GAME.clube)}).`}</p>
       <p>Encerrou a temporada com status: <b>${GAME.status.statusElenco}</b>, aos ${idadeAtual()} anos.</p>
-      ${GAME.temporadaState && GAME.temporadaState.liga ? (() => {
-        const liga = GAME.temporadaState.liga;
-        const linhas = liga.clubes.map(c => ({ c, t: liga.tabela[c.id] })).sort((a,b) => b.t.pts-a.t.pts || b.t.sg-a.t.sg || b.t.gp-a.t.gp);
-        const posicao = linhas.findIndex(l => l.c.id === GAME.clube.id) + 1;
-        return posicao > 0 ? `<p class="spacer">Terminou a ${liga.divisao} na <b>${posicao}ª colocação</b> de ${linhas.length}.</p>` : '';
-      })() : ''}
+      ${(() => {
+        const pos = posicaoFinalLiga();
+        return pos ? `<p class="spacer">Terminou a ${GAME.temporadaState.liga.divisao} na <b>${pos.posicao}ª colocação</b> de ${pos.total}.</p>` : '';
+      })()}
       ${GAME.acessoRebaixamentoResultado ? `<p class="badge ${GAME.acessoRebaixamentoResultado.tipo==='acesso'?'good':'bad'}">${GAME.acessoRebaixamentoResultado.tipo==='acesso' ? `Acesso para a ${GAME.acessoRebaixamentoResultado.novoTier}!` : `Rebaixado para a ${GAME.acessoRebaixamentoResultado.novoTier}.`}</p>` : ''}
     </div>
     <div class="card">
@@ -168,5 +207,41 @@ function renderFimDeTemporada(){
   document.getElementById('btn-ver-painel-final').onclick = abrirPainel;
   document.getElementById('btn-nova-carreira-2').onclick = () => { apagarSave(); renderCriacaoPersonagem(); };
   document.getElementById('btn-apagar-final-2').onclick = () => { apagarSave(); render(); };
+}
+
+/* ================================= LEGADO =====================================
+   Calculado 1x só na aposentadoria, cascata de prioridade (mesmo padrão de
+   FINAIS), usando GAME.statsCareer acumulado. O texto de cada rótulo É o
+   "documentário da carreira" — não existe uma função separada pra isso.
+   ========================================================================= */
+const LEGADOS = {
+  lenda_absoluta: { titulo:'Lenda do Futebol Brasileiro',
+    texto:(g)=>`Poucos escrevem uma história como a de ${g.identidade.nomeCompleto}. Foram ${g.statsCareer.temporadas} temporadas, ${g.statsCareer.gols} gols e ${g.statsCareer.titulos} título(s) — um nome que vai ficar marcado no futebol brasileiro por muito tempo.`,
+    criterio:(g)=> g.statsCareer.titulos>=3 && g.statsCareer.gols>=150 },
+  capitao_geracao: { titulo:'Capitão de uma Geração',
+    texto:(g)=>`Vestir a camisa da Seleção Principal não é para qualquer um. ${g.identidade.apelido} chegou lá, carregando o nome de ${g.identidade.cidadeNatal}/${g.identidade.uf} para o país inteiro.`,
+    criterio:(g)=> g.statsCareer.convocacoes.some(c=>c.categoria==='principal') },
+  artilheiro_historico: { titulo:'Artilheiro Histórico',
+    texto:(g)=>`${g.statsCareer.gols} gols ao longo de ${g.statsCareer.temporadas} temporadas — um faro de gol que ficará nas estatísticas por gerações.`,
+    criterio:(g)=> g.statsCareer.gols >= 200 },
+  construtor_acessos: { titulo:'O Construtor de Acessos',
+    texto:(g)=>`${g.statsCareer.acessos} vez(es) ${g.identidade.apelido} foi peça-chave para elevar um clube de divisão — um legado de reconstrução, não só de talento individual.`,
+    criterio:(g)=> g.statsCareer.acessos >= 3 },
+  andarilho_bola: { titulo:'O Andarilho da Bola',
+    texto:(g)=>`${g.statsCareer.clubesPassados.length} clubes, ${g.statsCareer.temporadas} temporadas — uma carreira de mala pronta, sempre em busca do próximo desafio.`,
+    criterio:(g)=> g.statsCareer.clubesPassados.length >= 5 },
+  carreira_interrompida: { titulo:'Carreira Marcada por Lesões',
+    texto:(g)=>`O talento sempre esteve lá, mas o corpo cobrou seu preço: ${g.historicoLesoesTotal||0} lesões ao longo do caminho tiraram meses — e quem sabe temporadas inteiras — do auge de ${g.identidade.apelido}.`,
+    criterio:(g)=> (g.historicoLesoesTotal||0) >= 8 },
+  carreira_solida: { titulo:'Carreira Sólida e Consistente',
+    texto:(g)=>`Sem grandes títulos de peso, mas com ${g.statsCareer.temporadas} temporadas e ${g.statsCareer.jogos} jogos, ${g.identidade.apelido} construiu uma carreira do tipo que sustenta qualquer elenco.`,
+    criterio:(g)=> g.statsCareer.temporadas >= 10 && g.statsCareer.jogos >= 200 },
+  trajetoria_discreta: { titulo:'Trajetória Discreta, Vida Vivida',
+    texto:(g)=>`Nem toda carreira precisa de manchete pra valer a pena. ${g.identidade.apelido} viveu do futebol por ${g.statsCareer.temporadas} temporada(s), com a cabeça erguida.`,
+    criterio:(g)=> true }
+};
+function calcularLegadoFinal(){
+  const ordem = ['lenda_absoluta','capitao_geracao','artilheiro_historico','construtor_acessos','andarilho_bola','carreira_interrompida','carreira_solida','trajetoria_discreta'];
+  return ordem.find(id => LEGADOS[id].criterio(GAME));
 }
 

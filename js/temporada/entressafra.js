@@ -183,7 +183,7 @@ function resolverRodadaNegociacao(acao){
 }
 
 function renderEntressafraTransferencia(){
-  const opcoes = clubesMaioresDisponiveis();
+  const opcoes = [...clubesMaioresDisponiveis(), ...clubesInternacionaisDisponiveis()];
   if(opcoes.length === 0){
     app.innerHTML = `
       <div class="card">
@@ -201,7 +201,7 @@ function renderEntressafraTransferencia(){
       <div class="card-title">Proposta de Transferência</div>
       <div id="scene-text">${escapeHtml(texto)}</div>
       <div class="choices">
-        ${opcoes.map((c,i) => `<button class="btn" data-i="${i}" style="display:flex;align-items:center;gap:10px;text-align:left">${crestHtml(c,32)}<span>Transferir para o <b>${escapeHtml(c.nome)}</b> — ${escapeHtml(c.cidade)}/${c.uf} ${tierBadgeHtml(c.divisao)}<br><span class="small muted">${escapeHtml(PERFIL_CLUBE_BLURB[perfilClube(c)])}</span></span></button>`).join('')}
+        ${opcoes.map((c,i) => `<button class="btn" data-i="${i}" style="display:flex;align-items:center;gap:10px;text-align:left">${crestHtml(c,32)}<span>Transferir para o <b>${escapeHtml(c.nome)}</b> — ${escapeHtml(localClube(c))} ${tierBadgeHtml(c.divisao)}<br><span class="small muted">${escapeHtml(PERFIL_CLUBE_BLURB[perfilClube(c)])}</span></span></button>`).join('')}
         <button class="btn btn-primary" data-i="ficar" style="display:flex;align-items:center;gap:10px">${crestHtml(GAME.clube,32)}<span>Permanecer no <b>${escapeHtml(GAME.clube.nome)}</b> ${tierBadgeHtml(GAME.clube.divisao)}</span></button>
       </div>
     </div>
@@ -225,6 +225,8 @@ function renderEntressafraTransferencia(){
         GAME.relacoes.treinador = 50; GAME.relacoes.elenco = 50; GAME.relacoes.diretoria = 50; GAME.relacoes.torcida = 15;
         GAME.status.statusElenco = 'Novo reforço';
         pushNoticia('midia', `${GAME.identidade.apelido} é anunciado como novo reforço do ${novoClube.nome} (${novoClube.divisao})!`);
+        GAME.statsCareer.clubesPassados.push({ nome: novoClube.nome, internacional: novoClube.divisao==='Internacional', temporada: GAME.numeroTemporada });
+        if(novoClube.divisao === 'Internacional') registrarMarco('Rumo à Europa', `Transferência para o ${novoClube.nome} (${novoClube.pais}) na Temporada ${GAME.numeroTemporada}.`, 'alta');
       }
       GAME.entressafraState.etapa = 3;
       salvarJogo();
@@ -234,14 +236,65 @@ function renderEntressafraTransferencia(){
 }
 
 function renderEntressafraFinal(){
+  // Nesse ponto idadeAtual() ainda reflete a temporada que ACABOU de terminar —
+  // o envelhecimento só ocorre dentro de avancarParaProximaTemporada().
+  const idade = idadeAtual();
+  const podeAposentar = idade >= 30;
+  const forcarAposentadoria = idade >= 38;
   app.innerHTML = `
     <div class="card">
       <div class="card-title">Pronto para a Temporada ${GAME.numeroTemporada+1}</div>
-      <div id="scene-text">Mais um ano, mais uma chance de provar seu valor no ${GAME.clube.nome}. A pré-temporada está prestes a começar.</div>
-      <div class="choices"><button class="btn btn-primary" id="btn-comecar-proxima">Começar a Temporada ${GAME.numeroTemporada+1}</button></div>
+      <div id="scene-text">${forcarAposentadoria
+        ? `O corpo já avisou: aos ${idade} anos, é hora de pendurar as chuteiras e fechar essa história.`
+        : `Mais um ano, mais uma chance de provar seu valor no ${GAME.clube.nome}. A pré-temporada está prestes a começar.`}</div>
+      <div class="choices">
+        ${forcarAposentadoria ? '' : `<button class="btn btn-primary" id="btn-comecar-proxima">Começar a Temporada ${GAME.numeroTemporada+1}</button>`}
+        ${podeAposentar ? `<button class="btn ${forcarAposentadoria?'btn-primary':''}" id="btn-aposentar">Encerrar carreira</button>` : ''}
+      </div>
     </div>
   `;
-  document.getElementById('btn-comecar-proxima').onclick = avancarParaProximaTemporada;
+  const btnProxima = document.getElementById('btn-comecar-proxima');
+  if(btnProxima) btnProxima.onclick = avancarParaProximaTemporada;
+  const btnAposentar = document.getElementById('btn-aposentar');
+  if(btnAposentar) btnAposentar.onclick = iniciarAposentadoria;
+}
+
+function iniciarAposentadoria(){
+  GAME.legadoFinal = calcularLegadoFinal();
+  registrarMarco('Aposentadoria', `Encerrou a carreira aos ${idadeAtual()} anos, defendendo o ${GAME.clube.nome}.`, 'alta');
+  GAME.fase = 'aposentadoria';
+  salvarJogo();
+  render();
+}
+
+function renderAposentadoria(){
+  const legado = LEGADOS[GAME.legadoFinal];
+  const s = GAME.statsCareer;
+  app.innerHTML = `
+    <div class="card">
+      <h2>Documentário da Carreira</h2>
+      <p class="badge good">${legado.titulo}</p>
+      <div class="spacer"></div>
+      <div id="scene-text">${escapeHtml(legado.texto(GAME)).replace(/\n/g,'<br>')}</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Números da Carreira</div>
+      <p>${s.temporadas} temporada(s) • ${s.jogos} jogos • ${s.gols} gols • ${s.assistencias} assistências</p>
+      <p>${s.titulos} título(s) • ${s.acessos} acesso(s) de divisão • Nota média: ${s.notaMediaCareer.toFixed(2)}</p>
+      <p>${s.convocacoes.length ? `Convocações: ${s.convocacoes.map(c=>c.nome).join(', ')}` : 'Nunca foi convocado para uma seleção nacional.'}</p>
+      <p>${s.clubesPassados.length ? `Clubes defendidos: ${s.clubesPassados.map(c=>c.nome).join(', ')}` : ''}</p>
+    </div>
+    ${(GAME.memorial||[]).length ? `<div class="card">
+      <div class="card-title">⭐ Memorial</div>
+      ${GAME.memorial.map(m => `<p>⭐ <b>${escapeHtml(m.titulo)}</b> <span class="small muted">(Temporada ${m.temporada})</span><br><span class="small muted">${escapeHtml(m.descricao)}</span></p>`).join('<hr style="border-color:#232b3a;margin:8px 0">')}
+    </div>` : ''}
+    <div class="btn-row" style="max-width:360px">
+      <button class="btn" id="btn-ver-painel-aposentadoria">Ver painel completo</button>
+      <button class="btn btn-primary" id="btn-nova-carreira-aposentadoria">Começar nova carreira</button>
+    </div>
+  `;
+  document.getElementById('btn-ver-painel-aposentadoria').onclick = abrirPainel;
+  document.getElementById('btn-nova-carreira-aposentadoria').onclick = () => { apagarSave(); renderCriacaoPersonagem(); };
 }
 
 function avancarParaProximaTemporada(){
@@ -250,6 +303,12 @@ function avancarParaProximaTemporada(){
   GAME.identidade.nascimento = new Date(nasc.getFullYear()-1, nasc.getMonth(), nasc.getDate()).toISOString();
 
   // Arquiva as estatísticas da temporada que terminou no histórico de carreira
+  // notaMediaCareer é média ponderada por jogos (não média simples de médias) —
+  // calculada ANTES de somar os jogos da temporada em GAME.statsCareer.jogos
+  const jogosAntes = GAME.statsCareer.jogos;
+  GAME.statsCareer.notaMediaCareer = (jogosAntes+GAME.stats.jogos) > 0
+    ? (GAME.statsCareer.notaMediaCareer*jogosAntes + GAME.stats.notaMedia*GAME.stats.jogos) / (jogosAntes+GAME.stats.jogos)
+    : 0;
   GAME.statsCareer.jogos += GAME.stats.jogos;
   GAME.statsCareer.gols += GAME.stats.gols;
   GAME.statsCareer.assistencias += GAME.stats.assistencias;

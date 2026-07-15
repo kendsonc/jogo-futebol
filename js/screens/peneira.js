@@ -200,6 +200,7 @@ function renderResultadoPeneira(){
     GAME.elenco = gerarElenco();
     concluirObjetivo('aprovadoPeneira');
     if(contrato.tipo !== 'Promessa de avaliação futura') concluirObjetivo('contratoBase');
+    registrarMarco('Aprovado na peneira', `Aprovado na peneira do ${GAME.clube.nome} com um ${contrato.tipo.toLowerCase()}.`, 'alta');
     texto = `${GAME.observador} chama seu nome no fim do dia.\n\n— Parabéns, moleque. Você ficou. ${GAME.clube.nome} vai te dar uma chance.\n\nSeu ${contrato.tipo.toLowerCase()} foi confirmado. Sua família comemora quando você liga contando a notícia.`;
     pushNoticia('midia', `${GAME.identidade.apelido} é aprovado na peneira do ${GAME.clube.nome} e assina ${contrato.tipo.toLowerCase()}.`);
     pushNoticia('familia', 'Sua família comemora a aprovação com um jantar especial.');

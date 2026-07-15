@@ -38,12 +38,21 @@ function render(){
   if(!GAME.statsCareer) GAME.statsCareer = { jogos:0, gols:0, assistencias:0, minutos:0, titular:0, temporadas:0, premios:[] };
   if(GAME.statsCareer && !GAME.statsCareer.premios) GAME.statsCareer.premios = [];
   if(GAME.stats && GAME.stats.defesasImportantes == null) GAME.stats.defesasImportantes = 0;
+  if(GAME.statsCareer){
+    if(GAME.statsCareer.titulos == null) GAME.statsCareer.titulos = 0;
+    if(GAME.statsCareer.acessos == null) GAME.statsCareer.acessos = 0;
+    if(!GAME.statsCareer.clubesPassados) GAME.statsCareer.clubesPassados = [];
+    if(GAME.statsCareer.notaMediaCareer == null) GAME.statsCareer.notaMediaCareer = 0;
+    if(!GAME.statsCareer.convocacoes) GAME.statsCareer.convocacoes = [];
+  }
+  if(!GAME.memorial) GAME.memorial = [];
   if(GAME.fase === 'historia') return renderHistoriaPassado();
   if(GAME.fase === 'clubes') return renderSelecaoClubes();
   if(GAME.fase === 'peneira') return renderPeneira();
   if(GAME.fase === 'temporada') return renderTemporada();
   if(GAME.fase === 'entressafra') return renderEntressafra();
   if(GAME.fase === 'fim') return renderFimDeTemporada();
+  if(GAME.fase === 'aposentadoria') return renderAposentadoria();
   renderStart();
 }
 

@@ -50,9 +50,12 @@ function crestHtml(clube, size){
   const cls = size >= 56 ? 'crest lg' : 'crest';
   return `<span class="${cls}" style="--crest-c1:${c1};--crest-c2:${c2};width:${size}px;height:${size}px;font-size:${Math.round(size*0.36)}px">${escapeHtml(iniciais)}</span>`;
 }
-const TIER_CORES = { 'Série A':'#e8c04a', 'Série B':'#c3cad6', 'Série C':'#c98a52', 'Série D':'#7c8aa5', 'Estadual':'#5a6b85' };
+const TIER_CORES = { 'Série A':'#e8c04a', 'Série B':'#c3cad6', 'Série C':'#c98a52', 'Série D':'#7c8aa5', 'Estadual':'#5a6b85', 'Internacional':'#5ac8fa' };
 function tierBadgeHtml(divisao){
   const cor = TIER_CORES[divisao] || '#7c8aa5';
   return `<span class="tier-badge" style="--tier-c:${cor}">${escapeHtml(divisao)}</span>`;
 }
+// Clubes internacionais não têm `uf` (têm `pais`) — evita "undefined" em telas
+// que hoje interpolam `${c.cidade}/${c.uf}` direto.
+function localClube(c){ return c.uf ? `${c.cidade}/${c.uf}` : `${c.cidade} — ${c.pais}`; }
 
