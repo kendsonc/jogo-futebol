@@ -28,7 +28,11 @@ function gerarAgendaSemanal(){
 
   const vidaPessoalDisponivel = (ACOES_VIDA_PESSOAL||[]).filter(a => podeUsarAcaoVidaPessoal(a)).map(a => a.nome);
 
-  return { proximoJogo, marcos, teasers, rivalDestaque, vidaPessoalDisponivel, periodo, semanaNoPeriodo: ts.semanaNoPeriodo };
+  const copasAtivas = Object.values(ts.copas||{})
+    .filter(c => !c.campeao)
+    .map(c => `${c.nome}: você está ${c.nomesRodadas[c.rodadaAtual]||'na disputa'}.`);
+
+  return { proximoJogo, marcos, teasers, rivalDestaque, vidaPessoalDisponivel, copasAtivas, periodo, semanaNoPeriodo: ts.semanaNoPeriodo };
 }
 
 function renderAgendaSemanal(){
@@ -46,6 +50,7 @@ function renderAgendaSemanal(){
   }
   info.marcos.forEach(m => itens.push(`<p class="small">📌 ${escapeHtml(m)}</p>`));
   info.teasers.forEach(t => itens.push(`<p class="small muted">💭 ${escapeHtml(t)}</p>`));
+  (info.copasAtivas||[]).forEach(c => itens.push(`<p class="small">🏆 ${escapeHtml(c)}</p>`));
   if(info.vidaPessoalDisponivel.length){
     itens.push(`<p class="small muted">❤️ Disponível na Vida Pessoal: ${escapeHtml(info.vidaPessoalDisponivel.join(', '))}.</p>`);
   }

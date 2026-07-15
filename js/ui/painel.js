@@ -2,11 +2,11 @@
    Modal em abas, acessível a qualquer momento durante a peneira/temporada,
    sem interromper o estado do jogo (apenas leitura + botões de salvar/apagar).
    ========================================================================= */
-const PAINEL_ABAS = ['dados','status','atributos','relacoes','estatisticas','contrato','social','noticias','historico','objetivos','agenda','rival','vidaPessoal','calendario','tabela'];
+const PAINEL_ABAS = ['dados','status','atributos','relacoes','estatisticas','contrato','social','noticias','historico','objetivos','agenda','rival','vidaPessoal','calendario','tabela','copas'];
 const PAINEL_LABELS = {
   dados:'Dados', status:'Status', atributos:'Atributos', relacoes:'Relações',
   estatisticas:'Estatísticas', contrato:'Contrato', social:'Redes Sociais', noticias:'Notícias',
-  historico:'Histórico', objetivos:'Objetivos', agenda:'Agenda', rival:'Rival', vidaPessoal:'Vida Pessoal', calendario:'Calendário', tabela:'Classificação'
+  historico:'Histórico', objetivos:'Objetivos', agenda:'Agenda', rival:'Rival', vidaPessoal:'Vida Pessoal', calendario:'Calendário', tabela:'Classificação', copas:'Copas'
 };
 let painelAbaAtiva = 'dados';
 
@@ -46,7 +46,7 @@ function renderPainelBody(){
     dados: painelDados, status: painelStatus, atributos: painelAtributos,
     relacoes: painelRelacoes, estatisticas: painelEstatisticas, contrato: painelContrato,
     social: painelSocial, noticias: painelNoticias, historico: painelHistorico, objetivos: painelObjetivos,
-    agenda: painelAgenda, rival: painelRival, vidaPessoal: painelVidaPessoal, calendario: painelCalendario, tabela: painelTabela
+    agenda: painelAgenda, rival: painelRival, vidaPessoal: painelVidaPessoal, calendario: painelCalendario, tabela: painelTabela, copas: painelCopas
   };
   body.innerHTML = fns[painelAbaAtiva]();
   if(painelAbaAtiva === 'vidaPessoal'){
@@ -216,6 +216,7 @@ function painelAgenda(){
   }
   info.marcos.forEach(m => itens.push(`<p class="small">📌 ${escapeHtml(m)}</p>`));
   info.teasers.forEach(t => itens.push(`<p class="small muted">💭 ${escapeHtml(t)}</p>`));
+  (info.copasAtivas||[]).forEach(c => itens.push(`<p class="small">🏆 ${escapeHtml(c)}</p>`));
   if(info.vidaPessoalDisponivel.length){
     itens.push(`<p class="small muted">❤️ Disponível na Vida Pessoal: ${escapeHtml(info.vidaPessoalDisponivel.join(', '))}.</p>`);
   }
@@ -312,5 +313,35 @@ function painelTabela(){
       </tbody>
     </table></div>
   </div>`;
+}
+function painelCopas(){
+  const ts = GAME.temporadaState;
+  const copas = (ts && ts.copas) || {};
+  const ids = Object.keys(copas);
+  const blocosAtivos = ids.map(id => {
+    const c = copas[id];
+    const faseAtualNome = c.campeao ? 'Encerrada' : (c.nomesRodadas[c.rodadaAtual] || '—');
+    const historicoHtml = c.historicoRodadas.map(h => {
+      const meu = h.confrontos.find(x => x.envolveJogador);
+      if(!meu) return `<p class="small muted">${escapeHtml(h.nomeRodada)}: você não estava mais na disputa.</p>`;
+      const placar = `${meu.aNome} ${meu.golsA} x ${meu.golsB} ${meu.bNome}${meu.penaltis?' (pênaltis)':''}`;
+      return `<p class="small">${escapeHtml(h.nomeRodada)}: ${escapeHtml(placar)} — <b>${meu.jogadorVenceu?'Avançou':'Eliminado'}</b></p>`;
+    }).join('');
+    return `<div class="card">
+      <div class="card-title">${escapeHtml(c.nome)}</div>
+      <p class="small muted">Fase atual: ${escapeHtml(faseAtualNome)}</p>
+      ${c.campeao ? `<p class="badge ${c.campeao.souEu?'good':''}">Campeão: ${escapeHtml(c.campeao.nome)}${c.campeao.souEu?' (Você!)':''}</p>` : ''}
+      ${historicoHtml || '<p class="small muted">Ainda sem rodadas disputadas.</p>'}
+    </div>`;
+  }).join('');
+  const semCopaAtiva = !ids.length ? `<div class="card muted">Nenhuma competição de copa nesta temporada — a qualificação depende da posição na liga e de títulos anteriores.</div>` : '';
+  const t = GAME.statsCareer.titulosCopas || {};
+  const carreiraHtml = `<div class="card">
+    <div class="card-title">Títulos internacionais/copas na carreira</div>
+    <p class="small">Copa do Brasil: <b>${t.copaBrasil||0}</b> • Libertadores: <b>${t.libertadores||0}</b> • Champions League: <b>${t.championsLeague||0}</b></p>
+    <p class="small">Mundial de Clubes: <b>${t.mundialClubes||0}</b> • Copa do Mundo: <b>${t.copaDoMundo||0}</b> • Bola de Ouro: <b>${t.bolaDeOuro||0}</b></p>
+    ${(GAME.statsCareer.copasDoMundo||[]).length ? `<p class="small muted">Copas do Mundo disputadas: ${GAME.statsCareer.copasDoMundo.map(cm=>`Temporada ${cm.temporada}${cm.campeao?' (campeão)':cm.eliminadoNaFase?' (eliminado na '+cm.eliminadoNaFase+')':''}`).join(', ')}</p>` : ''}
+  </div>`;
+  return blocosAtivos + semCopaAtiva + carreiraHtml;
 }
 

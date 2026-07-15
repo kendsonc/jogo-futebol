@@ -256,6 +256,56 @@ function clubesInternacionaisDisponiveis(){
     .sort((a,b) => b.reputacao-a.reputacao).slice(0,1);
 }
 
+/* ============================== CLUBES SUL-AMERICANOS ========================
+   Clubes reais do CONMEBOL (fora do Brasil, que já tem seus 93 em CLUBES),
+   usados como adversários da Copa Libertadores (js/sistemas/copas.js). Mesmo
+   espírito de CLUBES_INTERNACIONAIS: instituições reais, sem inventar nomes
+   de pessoas (jogadores/comissão técnica desses clubes nunca são citados).
+   ========================================================================= */
+const CLUBES_SULAMERICANOS = [
+  { id:'conmebol_river', nome:'River Plate', pais:'Argentina', cidade:'Buenos Aires', divisao:'Sul-Americano', nivelBase:84, reputacao:82, financeiro:58, pressaoTorcida:88, oportunidadeJovens:34, estiloJogo:'Organizado taticamente', cor1:'#ffffff', cor2:'#d70a26' },
+  { id:'conmebol_boca', nome:'Boca Juniors', pais:'Argentina', cidade:'Buenos Aires', divisao:'Sul-Americano', nivelBase:83, reputacao:84, financeiro:56, pressaoTorcida:92, oportunidadeJovens:30, estiloJogo:'Físico e pressão', cor1:'#003da5', cor2:'#ffd100' },
+  { id:'conmebol_racing', nome:'Racing Club', pais:'Argentina', cidade:'Avellaneda', divisao:'Sul-Americano', nivelBase:74, reputacao:66, financeiro:42, pressaoTorcida:64, oportunidadeJovens:44, estiloJogo:'Ofensivo', cor1:'#6cace4', cor2:'#ffffff' },
+  { id:'conmebol_independiente', nome:'Independiente', pais:'Argentina', cidade:'Avellaneda', divisao:'Sul-Americano', nivelBase:72, reputacao:64, financeiro:40, pressaoTorcida:62, oportunidadeJovens:46, estiloJogo:'Tradicional', cor1:'#ff0000', cor2:'#ffffff' },
+  { id:'conmebol_sanlorenzo', nome:'San Lorenzo', pais:'Argentina', cidade:'Buenos Aires', divisao:'Sul-Americano', nivelBase:70, reputacao:60, financeiro:38, pressaoTorcida:58, oportunidadeJovens:48, estiloJogo:'Equilibrado', cor1:'#002a5c', cor2:'#ff0000' },
+  { id:'conmebol_estudiantes', nome:'Estudiantes', pais:'Argentina', cidade:'La Plata', divisao:'Sul-Americano', nivelBase:71, reputacao:60, financeiro:38, pressaoTorcida:50, oportunidadeJovens:52, estiloJogo:'Organizado', cor1:'#ff0000', cor2:'#ffffff' },
+  { id:'conmebol_penarol', nome:'Peñarol', pais:'Uruguai', cidade:'Montevidéu', divisao:'Sul-Americano', nivelBase:75, reputacao:68, financeiro:40, pressaoTorcida:66, oportunidadeJovens:42, estiloJogo:'Raçudo', cor1:'#ffd100', cor2:'#000000' },
+  { id:'conmebol_nacional', nome:'Nacional', pais:'Uruguai', cidade:'Montevidéu', divisao:'Sul-Americano', nivelBase:74, reputacao:66, financeiro:40, pressaoTorcida:64, oportunidadeJovens:42, estiloJogo:'Tradicional', cor1:'#ffffff', cor2:'#005baa' },
+  { id:'conmebol_olimpia', nome:'Olimpia', pais:'Paraguai', cidade:'Assunção', divisao:'Sul-Americano', nivelBase:66, reputacao:54, financeiro:30, pressaoTorcida:48, oportunidadeJovens:52, estiloJogo:'Físico', cor1:'#000000', cor2:'#ffffff' },
+  { id:'conmebol_cerro', nome:'Cerro Porteño', pais:'Paraguai', cidade:'Assunção', divisao:'Sul-Americano', nivelBase:65, reputacao:52, financeiro:28, pressaoTorcida:50, oportunidadeJovens:52, estiloJogo:'Ofensivo', cor1:'#002a5c', cor2:'#ff0000' },
+  { id:'conmebol_colocolo', nome:'Colo-Colo', pais:'Chile', cidade:'Santiago', divisao:'Sul-Americano', nivelBase:68, reputacao:56, financeiro:34, pressaoTorcida:58, oportunidadeJovens:48, estiloJogo:'Ofensivo', cor1:'#ffffff', cor2:'#000000' },
+  { id:'conmebol_udechile', nome:'Universidad de Chile', pais:'Chile', cidade:'Santiago', divisao:'Sul-Americano', nivelBase:66, reputacao:52, financeiro:32, pressaoTorcida:52, oportunidadeJovens:50, estiloJogo:'Moderno e propositivo', cor1:'#0033a0', cor2:'#ffffff' },
+  { id:'conmebol_nacionalmed', nome:'Atlético Nacional', pais:'Colômbia', cidade:'Medellín', divisao:'Sul-Americano', nivelBase:69, reputacao:56, financeiro:34, pressaoTorcida:56, oportunidadeJovens:50, estiloJogo:'Organizado taticamente', cor1:'#00853f', cor2:'#ffffff' },
+  { id:'conmebol_millonarios', nome:'Millonarios', pais:'Colômbia', cidade:'Bogotá', divisao:'Sul-Americano', nivelBase:65, reputacao:50, financeiro:30, pressaoTorcida:48, oportunidadeJovens:52, estiloJogo:'Equilibrado', cor1:'#0033a0', cor2:'#ffffff' },
+  { id:'conmebol_barcelonasc', nome:'Barcelona SC', pais:'Equador', cidade:'Guayaquil', divisao:'Sul-Americano', nivelBase:64, reputacao:48, financeiro:28, pressaoTorcida:54, oportunidadeJovens:54, estiloJogo:'Ofensivo', cor1:'#ffd100', cor2:'#000000' },
+  { id:'conmebol_ldu', nome:'LDU de Quito', pais:'Equador', cidade:'Quito', divisao:'Sul-Americano', nivelBase:63, reputacao:46, financeiro:26, pressaoTorcida:42, oportunidadeJovens:56, estiloJogo:'Organizado', cor1:'#ffffff', cor2:'#000000' }
+];
+
+/* ============================== SELEÇÕES DO MUNDO =============================
+   Seleções nacionais reais usadas na Copa do Mundo (js/sistemas/copas.js).
+   `forca` resume o nível competitivo (1-99), calibrado de forma realista mas
+   sem pretensão de refletir um ranking oficial em tempo real — é só a base
+   pra simular resultados de torneio de forma plausível.
+   ========================================================================= */
+const SELECOES_MUNDO = [
+  { id:'sel_brasil', nome:'Brasil', confederacao:'CONMEBOL', forca:95, cor1:'#ffdf00', cor2:'#009c3b' },
+  { id:'sel_argentina', nome:'Argentina', confederacao:'CONMEBOL', forca:94, cor1:'#75aadb', cor2:'#ffffff' },
+  { id:'sel_franca', nome:'França', confederacao:'UEFA', forca:93, cor1:'#002395', cor2:'#ffffff' },
+  { id:'sel_espanha', nome:'Espanha', confederacao:'UEFA', forca:89, cor1:'#c60b1e', cor2:'#ffc400' },
+  { id:'sel_inglaterra', nome:'Inglaterra', confederacao:'UEFA', forca:89, cor1:'#ffffff', cor2:'#cf081f' },
+  { id:'sel_alemanha', nome:'Alemanha', confederacao:'UEFA', forca:87, cor1:'#ffffff', cor2:'#000000' },
+  { id:'sel_portugal', nome:'Portugal', confederacao:'UEFA', forca:86, cor1:'#c8102e', cor2:'#006600' },
+  { id:'sel_italia', nome:'Itália', confederacao:'UEFA', forca:85, cor1:'#005596', cor2:'#ffffff' },
+  { id:'sel_holanda', nome:'Holanda', confederacao:'UEFA', forca:84, cor1:'#ff6600', cor2:'#ffffff' },
+  { id:'sel_belgica', nome:'Bélgica', confederacao:'UEFA', forca:82, cor1:'#c8102e', cor2:'#000000' },
+  { id:'sel_uruguai', nome:'Uruguai', confederacao:'CONMEBOL', forca:78, cor1:'#4aa3df', cor2:'#000000' },
+  { id:'sel_croacia', nome:'Croácia', confederacao:'UEFA', forca:77, cor1:'#ff0000', cor2:'#ffffff' },
+  { id:'sel_marrocos', nome:'Marrocos', confederacao:'CAF', forca:74, cor1:'#c1272d', cor2:'#006233' },
+  { id:'sel_japao', nome:'Japão', confederacao:'AFC', forca:72, cor1:'#003a70', cor2:'#ffffff' },
+  { id:'sel_mexico', nome:'México', confederacao:'CONCACAF', forca:70, cor1:'#006341', cor2:'#ffffff' },
+  { id:'sel_eua', nome:'Estados Unidos', confederacao:'CONCACAF', forca:69, cor1:'#002868', cor2:'#ffffff' }
+];
+
 /* ============================== PERFIL DE CLUBE =============================
    Derivado dos campos numéricos que já existem em CLUBES (sem precisar
    catalogar manualmente cada um dos clubes) — usado como contexto/texto no

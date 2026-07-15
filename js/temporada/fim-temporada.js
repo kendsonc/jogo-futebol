@@ -103,7 +103,6 @@ function finalizarTemporada(){
   if(GAME.status.saudeMental >= 50) concluirObjetivo('cuidarSaudeMental');
   GAME.acessoRebaixamentoResultado = GAME.finalTipo !== 'reprovado' ? aplicarAcessoRebaixamento() : null;
   GAME.premiacoesTemporada = calcularPremiacoesTemporada();
-  GAME.statsCareer.premios.push(...GAME.premiacoesTemporada.map(t => `${t} (Temporada ${GAME.numeroTemporada})`));
   const posFinal = posicaoFinalLiga();
   if(posFinal && posFinal.posicao === 1){
     GAME.statsCareer.titulos += 1;
@@ -111,8 +110,40 @@ function finalizarTemporada(){
   }
   if(GAME.acessoRebaixamentoResultado && GAME.acessoRebaixamentoResultado.tipo === 'acesso') GAME.statsCareer.acessos += 1;
   verificarConvocacaoSelecao();
+  // Copas (Copa do Brasil/Libertadores/Champions), Mundial de Clubes, Copa do
+  // Mundo e Bola de Ouro entram DEPOIS do título doméstico e da convocação —
+  // cada um pode depender do resultado do anterior (título de copa habilita
+  // Mundial de Clubes; convocação + ano de Copa do Mundo habilita a seleção;
+  // todos os títulos da temporada juntos entram no crivo da Bola de Ouro).
+  resolverRodadaFinalDasCopas();
+  disputarMundialDeClubesSeNecessario();
+  disputarCopaDoMundoSeNecessario();
+  calcularMelhorDoMundoSeElegivel();
+  calcularQualificacoesProximaTemporada();
+  GAME.statsCareer.premios.push(...GAME.premiacoesTemporada.map(t => `${t} (Temporada ${GAME.numeroTemporada})`));
   salvarJogo();
   render();
+}
+
+// Detalha o que aconteceu nas copas da temporada (Copa do Brasil/Libertadores/
+// Champions, Mundial de Clubes, Copa do Mundo e Bola de Ouro) — os títulos já
+// aparecem como badge em "Prêmios da Temporada"; aqui entra o contexto (fase
+// alcançada, adversário da final, disputa da Bola de Ouro).
+function blocoCopasTemporadaHtml(){
+  const partes = [];
+  const copas = (GAME.temporadaState && GAME.temporadaState.copas) || {};
+  Object.values(copas).forEach(c => {
+    const fase = c.campeao ? (c.campeao.souEu ? 'Campeão!' : `Vice-campeão (perdeu a final)`) : `Eliminado (chegou até ${c.nomesRodadas[Math.max(0,c.rodadaAtual-1)]||'fase inicial'})`;
+    partes.push(`<p><b>${escapeHtml(c.nome)}:</b> ${escapeHtml(fase)}</p>`);
+  });
+  const m = GAME.mundialDeClubesUltimoResultado;
+  if(m) partes.push(`<p><b>Mundial de Clubes:</b> ${m.venci?'Campeão':'Vice-campeão'} contra o ${escapeHtml(m.oponente)} (${m.golsMeu}x${m.golsOponente}${m.penaltis?' nos pênaltis':''}).</p>`);
+  const cm = GAME.copaDoMundoUltimoResultado;
+  if(cm) partes.push(`<p><b>Copa do Mundo:</b> ${cm.euCampeao ? 'Brasil campeão do mundo, com você na convocação!' : 'Participou pela Seleção Brasileira nesta edição.'}</p>`);
+  const bo = GAME.bolaDeOuroResultado;
+  if(bo) partes.push(`<p><b>Bola de Ouro:</b> ${bo.venci ? 'Eleito o melhor jogador do mundo!' : `Concorreu, mas o prêmio ficou com ${escapeHtml(bo.vencedorNome)}.`}</p>`);
+  if(!partes.length) return '';
+  return `<div class="card"><div class="card-title">🌎 Copas e Competições Internacionais</div>${partes.join('')}</div>`;
 }
 
 function renderFimDeTemporada(){
@@ -151,6 +182,7 @@ function renderFimDeTemporada(){
       <div class="card-title">🏆 Prêmios da Temporada</div>
       ${GAME.premiacoesTemporada.map(t => `<p class="badge good" style="display:inline-block;margin:2px">${escapeHtml(t)}</p>`).join('')}
     </div>` : ''}
+    ${blocoCopasTemporadaHtml()}
     <div class="card">
       <div class="card-title">Resumo da Jornada</div>
       <p>${GAME.numeroTemporada===1 ? `Você tentou a peneira do <b>${GAME.clube.nome}</b> (${localClube(GAME.clube)}) e foi aprovado com um ${GAME.contrato.tipo.toLowerCase()}.` : `Você encerrou sua Temporada ${GAME.numeroTemporada} no <b>${GAME.clube.nome}</b> (${localClube(GAME.clube)}).`}</p>
@@ -215,6 +247,10 @@ function renderFimDeTemporada(){
    "documentário da carreira" — não existe uma função separada pra isso.
    ========================================================================= */
 const LEGADOS = {
+  icone_mundial: { titulo:'Ícone do Futebol Mundial',
+    texto:(g)=>{ const t = g.statsCareer.titulosCopas||{}; const internacionais = (t.libertadores||0)+(t.championsLeague||0)+(t.mundialClubes||0)+(t.copaDoMundo||0);
+      return `Não foi só no Brasil que ${g.identidade.apelido} deixou sua marca — ${internacionais} título(s) internacional(is) e ${t.bolaDeOuro||0} Bola(s) de Ouro tornaram essa uma carreira que ultrapassou fronteiras.`; },
+    criterio:(g)=>{ const t = g.statsCareer.titulosCopas; return !!(t && (t.libertadores+t.championsLeague+t.mundialClubes+t.copaDoMundo >= 1) && t.bolaDeOuro >= 1); } },
   lenda_absoluta: { titulo:'Lenda do Futebol Brasileiro',
     texto:(g)=>`Poucos escrevem uma história como a de ${g.identidade.nomeCompleto}. Foram ${g.statsCareer.temporadas} temporadas, ${g.statsCareer.gols} gols e ${g.statsCareer.titulos} título(s) — um nome que vai ficar marcado no futebol brasileiro por muito tempo.`,
     criterio:(g)=> g.statsCareer.titulos>=3 && g.statsCareer.gols>=150 },
@@ -241,7 +277,7 @@ const LEGADOS = {
     criterio:(g)=> true }
 };
 function calcularLegadoFinal(){
-  const ordem = ['lenda_absoluta','capitao_geracao','artilheiro_historico','construtor_acessos','andarilho_bola','carreira_interrompida','carreira_solida','trajetoria_discreta'];
+  const ordem = ['icone_mundial','lenda_absoluta','capitao_geracao','artilheiro_historico','construtor_acessos','andarilho_bola','carreira_interrompida','carreira_solida','trajetoria_discreta'];
   return ordem.find(id => LEGADOS[id].criterio(GAME));
 }
 

@@ -205,6 +205,7 @@ function iniciarTemporada(){
     eventoAtual:null, jogoAtual:null, mediaTreinoRecente:50, empresarioOfertado:false, seguimentoEvento:null,
     eventosObscurosOcorridos:0, lutoOcorrido:false, liga: montarLigaTemporada()
   };
+  montarCopasTemporada();
   pushNoticia('geral', `Pré-temporada iniciada no ${GAME.clube.nome}.`);
   salvarJogo();
   render();
@@ -249,6 +250,7 @@ function avancarSemana(){
     } else {
       pushNoticia('geral', `Início do período: ${periodoAtualObj().nome}.`);
       ts.checkinVidaPessoalPendente = true;
+      avancarTodasAsCopasAtivas();
     }
   }
   GAME.status.semanaGlobal += 1;

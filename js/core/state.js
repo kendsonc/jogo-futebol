@@ -141,7 +141,10 @@ function criarNovoJogador(dados){
     patrocinioAtual: null,
     numeroTemporada: 1,
     statsCareer: { jogos:0, gols:0, assistencias:0, minutos:0, titular:0, temporadas:0, premios:[],
-      titulos:0, acessos:0, clubesPassados:[], notaMediaCareer:0, convocacoes:[] },
+      titulos:0, acessos:0, clubesPassados:[], notaMediaCareer:0, convocacoes:[],
+      titulosCopas: { copaBrasil:0, libertadores:0, championsLeague:0, mundialClubes:0, copaDoMundo:0, bolaDeOuro:0 },
+      copasDoMundo: [] },
+    qualificacoesProximaTemporada: null,
     social: { seguidores: rand(120,400), mensagens: [] },
     historiaPassado: pick(HISTORIAS_PASSADO)(dados)
   };
