@@ -66,9 +66,13 @@ function renderLesao(){
       GAME.lesaoAtual = null;
     }
     // o calendário da liga não pode pular rodada: se essa semana tem jogo marcado,
-    // o time joga mesmo assim (sem você em campo, se ainda estiver lesionado)
+    // o time joga mesmo assim (sem você em campo, se ainda estiver lesionado).
+    // Vai pra tela normal de "Dia de Jogo" (mesmo caminho de prosseguirAposTreino,
+    // js/sistemas/treino.js) em vez de chamar prepararPartida() direto — sem isso,
+    // um jogador que se recupera justo nesta semana caía sem aviso dentro de um
+    // lance, pulando a tela de confirmação que toda outra partida do jogo tem.
     const periodo = periodoAtualObj();
     const temJogo = periodo.jogos[GAME.temporadaState.semanaNoPeriodo];
-    if(temJogo){ prepararPartida(); } else { avancarSemana(); }
+    if(temJogo){ GAME.temporadaState.subFase = 'preJogo'; salvarJogo(); render(); } else { avancarSemana(); }
   };
 }
