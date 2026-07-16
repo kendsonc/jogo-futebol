@@ -35,9 +35,10 @@ function renderSelecaoClubes(){
   }
   const clubes = GAME.clubesOferecidos.map(id => CLUBES.find(c=>c.id===id));
   app.innerHTML = `
-    <div class="card">
-      <h2>Escolha onde tentar a peneira</h2>
-      <p class="muted">Clubes reais mais próximos de ${escapeHtml(GAME.identidade.cidadeNatal)}/${GAME.identidade.uf}.</p>
+    <div class="screen-hero">
+      <div class="screen-hero-kicker">A Peneira</div>
+      <h1>Escolha seu destino</h1>
+      <p class="screen-hero-sub">Clubes reais mais próximos de ${escapeHtml(GAME.identidade.cidadeNatal)}/${GAME.identidade.uf}. Cada um tem uma exigência e uma cultura diferente — escolha com cuidado.</p>
     </div>
     <div class="club-grid">
       ${clubes.map(c => `

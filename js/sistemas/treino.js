@@ -1,28 +1,37 @@
 const TREINOS = [
-  { id:'finalizacao', nome:'Finalização', attrs:['finalizacao','chuteDeLonge'], custo:15, riscoLesaoMod:2 },
-  { id:'passeVisao', nome:'Passe e Visão', attrs:['passeCurto','passeLongo','visaoDeJogo'], custo:12, riscoLesaoMod:0 },
-  { id:'dribleConducao', nome:'Drible e Condução', attrs:['drible','controleDeBola'], custo:14, riscoLesaoMod:2 },
-  { id:'fisico', nome:'Físico e Resistência', attrs:['resistencia','forca','velocidade'], custo:22, riscoLesaoMod:8 },
-  { id:'defesaPosicionamento', nome:'Defesa e Posicionamento', attrs:['desarme','marcacao','interceptacao'], custo:14, riscoLesaoMod:1 },
-  { id:'bolaParada', nome:'Bola Parada', attrs:['bolaParada','cabeceio'], custo:10, riscoLesaoMod:0 },
-  { id:'mentalidade', nome:'Mentalidade e Concentração', attrs:['concentracao','frieza','controleEmocional'], custo:8, riscoLesaoMod:-2 },
-  { id:'descanso', nome:'Descanso e Recuperação', attrs:[], custo:-30, riscoLesaoMod:-10 }
+  { id:'finalizacao', nome:'Finalização', icone:'🎯', attrs:['finalizacao','chuteDeLonge'], custo:15, riscoLesaoMod:2 },
+  { id:'passeVisao', nome:'Passe e Visão', icone:'🧭', attrs:['passeCurto','passeLongo','visaoDeJogo'], custo:12, riscoLesaoMod:0 },
+  { id:'dribleConducao', nome:'Drible e Condução', icone:'💫', attrs:['drible','controleDeBola'], custo:14, riscoLesaoMod:2 },
+  { id:'fisico', nome:'Físico e Resistência', icone:'🏃', attrs:['resistencia','forca','velocidade'], custo:22, riscoLesaoMod:8 },
+  { id:'defesaPosicionamento', nome:'Defesa e Posicionamento', icone:'🛡️', attrs:['desarme','marcacao','interceptacao'], custo:14, riscoLesaoMod:1 },
+  { id:'bolaParada', nome:'Bola Parada', icone:'🥅', attrs:['bolaParada','cabeceio'], custo:10, riscoLesaoMod:0 },
+  { id:'mentalidade', nome:'Mentalidade e Concentração', icone:'🧠', attrs:['concentracao','frieza','controleEmocional'], custo:8, riscoLesaoMod:-2 },
+  { id:'descanso', nome:'Descanso e Recuperação', icone:'😴', attrs:[], custo:-30, riscoLesaoMod:-10 }
 ];
 
 /* ------------------------------ TREINO --------------------------------- */
 function renderTreino(){
   app.innerHTML = `
     ${statusBarHtml()}
-    <div class="card">
-      <div class="card-title">${periodoAtualObj().nome} — Semana ${GAME.temporadaState.semanaNoPeriodo+1}/${periodoAtualObj().semanas}</div>
-      <h2>Escolha o foco de treino da semana</h2>
-      <p class="muted small">Energia atual: ${GAME.status.energia}/100</p>
-      <div class="choices">
-        ${TREINOS.map((t,i) => `<button class="btn" data-i="${i}">${t.nome} ${t.attrs.length? '<span class="muted small">('+t.attrs.map(a=>attrNome(a)).join(', ')+')</span>':'<span class="muted small">(recupera energia)</span>'}</button>`).join('')}
-      </div>
+    <div class="screen-hero" style="padding:18px 18px 14px">
+      <div class="screen-hero-kicker">${escapeHtml(periodoAtualObj().nome)} — Semana ${GAME.temporadaState.semanaNoPeriodo+1}/${periodoAtualObj().semanas}</div>
+      <h2>Foco de treino da semana</h2>
+      <p class="screen-hero-sub">Energia atual: ${GAME.status.energia}/100</p>
+    </div>
+    <div class="menu-tiles">
+      ${TREINOS.map((t,i) => `
+        <button class="menu-tile" data-i="${i}">
+          <span class="menu-tile-icon">${t.icone}</span>
+          <span class="menu-tile-body">
+            <span class="menu-tile-title">${escapeHtml(t.nome)}</span>
+            <span class="menu-tile-sub">${t.attrs.length ? escapeHtml(t.attrs.map(a=>attrNome(a)).join(', ')) : 'Recupera energia'}</span>
+          </span>
+          <span class="menu-tile-arrow">→</span>
+        </button>
+      `).join('')}
     </div>
   `;
-  document.querySelectorAll('.choices .btn').forEach(btn => {
+  document.querySelectorAll('.menu-tile').forEach(btn => {
     btn.onclick = () => aplicarTreino(TREINOS[parseInt(btn.dataset.i,10)]);
   });
 }

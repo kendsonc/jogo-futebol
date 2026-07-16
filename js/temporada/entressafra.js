@@ -65,10 +65,12 @@ function renderEntressafra(){
 
 function renderEntressafraRecap(){
   app.innerHTML = `
+    <div class="screen-hero">
+      <div class="screen-hero-kicker">Entressafra</div>
+      <h1>Fim da Temporada ${GAME.numeroTemporada}</h1>
+      <p class="screen-hero-sub">Um novo ciclo começa. Você chega à próxima temporada com ${idadeAtual()+1} anos, um pouco mais experiente, um pouco mais cobrado. Antes de voltar aos treinos, algumas coisas precisam ser resolvidas fora de campo.</p>
+    </div>
     <div class="card">
-      <div class="card-title">Entressafra</div>
-      <h2>Fim da Temporada ${GAME.numeroTemporada}</h2>
-      <div id="scene-text">Um novo ciclo começa. Você chega à próxima temporada com ${idadeAtual()+1} anos, um pouco mais experiente, um pouco mais cobrado. Antes de voltar aos treinos, algumas coisas precisam ser resolvidas fora de campo.</div>
       <div class="choices"><button class="btn btn-primary" id="btn-ent-continuar">Continuar</button></div>
     </div>
   `;
@@ -197,16 +199,32 @@ function renderEntressafraTransferencia(){
   }
   const texto = `Seu bom momento chamou atenção além do ${GAME.clube.nome}. ${opcoes.length>1?'Dois clubes maiores':'Um clube maior'} sinalizaram interesse em te contratar para a próxima temporada.`;
   app.innerHTML = `
-    <div class="card">
-      <div class="card-title">Proposta de Transferência</div>
-      <div id="scene-text">${escapeHtml(texto)}</div>
-      <div class="choices">
-        ${opcoes.map((c,i) => `<button class="btn" data-i="${i}" style="display:flex;align-items:center;gap:10px;text-align:left">${crestHtml(c,32)}<span>Transferir para o <b>${escapeHtml(c.nome)}</b> — ${escapeHtml(localClube(c))} ${tierBadgeHtml(c.liga || c.divisao)}<br><span class="small muted">${escapeHtml(PERFIL_CLUBE_BLURB[perfilClube(c)])}</span></span></button>`).join('')}
-        <button class="btn btn-primary" data-i="ficar" style="display:flex;align-items:center;gap:10px">${crestHtml(GAME.clube,32)}<span>Permanecer no <b>${escapeHtml(GAME.clube.nome)}</b> ${tierBadgeHtml(GAME.clube.liga || GAME.clube.divisao)}</span></button>
-      </div>
+    <div class="screen-hero">
+      <div class="screen-hero-kicker">Proposta de Transferência</div>
+      <h1>O mercado bateu à sua porta</h1>
+      <p class="screen-hero-sub">${escapeHtml(texto)}</p>
+    </div>
+    <div class="menu-tiles">
+      ${opcoes.map((c,i) => `
+        <button class="menu-tile" data-i="${i}">
+          ${crestHtml(c,50)}
+          <span class="menu-tile-body">
+            <span class="menu-tile-title">${escapeHtml(c.nome)} ${tierBadgeHtml(c.liga || c.divisao)}</span>
+            <span class="menu-tile-sub">${escapeHtml(localClube(c))} — ${escapeHtml(PERFIL_CLUBE_BLURB[perfilClube(c)])}</span>
+          </span>
+          <span class="menu-tile-arrow">→</span>
+        </button>`).join('')}
+      <button class="menu-tile" data-i="ficar">
+        ${crestHtml(GAME.clube,50)}
+        <span class="menu-tile-body">
+          <span class="menu-tile-title">Permanecer no ${escapeHtml(GAME.clube.nome)} ${tierBadgeHtml(GAME.clube.liga || GAME.clube.divisao)}</span>
+          <span class="menu-tile-sub">Seguir construindo sua história onde você já está</span>
+        </span>
+        <span class="menu-tile-arrow">→</span>
+      </button>
     </div>
   `;
-  document.querySelectorAll('.choices .btn').forEach(btn => {
+  document.querySelectorAll('.menu-tile').forEach(btn => {
     btn.onclick = () => {
       if(btn.dataset.i !== 'ficar'){
         const novoClube = opcoes[parseInt(btn.dataset.i,10)];
@@ -243,11 +261,14 @@ function renderEntressafraFinal(){
   const podeAposentar = idade >= 30;
   const forcarAposentadoria = idade >= 38;
   app.innerHTML = `
-    <div class="card">
-      <div class="card-title">Pronto para a Temporada ${GAME.numeroTemporada+1}</div>
-      <div id="scene-text">${forcarAposentadoria
+    <div class="screen-hero">
+      <div class="screen-hero-kicker">Pronto para a Temporada ${GAME.numeroTemporada+1}</div>
+      <h1>${forcarAposentadoria ? 'Fim de uma era' : 'Um novo ano começa'}</h1>
+      <p class="screen-hero-sub">${forcarAposentadoria
         ? `O corpo já avisou: aos ${idade} anos, é hora de pendurar as chuteiras e fechar essa história.`
-        : `Mais um ano, mais uma chance de provar seu valor no ${GAME.clube.nome}. A pré-temporada está prestes a começar.`}</div>
+        : `Mais um ano, mais uma chance de provar seu valor no ${GAME.clube.nome}. A pré-temporada está prestes a começar.`}</p>
+    </div>
+    <div class="card">
       <div class="choices">
         ${forcarAposentadoria ? '' : `<button class="btn btn-primary" id="btn-comecar-proxima">Começar a Temporada ${GAME.numeroTemporada+1}</button>`}
         ${podeAposentar ? `<button class="btn ${forcarAposentadoria?'btn-primary':''}" id="btn-aposentar">Encerrar carreira</button>` : ''}
@@ -272,10 +293,12 @@ function renderAposentadoria(){
   const legado = LEGADOS[GAME.legadoFinal];
   const s = GAME.statsCareer;
   app.innerHTML = `
+    <div class="screen-hero">
+      <div class="screen-hero-kicker">Documentário da Carreira</div>
+      <h1>${escapeHtml(GAME.identidade.apelido)}</h1>
+      <span class="result-badge-big good">🏅 ${escapeHtml(legado.titulo)}</span>
+    </div>
     <div class="card">
-      <h2>Documentário da Carreira</h2>
-      <p class="badge good">${legado.titulo}</p>
-      <div class="spacer"></div>
       <div id="scene-text">${escapeHtml(legado.texto(GAME)).replace(/\n/g,'<br>')}</div>
     </div>
     <div class="card">

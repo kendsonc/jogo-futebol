@@ -85,6 +85,23 @@ const FASES_PENEIRA = [
 
 const NOMES_FASES_PENEIRA = ['Chegada', 'Avaliação Física', 'Treino Técnico', 'Coletivo', 'Conversa com Observador'];
 
+// Cabeçalho compartilhado da peneira: escudo do clube + stepper de fases (em
+// vez de repetir o mesmo status-bar manual em renderPeneira/renderSeguimentoPeneira)
+function peneiraStatusBarHtml(ps){
+  return `
+    <div id="status-bar">
+      <div class="sb-club">${crestHtml(GAME.clube, 34)}<div><div class="sb-club-name">${escapeHtml(GAME.clube.nome)}</div>${tierBadgeHtml(GAME.clube.divisao)}</div></div>
+      <div class="sb-divider"></div>
+      <div class="sb-item"><span class="lbl">Energia</span><b>${GAME.status.energia}</b></div>
+      <div class="sb-item"><span class="lbl">Confiança</span><b>${GAME.sociais.confianca}</b></div>
+    </div>
+    <div class="screen-hero" style="padding:16px 18px">
+      <div class="screen-hero-kicker">Fase ${ps.faseIndex+1}/${NOMES_FASES_PENEIRA.length} — ${escapeHtml(NOMES_FASES_PENEIRA[ps.faseIndex])}</div>
+      <div class="phase-stepper">${NOMES_FASES_PENEIRA.map((_,i) => `<div class="phase-dot ${i<ps.faseIndex?'done':i===ps.faseIndex?'current':''}"></div>`).join('')}</div>
+    </div>
+  `;
+}
+
 function renderPeneira(){
   const ps = GAME.peneiraState;
   if(ps.faseIndex >= FASES_PENEIRA.length){ return renderResultadoPeneira(); }
@@ -92,12 +109,7 @@ function renderPeneira(){
   const fase = FASES_PENEIRA[ps.faseIndex];
   const texto = typeof fase.texto === 'function' ? fase.texto(GAME) : pick(fase.texto).replace('{OBS}', GAME.observador).replace('{TEC}', GAME.tecnico.nome).replace('{CLUBE}', GAME.clube.nome);
   app.innerHTML = `
-    <div id="status-bar">
-      <div class="sb-item"><span class="lbl">Clube</span><b>${GAME.clube.nome}</b></div>
-      <div class="sb-item"><span class="lbl">Fase</span><b>${ps.faseIndex+1}/6 — ${NOMES_FASES_PENEIRA[ps.faseIndex]}</b></div>
-      <div class="sb-item"><span class="lbl">Energia</span><b>${GAME.status.energia}</b></div>
-      <div class="sb-item"><span class="lbl">Confiança</span><b>${GAME.sociais.confianca}</b></div>
-    </div>
+    ${peneiraStatusBarHtml(ps)}
     <div class="card">
       <div id="scene-text">${escapeHtml(texto).replace(/\n/g,'<br>')}</div>
       <div class="choices">
@@ -129,12 +141,7 @@ function renderSeguimentoPeneira(){
   const { seguimento } = ps.seguimentoAtual;
   const texto = typeof seguimento.texto === 'function' ? seguimento.texto(GAME) : seguimento.texto;
   app.innerHTML = `
-    <div id="status-bar">
-      <div class="sb-item"><span class="lbl">Clube</span><b>${GAME.clube.nome}</b></div>
-      <div class="sb-item"><span class="lbl">Fase</span><b>${ps.faseIndex+1}/6 — ${NOMES_FASES_PENEIRA[ps.faseIndex]}</b></div>
-      <div class="sb-item"><span class="lbl">Energia</span><b>${GAME.status.energia}</b></div>
-      <div class="sb-item"><span class="lbl">Confiança</span><b>${GAME.sociais.confianca}</b></div>
-    </div>
+    ${peneiraStatusBarHtml(ps)}
     <div class="card">
       <div id="scene-text">${escapeHtml(texto).replace(/\n/g,'<br>')}</div>
       <div class="choices">
@@ -217,8 +224,11 @@ function renderResultadoPeneira(){
   }
 
   app.innerHTML = `
+    <div class="screen-hero">
+      <div class="screen-hero-kicker">Resultado da Peneira</div>
+      <span class="result-badge-big ${aprovado?'good':'bad'}">${aprovado?'✅ Aprovado':'❌ Não aprovado'}</span>
+    </div>
     <div class="card">
-      <h2>Resultado da Peneira</h2>
       <div id="scene-text">${escapeHtml(texto).replace(/\n/g,'<br>')}</div>
       <div class="choices">
         ${escolhas.map((e,i)=>`<button class="btn ${aprovado?'btn-primary':''}" data-i="${i}">${escapeHtml(e.label)}</button>`).join('')}

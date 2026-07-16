@@ -423,12 +423,14 @@ function renderPreJogo(){
   const rivalHtml = confrontoRival ? `<div class="badge" style="display:block;margin-bottom:10px">⚔️ Duelo direto contra ${escapeHtml(GAME.rival.nome)}, seu rival de carreira</div>` : '';
   app.innerHTML = `
     ${statusBarHtml()}
-    <div class="card center">
-      <div class="card-title">${periodoAtualObj().nome}</div>
-      <h2>Dia de jogo</h2>
+    <div class="screen-hero">
+      <div class="screen-hero-kicker">${escapeHtml(periodoAtualObj().nome)}</div>
+      <h1>Dia de Jogo</h1>
       ${rivalHtml}
       ${matchupHtml}
-      <p class="muted">O ônibus do ${GAME.clube.nome} já está de prontidão. Mais uma partida na temporada, mais uma chance de mostrar serviço — ou de ficar só observando.</p>
+      <p class="screen-hero-sub">O ônibus do ${escapeHtml(GAME.clube.nome)} já está de prontidão. Mais uma partida na temporada, mais uma chance de mostrar serviço — ou de ficar só observando.</p>
+    </div>
+    <div class="card center">
       ${viagemTxt}
       <div class="choices"><button class="btn btn-primary" id="btn-jogar">Ir para a partida</button></div>
     </div>
@@ -447,8 +449,8 @@ function renderResultadoJogo(){
     if(j.eventos.length) corpo += `\n\n` + j.eventos.map(e=>`• ${e}`).join('\n');
     corpo += `\n\nNota de desempenho: ${j.nota.toFixed(1)}`;
   }
-  const resultBadge = j.resultadoJogo==='vitoria' ? 'good' : j.resultadoJogo==='derrota' ? 'bad' : '';
-  const resultLabel = j.resultadoJogo==='vitoria' ? 'Vitória' : j.resultadoJogo==='derrota' ? 'Derrota' : 'Empate';
+  const resultBadge = j.resultadoJogo==='vitoria' ? 'good' : j.resultadoJogo==='derrota' ? 'bad' : 'neutral';
+  const resultLabel = j.resultadoJogo==='vitoria' ? '🏆 Vitória' : j.resultadoJogo==='derrota' ? 'Derrota' : 'Empate';
   const mandoTxt = j.mandante===true ? 'Jogo em casa' : j.mandante===false ? 'Jogo fora de casa' : '';
   const st = j.sumulaTime;
   const outros = j.outrosResultados || [];
@@ -495,14 +497,14 @@ function renderResultadoJogo(){
   const reacaoHtml = j.reacaoElenco ? `<p class="small muted" style="margin-top:10px">💬 ${escapeHtml(j.reacaoElenco.texto)}</p>` : '';
   app.innerHTML = `
     ${statusBarHtml()}
+    <div class="screen-hero">
+      <div class="screen-hero-kicker">Resultado da Partida</div>
+      <h1>${escapeHtml(GAME.clube.nome)} ${j.golsTime} x ${j.golsAdversario} ${escapeHtml(j.adversario)}</h1>
+      <span class="result-badge-big ${resultBadge}">${resultLabel}</span>
+      ${mandoTxt ? `<p class="screen-hero-sub" style="margin-top:0">${mandoTxt}</p>` : ''}
+      ${j.artilheiros.length ? `<p class="small muted">Gols do ${escapeHtml(GAME.clube.nome)}: ${j.artilheiros.map(a=>`${escapeHtml(a.nome)} (${a.gols})`).join(', ')}</p>` : ''}
+    </div>
     <div class="card">
-      <div class="card-title">Resultado da Partida</div>
-      <h2>${GAME.clube.nome} ${j.golsTime} x ${j.golsAdversario} ${j.adversario}</h2>
-      <span class="badge ${resultBadge}">${resultLabel}</span>
-      ${mandoTxt ? `<p class="small muted" style="margin-top:6px">${mandoTxt}</p>` : ''}
-      <div class="spacer"></div>
-      ${j.artilheiros.length ? `<p class="small muted">Gols do ${GAME.clube.nome}: ${j.artilheiros.map(a=>`${a.nome} (${a.gols})`).join(', ')}</p>` : ''}
-      <div class="spacer"></div>
       <div id="scene-text">${escapeHtml(corpo).replace(/\n/g,'<br>')}</div>
       ${reacaoHtml}
     </div>

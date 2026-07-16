@@ -57,9 +57,11 @@ function renderAgendaSemanal(){
 
   app.innerHTML = `
     ${statusBarHtml()}
-    <div class="card">
-      <div class="card-title">${escapeHtml(info.periodo.nome)} — Semana ${info.semanaNoPeriodo+1}/${info.periodo.semanas}</div>
+    <div class="screen-hero" style="padding:18px 18px 14px">
+      <div class="screen-hero-kicker">${escapeHtml(info.periodo.nome)} — Semana ${info.semanaNoPeriodo+1}/${info.periodo.semanas}</div>
       <h2>Sua semana</h2>
+    </div>
+    <div class="card">
       ${itens.join('')}
       <div class="choices"><button class="btn btn-primary" id="btn-seguir-semana">Seguir para a semana</button></div>
     </div>

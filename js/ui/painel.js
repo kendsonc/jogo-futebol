@@ -15,7 +15,7 @@ function abrirPainel(){
   overlay.innerHTML = `
     <div id="panel-modal">
       <div class="panel-header">
-        <h2>Painel do Jogador</h2>
+        <div style="display:flex;align-items:center;gap:10px">${GAME.clube ? crestHtml(GAME.clube, 36) : ''}<h2>Painel do Jogador</h2></div>
         <button class="btn btn-small" id="btn-fechar-painel">Fechar ✕</button>
       </div>
       <div class="tabs">${PAINEL_ABAS.map(a=>`<button class="tab-btn ${a===painelAbaAtiva?'active':''}" data-aba="${a}">${PAINEL_LABELS[a]}</button>`).join('')}</div>

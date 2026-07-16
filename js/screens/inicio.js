@@ -60,9 +60,12 @@ function renderCriacaoPersonagem(){
   const estOpts = Object.keys(ESTILOS).map(k=>`<option value="${k}">${ESTILOS[k].nome} — ${ESTILOS[k].desc}</option>`).join('');
   const ufOpts = UF_LIST.map(uf=>`<option value="${uf}">${uf} (${REGIOES[uf]})</option>`).join('');
   app.innerHTML = `
+    <div class="screen-hero">
+      <div class="screen-hero-kicker">Criação de Jogador</div>
+      <h1>Quem é você?</h1>
+      <p class="screen-hero-sub">Preencha os dados do seu jogador de 16 anos — cada detalhe aqui vira parte da história que você vai construir.</p>
+    </div>
     <div class="card">
-      <h2>Criação do Jogador</h2>
-      <p class="muted">Preencha os dados do seu jogador de 16 anos.</p>
       <form id="form-criacao">
         <fieldset>
           <legend>Identidade</legend>
@@ -129,8 +132,12 @@ function renderCriacaoPersonagem(){
 /* ========================= TELA: HISTÓRIA DE FUNDO ========================= */
 function renderHistoriaPassado(){
   app.innerHTML = `
+    <div class="screen-hero">
+      <div class="screen-hero-kicker">Antes da Peneira</div>
+      <h1>${escapeHtml(GAME.identidade.apelido)}</h1>
+      <p class="screen-hero-sub">${escapeHtml(GAME.identidade.cidadeNatal)}/${GAME.identidade.uf} — 16 anos, um sonho, e uma história até aqui.</p>
+    </div>
     <div class="card">
-      <div class="card-title">Antes da Peneira</div>
       <div id="scene-text">${escapeHtml(GAME.historiaPassado).replace(/\n/g,'<br>')}</div>
       <div class="choices"><button class="btn btn-primary" id="btn-continuar-historia">Seguir para a peneira</button></div>
     </div>

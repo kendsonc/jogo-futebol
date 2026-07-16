@@ -149,10 +149,12 @@ function blocoCopasTemporadaHtml(){
 function renderFimDeTemporada(){
   if(GAME.finalTipo === 'reprovado'){
     app.innerHTML = `
+      <div class="screen-hero">
+        <div class="screen-hero-kicker">Fim de Jornada</div>
+        <h1>Reprovado na Peneira</h1>
+        <p class="screen-hero-sub">Nem toda tentativa vira aprovação de primeira. Sua jornada com o ${GAME.clube ? GAME.clube.nome : 'clube'} terminou antes de começar, mas o sonho de virar profissional continua.</p>
+      </div>
       <div class="card">
-        <h2>Fim de Jornada — Reprovado na Peneira</h2>
-        <p>Nem toda tentativa vira aprovação de primeira. Sua jornada com o ${GAME.clube ? GAME.clube.nome : 'clube'} terminou antes de começar, mas o sonho de virar profissional continua.</p>
-        <div class="spacer"></div>
         <div class="btn-row" style="max-width:320px">
           <button class="btn btn-primary" id="btn-nova-carreira">Começar nova carreira</button>
           <button class="btn btn-danger" id="btn-apagar-final">Apagar save</button>
@@ -172,10 +174,12 @@ function renderFimDeTemporada(){
     .slice(0,8);
 
   app.innerHTML = `
+    <div class="screen-hero">
+      <div class="screen-hero-kicker">Relatório de Fim de Temporada ${GAME.numeroTemporada}</div>
+      <h1>${escapeHtml(GAME.clube.nome)}</h1>
+      <span class="result-badge-big good">${escapeHtml(finalObj.titulo)}</span>
+    </div>
     <div class="card">
-      <h2>Relatório de Fim de Temporada</h2>
-      <p class="badge good">${finalObj.titulo}</p>
-      <div class="spacer"></div>
       <div id="scene-text">${escapeHtml(finalObj.texto(GAME)).replace(/\n/g,'<br>')}</div>
     </div>
     ${(GAME.premiacoesTemporada||[]).length ? `<div class="card">

@@ -96,6 +96,10 @@
     background: var(--club-c1); box-shadow: 0 0 8px 1px var(--club-c1);
     flex-shrink: 0;
   }
+  .card-title::after {
+    content: ''; flex: 1; height: 1px; margin-left: 4px;
+    background: linear-gradient(90deg, var(--border), transparent);
+  }
   .row { display: flex; gap: 12px; flex-wrap: wrap; }
   .col { flex: 1 1 200px; min-width: 0; }
   .center { text-align: center; }
@@ -106,6 +110,7 @@
   /* ===================== BUTTONS ===================== */
   .btn {
     display: inline-block;
+    position: relative;
     background: linear-gradient(180deg, #1a2130, #161c29);
     color: var(--text);
     border: 1px solid var(--border);
@@ -134,7 +139,20 @@
   .btn-small { width: auto; padding: 7px 13px; font-size: 13px; border-radius: 9px; }
   .btn-row { display: flex; flex-direction: column; gap: 10px; }
   .choices { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
-  .choices .btn { animation: escolhaEntra .3s ease backwards; }
+  .choices .btn { animation: escolhaEntra .3s ease backwards; padding-right: 38px; }
+  .choices .btn::before {
+    content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+    width: 3px; height: 0%; background: var(--club-c1); border-radius: 0 3px 3px 0;
+    transition: height .18s ease; box-shadow: 0 0 8px 0 var(--club-c1);
+  }
+  .choices .btn:hover::before { height: 56%; }
+  .choices .btn::after {
+    content: '→'; position: absolute; right: 15px; top: 50%; font-family: var(--font-display);
+    transform: translateY(-50%) translateX(-4px); opacity: 0; color: var(--club-c1);
+    transition: opacity .18s ease, transform .18s ease;
+  }
+  .choices .btn:hover::after { opacity: 1; transform: translateY(-50%) translateX(0); }
+  .choices .btn-primary::before, .choices .btn-primary::after { display: none; }
   .choices .btn:nth-child(1){ animation-delay: .02s; } .choices .btn:nth-child(2){ animation-delay: .06s; }
   .choices .btn:nth-child(3){ animation-delay: .10s; } .choices .btn:nth-child(4){ animation-delay: .14s; }
   .choices .btn:nth-child(5){ animation-delay: .18s; } .choices .btn:nth-child(6){ animation-delay: .22s; }
@@ -243,11 +261,13 @@
     padding: 24px 12px; overflow-y: auto; z-index: 50;
   }
   #panel-modal {
+    position: relative; overflow: hidden;
     background: linear-gradient(180deg, rgba(255,255,255,.03), transparent 30%), var(--surface-2);
     border: 1px solid var(--border); border-radius: var(--radius);
     padding: 20px; width: 100%; max-width: 820px;
     box-shadow: 0 30px 60px -12px rgba(0,0,0,.6);
   }
+  #panel-modal::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--club-grad); opacity: .9; }
   #panel-modal .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
   #panel-modal .panel-header h2 { font-size: 19px; }
 
@@ -282,7 +302,52 @@
   .club-card:hover { transform: translateY(-4px); border-color: color-mix(in srgb, var(--this-c1,#3d5271) 60%, #3d5271); box-shadow: 0 14px 30px -8px rgba(0,0,0,.5), 0 0 0 1px color-mix(in srgb, var(--this-c1,#3d5271) 35%, transparent); }
   .club-card .club-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
   .club-card h3 { font-size: 16px; margin: 0; }
+  .club-card:hover .crest { box-shadow: 0 3px 10px rgba(0,0,0,.45), inset 0 1px 2px rgba(255,255,255,.3), inset 0 -3px 7px rgba(0,0,0,.28), 0 0 0 4px color-mix(in srgb, var(--this-c1,var(--club-c1)) 30%, transparent); }
   .club-swatch { display:inline-block; width:14px; height:14px; border-radius:50%; margin-right:6px; vertical-align:middle; border:1px solid rgba(255,255,255,.25); }
+
+  /* =====================================================================
+     SCREEN HERO — versão compacta do stadium-hero (sem holofotes animados
+     nem cantoneiras), usada como cabeçalho de destaque dentro de telas do
+     jogo (criação de personagem, escolha de clube, resultado da peneira,
+     fim de temporada, aposentadoria etc.) pra criar familiaridade visual
+     com a tela inicial sem repetir o motivo mais "cheio" em toda tela.
+     ========================================================================= */
+  .screen-hero {
+    position: relative; overflow: hidden; text-align: center;
+    border-radius: var(--radius); border: 1px solid var(--border);
+    padding: 26px 20px 22px; margin-bottom: 14px;
+    background:
+      repeating-linear-gradient(115deg, rgba(255,255,255,.02) 0 24px, rgba(255,255,255,0) 24px 48px),
+      radial-gradient(560px circle at 50% -25%, color-mix(in srgb, var(--club-c1) 22%, transparent), transparent 70%),
+      linear-gradient(180deg, rgba(255,255,255,.035) 0%, transparent 45%), linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
+    box-shadow: 0 10px 28px -8px rgba(0,0,0,.45), inset 0 1px 0 var(--border-soft);
+  }
+  .screen-hero::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--club-grad); opacity: .9; }
+  .screen-hero-kicker {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--font-display); font-size: 10.5px; font-weight: 800; letter-spacing: 2.2px; text-transform: uppercase;
+    color: var(--text-dim); margin-bottom: 10px; position: relative; z-index: 1;
+  }
+  .screen-hero-kicker::before, .screen-hero-kicker::after { content: ''; width: 16px; height: 1px; background: linear-gradient(90deg, transparent, var(--club-c1)); }
+  .screen-hero-kicker::after { background: linear-gradient(90deg, var(--club-c1), transparent); }
+  .screen-hero h1, .screen-hero h2 { font-family: var(--font-display); font-weight: 800; font-size: clamp(21px,4.2vw,28px); margin-bottom: 4px; letter-spacing: -.3px; position: relative; z-index: 1; }
+  .screen-hero-sub { color: var(--text-dim); font-size: 13.5px; max-width: 460px; margin: 6px auto 0; position: relative; z-index: 1; }
+
+  /* ===================== SELO DE VEREDITO (aprovado/vitória/campeão...) ===================== */
+  .result-badge-big {
+    display: inline-flex; align-items: center; gap: 9px;
+    font-family: var(--font-display); font-weight: 800; font-size: 14.5px; letter-spacing: .6px; text-transform: uppercase;
+    padding: 10px 22px; border-radius: 999px; margin-bottom: 14px;
+  }
+  .result-badge-big.good { color: #7fe0b8; background: rgba(42,157,111,.14); border: 1px solid #2a9d6f; box-shadow: 0 0 28px -4px rgba(42,157,111,.55); }
+  .result-badge-big.bad { color: #f19aa0; background: rgba(168,50,58,.14); border: 1px solid #a8323a; box-shadow: 0 0 28px -4px rgba(168,50,58,.55); }
+  .result-badge-big.neutral { color: #d8c98a; background: rgba(224,171,63,.12); border: 1px solid #c98a2a; box-shadow: 0 0 24px -4px rgba(224,171,63,.5); }
+
+  /* ===================== STEPPER DE FASES (peneira) ===================== */
+  .phase-stepper { display: flex; align-items: center; gap: 6px; margin: 10px 0 4px; }
+  .phase-dot { flex: 1; height: 4px; border-radius: 3px; background: var(--surface-2); border: 1px solid var(--border); transition: background .3s ease, border-color .3s ease, box-shadow .3s ease; }
+  .phase-dot.done { background: var(--club-grad); border-color: transparent; }
+  .phase-dot.current { background: var(--club-grad); border-color: transparent; box-shadow: 0 0 10px -1px var(--club-c1); }
 
   /* ===================== HERO (TELA INICIAL) ===================== */
   .hero-title {
