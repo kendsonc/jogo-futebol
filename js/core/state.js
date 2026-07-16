@@ -171,6 +171,22 @@ function carregarJogo(){
 function existeSave(){ return !!localStorage.getItem(SAVE_KEY); }
 function apagarSave(){ localStorage.removeItem(SAVE_KEY); GAME = null; }
 
+// Espia o save sem carregar/mutar o GAME atual — usado só pra mostrar uma
+// prévia ("continuar como fulano, tal clube, temporada X") na tela inicial.
+function obterResumoSave(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw) return null;
+    const g = JSON.parse(raw);
+    return {
+      apelido: (g.identidade && g.identidade.apelido) || '?',
+      clube: (g.clube && g.clube.nome) || 'Sem clube definido',
+      divisao: g.clube ? (g.clube.liga || g.clube.divisao) : null,
+      temporada: g.numeroTemporada || 1
+    };
+  } catch(e){ return null; }
+}
+
 /* Idade atual calculada a partir da data de nascimento salva */
 function idadeAtual(){
   const nasc = new Date(GAME.identidade.nascimento);

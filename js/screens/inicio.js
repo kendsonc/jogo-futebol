@@ -1,22 +1,51 @@
 /* ============================== TELA: INÍCIO ============================== */
 function renderStart(){
+  const temSave = existeSave();
+  const resumo = temSave ? obterResumoSave() : null;
   app.innerHTML = `
-    <div class="card center" style="margin-top:10vh; padding:36px 24px;">
-      <div style="font-size:44px; margin-bottom:6px">⚽</div>
-      <h1 class="hero-title">Modo Carreira</h1>
-      <h2 style="font-weight:600; font-size:16px; color:var(--text-dim); letter-spacing:2px; text-transform:uppercase; margin-top:2px">A Jornada</h2>
-      <p class="muted" style="margin-top:16px; max-width:420px; margin-left:auto; margin-right:auto">
-        Você tem 16 anos e um sonho: se tornar jogador profissional de futebol.
-        Tudo começa em uma peneira. Suas escolhas vão decidir o resto.
-      </p>
-      <div class="spacer"></div>
-      <div class="btn-row" style="max-width:320px;margin:0 auto">
-        <button class="btn btn-primary" id="btn-nova">Nova Carreira</button>
-        ${existeSave() ? '<button class="btn" id="btn-continuar">Continuar Carreira</button>' : ''}
-        ${existeSave() ? '<button class="btn btn-danger" id="btn-apagar">Apagar Save</button>' : ''}
+    <div class="stadium-hero">
+      <div class="stadium-hero-sweep"></div>
+      <div class="stadium-hero-corner tl"></div><div class="stadium-hero-corner tr"></div>
+      <div class="stadium-hero-corner bl"></div><div class="stadium-hero-corner br"></div>
+      <div class="stadium-hero-inner">
+        <div class="eyebrow-tag">Simulador de Carreira</div>
+        <div class="hero-crest-ring">⚽</div>
+        <h1 class="hero-title-mega">MODO CARREIRA</h1>
+        <div class="hero-subtitle-tag">A Jornada</div>
+        <p class="hero-tagline">Você tem 16 anos e um sonho: se tornar jogador profissional de futebol. Tudo começa em uma peneira — suas escolhas vão decidir o resto, dos gramados de várzea às finais de Champions League.</p>
       </div>
     </div>
-    <footer>Modo Carreira: A Jornada — protótipo textual, sem imagens.</footer>
+
+    <div class="menu-tiles">
+      <button class="menu-tile menu-tile-primary" id="btn-nova">
+        <span class="menu-tile-icon">🚀</span>
+        <span class="menu-tile-body">
+          <span class="menu-tile-title">Nova Carreira</span>
+          <span class="menu-tile-sub">Crie seu jogador e comece do zero, aos 16 anos</span>
+        </span>
+        <span class="menu-tile-arrow">→</span>
+      </button>
+      ${temSave ? `
+      <button class="menu-tile" id="btn-continuar">
+        <span class="menu-tile-icon">📖</span>
+        <span class="menu-tile-body">
+          <span class="menu-tile-title">Continuar Carreira</span>
+          <span class="menu-tile-sub">${escapeHtml(resumo.apelido)} — ${escapeHtml(resumo.clube)}${resumo.divisao ? ' · '+escapeHtml(resumo.divisao) : ''} · Temporada ${resumo.temporada}</span>
+        </span>
+        <span class="menu-tile-arrow">→</span>
+      </button>` : ''}
+    </div>
+    ${temSave ? '<button class="link-danger" id="btn-apagar">Apagar save atual</button>' : ''}
+
+    <div class="feature-strip">
+      <span class="feature-pill">🏆 6 Ligas Europeias</span>
+      <span class="feature-pill">🌎 Libertadores</span>
+      <span class="feature-pill">⭐ Champions League</span>
+      <span class="feature-pill">🥇 Copa do Mundo</span>
+      <span class="feature-pill">👑 Bola de Ouro</span>
+    </div>
+
+    <footer>Modo Carreira: A Jornada</footer>
   `;
   document.getElementById('btn-nova').onclick = () => renderCriacaoPersonagem();
   const bc = document.getElementById('btn-continuar');
