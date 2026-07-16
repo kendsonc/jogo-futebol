@@ -375,18 +375,18 @@ const EVENTOS_ADOLESCENTE = [
     ] },
   { id:'adol_termino', categoria:'geral',
     texto:(g)=>`O relacionamento que você mantém há meses com uma pessoa lá da sua cidade natal começa a esfriar. As ligações ficam mais curtas, as mensagens demoram mais para chegar — a distância e a rotina de treinos estão cobrando o preço.`,
-    escolhas:[
-      { label:'Conversar com sinceridade e terminar em bons termos', efeitos:{moral:2, atributos:{controleEmocional:1}, tracos:{serio:1}} },
-      { label:'Insistir em manter o namoro à distância, mesmo sabendo que é difícil', efeitos:{pressaoPsicologica:4, moral:-2} },
-      { label:'Evitar o assunto e deixar o namoro morrer aos poucos', efeitos:{moral:-3, relacaoFamilia:-1, tracos:{descontraido:1}} }
-    ],
-    seguimento:{
-      texto:(g)=>`Semanas depois, a poeira baixa. Você percebe que consegue pensar no assunto sem o nó na garganta de antes — mas de vez em quando ainda bate uma saudade de como as coisas eram antes de tudo isso.`,
-      escolhas:[
-        { label:'Focar de cabeça no que está por vir', efeitos:{moral:3, energia:3, atributos:{disciplina:1}} },
-        { label:'Guardar a lembrança sem se cobrar tanto por isso', efeitos:{moral:1, saudeMental:3} }
-      ]
-    } },
+    escolhas:(()=>{
+      const seguimentoTermino = { texto:(g)=>`Semanas depois, a poeira baixa. Você percebe que consegue pensar no assunto sem o nó na garganta de antes — mas de vez em quando ainda bate uma saudade de como as coisas eram antes de tudo isso.`,
+        escolhas:[
+          { label:'Focar de cabeça no que está por vir', efeitos:{moral:3, energia:3, atributos:{disciplina:1}} },
+          { label:'Guardar a lembrança sem se cobrar tanto por isso', efeitos:{moral:1, saudeMental:3} }
+        ] };
+      return [
+        { label:'Conversar com sinceridade e terminar em bons termos', efeitos:{moral:2, atributos:{controleEmocional:1}, tracos:{serio:1}}, seguimento:seguimentoTermino },
+        { label:'Insistir em manter o namoro à distância, mesmo sabendo que é difícil', efeitos:{pressaoPsicologica:4, moral:-2}, seguimento:seguimentoTermino },
+        { label:'Evitar o assunto e deixar o namoro morrer aos poucos', efeitos:{moral:-3, relacaoFamilia:-1, tracos:{descontraido:1}}, seguimento:seguimentoTermino }
+      ];
+    })() },
   { id:'adol_beijo_festa', categoria:'geral',
     texto:(g)=>pick([
       `Numa festa de aniversário de um colega, alguém se aproxima de um jeito que deixa claro o interesse. Seu coração dispara — e você não faz ideia do que fazer com as mãos.`,
@@ -437,18 +437,18 @@ const EVENTOS_ADOLESCENTE = [
     ] },
   { id:'adol_bullying', categoria:'geral',
     texto:(g)=>`Um grupo de colegas começou a implicar com você por causa do futebol — as piadas, no começo "de boa", foram ficando mais pesadas, insinuando que você se acha por jogar no ${g.clube.nome}.`,
-    escolhas:[
-      { label:'Confrontar o grupo com calma, deixando claro que passou do ponto', efeitos:{moral:1, atributos:{coragem:1}, tracos:{serio:1}} },
-      { label:'Contar para um adulto de confiança na escola ou em casa', efeitos:{relacaoFamilia:2, saudeMental:2} },
-      { label:'Engolir seco e fingir que não incomoda', efeitos:{saudeMental:-4, moral:-3} }
-    ],
-    seguimento:{
-      texto:(g)=>`Nos dias seguintes, a situação esfria — mas o episódio deixou um gosto amargo, e uma pergunta que não sai da cabeça: será que vale a pena continuar tão exposto na escola?`,
-      escolhas:[
-        { label:'Sair mais fortalecido, sabendo que consegue lidar com pressão', efeitos:{saudeMental:4, atributos:{controleEmocional:1}, tracos:{confiante:1}} },
-        { label:'Guardar a mágoa e ficar mais fechado com os colegas', efeitos:{saudeMental:-2, tracos:{serio:1}} }
-      ]
-    } },
+    escolhas:(()=>{
+      const seguimentoBullying = { texto:(g)=>`Nos dias seguintes, a situação esfria — mas o episódio deixou um gosto amargo, e uma pergunta que não sai da cabeça: será que vale a pena continuar tão exposto na escola?`,
+        escolhas:[
+          { label:'Sair mais fortalecido, sabendo que consegue lidar com pressão', efeitos:{saudeMental:4, atributos:{controleEmocional:1}, tracos:{confiante:1}} },
+          { label:'Guardar a mágoa e ficar mais fechado com os colegas', efeitos:{saudeMental:-2, tracos:{serio:1}} }
+        ] };
+      return [
+        { label:'Confrontar o grupo com calma, deixando claro que passou do ponto', efeitos:{moral:1, atributos:{coragem:1}, tracos:{serio:1}}, seguimento:seguimentoBullying },
+        { label:'Contar para um adulto de confiança na escola ou em casa', efeitos:{relacaoFamilia:2, saudeMental:2}, seguimento:seguimentoBullying },
+        { label:'Engolir seco e fingir que não incomoda', efeitos:{saudeMental:-4, moral:-3}, seguimento:seguimentoBullying }
+      ];
+    })() },
   { id:'adol_familia_estudos', categoria:'familia',
     texto:(g)=>`Numa ligação de domingo, seus pais tocam no assunto de sempre: "e se o futebol não der certo? Você precisa continuar levando a escola a sério." A preocupação é sincera, mas pesa.`,
     escolhas:[
@@ -482,18 +482,18 @@ const EVENTOS_ADOLESCENTE = [
     ] },
   { id:'adol_independencia_pensao', categoria:'disciplina',
     texto:(g)=>`Morando fora de casa, você percebe que ninguém vai lembrar de lavar sua roupa, arrumar o quarto ou fazer uma comida decente além de você mesmo. A independência é libertadora e assustadora ao mesmo tempo.`,
-    escolhas:[
-      { label:'Criar uma rotina simples de tarefas e seguir à risca', efeitos:{atributos:{disciplina:1}, cuidadoFisico:3, moral:2} },
-      { label:'Ir aprendendo aos trancos e barrancos, sem muita organização', efeitos:{cuidadoFisico:-1, moral:1} },
-      { label:'Pedir dicas para companheiros mais velhos que já passaram por isso', efeitos:{relacaoElenco:2, cuidadoFisico:1} }
-    ],
-    seguimento:{
-      texto:(g)=>`Depois de um tempo, a rotina começa a fazer sentido — ou vira uma bagunça que ninguém mais aguenta, dependendo do caminho que você escolheu.`,
-      escolhas:[
-        { label:'Comemorar a independência conquistada', efeitos:{moral:3, saudeMental:3, tracos:{confiante:1}} },
-        { label:'Pedir ajuda antes que a bagunça vire um problema maior', efeitos:{moral:1, relacaoElenco:1, tracos:{humilde:1}} }
-      ]
-    } },
+    escolhas:(()=>{
+      const seguimentoIndependencia = { texto:(g)=>`Depois de um tempo, a rotina começa a fazer sentido — ou vira uma bagunça que ninguém mais aguenta, dependendo do caminho que você escolheu.`,
+        escolhas:[
+          { label:'Comemorar a independência conquistada', efeitos:{moral:3, saudeMental:3, tracos:{confiante:1}} },
+          { label:'Pedir ajuda antes que a bagunça vire um problema maior', efeitos:{moral:1, relacaoElenco:1, tracos:{humilde:1}} }
+        ] };
+      return [
+        { label:'Criar uma rotina simples de tarefas e seguir à risca', efeitos:{atributos:{disciplina:1}, cuidadoFisico:3, moral:2}, seguimento:seguimentoIndependencia },
+        { label:'Ir aprendendo aos trancos e barrancos, sem muita organização', efeitos:{cuidadoFisico:-1, moral:1}, seguimento:seguimentoIndependencia },
+        { label:'Pedir dicas para companheiros mais velhos que já passaram por isso', efeitos:{relacaoElenco:2, cuidadoFisico:1}, seguimento:seguimentoIndependencia }
+      ];
+    })() },
   { id:'adol_primeiro_dinheiro', categoria:'geral',
     texto:(g)=>`A primeira ajuda de custo do clube cai na sua conta. É pouco perto do que os profissionais ganham, mas para você, que nunca teve dinheiro próprio, parece uma fortuna.`,
     escolhas:[
@@ -517,18 +517,18 @@ const EVENTOS_ADOLESCENTE = [
     ] },
   { id:'adol_amigo_faculdade', categoria:'geral',
     texto:(g)=>`Um amigo próximo do colégio conta, animado, que já garantiu vaga na faculdade que sempre quis. Vocês dois riem, mas por dentro bate uma pontinha de comparação: caminhos tão diferentes, na mesma idade.`,
-    escolhas:[
-      { label:'Comemorar de verdade a conquista dele, sem se comparar', efeitos:{moral:2, relacaoFamilia:1, tracos:{humilde:1}} },
-      { label:'Sentir uma pontada de dúvida sobre ter apostado tudo no futebol', efeitos:{saudeMental:-2, moral:-1} },
-      { label:'Usar a conversa como combustível para se dedicar ainda mais', efeitos:{atributos:{ambicao:1}, moral:2} }
-    ],
-    seguimento:{
-      texto:(g)=>`Passados alguns dias, a dúvida — ou a confirmação — ainda ecoa. No fim, cada um segue o caminho que escolheu, e o seu, por enquanto, é dentro de campo.`,
-      escolhas:[
-        { label:'Fazer as pazes com a própria escolha e seguir confiante', efeitos:{saudeMental:3, tracos:{confiante:1}} },
-        { label:'Guardar a dúvida como um lembrete para nunca se acomodar', efeitos:{atributos:{disciplina:1}, moral:1} }
-      ]
-    } },
+    escolhas:(()=>{
+      const seguimentoFaculdade = { texto:(g)=>`Passados alguns dias, a dúvida — ou a confirmação — ainda ecoa. No fim, cada um segue o caminho que escolheu, e o seu, por enquanto, é dentro de campo.`,
+        escolhas:[
+          { label:'Fazer as pazes com a própria escolha e seguir confiante', efeitos:{saudeMental:3, tracos:{confiante:1}} },
+          { label:'Guardar a dúvida como um lembrete para nunca se acomodar', efeitos:{atributos:{disciplina:1}, moral:1} }
+        ] };
+      return [
+        { label:'Comemorar de verdade a conquista dele, sem se comparar', efeitos:{moral:2, relacaoFamilia:1, tracos:{humilde:1}}, seguimento:seguimentoFaculdade },
+        { label:'Sentir uma pontada de dúvida sobre ter apostado tudo no futebol', efeitos:{saudeMental:-2, moral:-1}, seguimento:seguimentoFaculdade },
+        { label:'Usar a conversa como combustível para se dedicar ainda mais', efeitos:{atributos:{ambicao:1}, moral:2}, seguimento:seguimentoFaculdade }
+      ];
+    })() },
   { id:'adol_visual_trend', categoria:'midia',
     texto:(g)=>pick([
       `Um corte de cabelo que você viu num jogador famoso virou moda entre a garotada. Você pensa em copiar o visual antes do próximo jogo.`,
@@ -588,14 +588,14 @@ const EVENTOS_EQUIPE = [
   { id:'equipe_corte_amigo', categoria:'geral',
     texto:(g)=>`A diretoria dispensa um jogador do elenco sub-20 — justamente um dos garotos com quem você mais tem amizade dentro do CT. Ele vai limpar o armário no fim do treino.`,
     escolhas:[
-      { label:'Ajudá-lo a arrumar as coisas e trocar contato pra manter a amizade', efeitos:{relacaoElenco:4, relacaoFamilia:2, saudeMental:-2, tracos:{humilde:1}} },
+      { label:'Ajudá-lo a arrumar as coisas e trocar contato pra manter a amizade', efeitos:{relacaoElenco:4, relacaoFamilia:2, saudeMental:-2, tracos:{humilde:1}},
+        seguimento:{ texto:(g)=>`Semanas depois, o rapaz manda mensagem contando que está treinando em um clube menor, tentando se reerguer. Pergunta se você topa indicá-lo para alguém do seu círculo.`,
+          escolhas:[
+            { label:'Falar bem dele para quem puder ajudar', efeitos:{relacaoElenco:3, moral:2, tracos:{humilde:1}} },
+            { label:'Responder com educação, mas não se comprometer', efeitos:{pressao:1, tracos:{serio:1}} }
+          ] } },
       { label:'Manter distância, ver aquilo de perto é assustador demais', efeitos:{saudeMental:-4, pressao:4, tracos:{serio:1}} }
-    ],
-    seguimento:{ texto:(g)=>`Semanas depois, o rapaz manda mensagem contando que está treinando em um clube menor, tentando se reerguer. Pergunta se você topa indicá-lo para alguém do seu círculo.`,
-      escolhas:[
-        { label:'Falar bem dele para quem puder ajudar', efeitos:{relacaoElenco:3, moral:2, tracos:{humilde:1}} },
-        { label:'Responder com educação, mas não se comprometer', efeitos:{pressao:1, tracos:{serio:1}} }
-      ] } },
+    ] },
   { id:'equipe_mudanca_tatica', categoria:'geral',
     texto:(g)=>`${g.tecnico.nome} anuncia uma mudança de esquema tático para o time sub-20, e sua função dentro de campo muda — mais ou menos responsabilidade, dependendo de como você encarar.`,
     escolhas:[
@@ -685,16 +685,18 @@ const EVENTOS_EQUIPE = [
     ] },
   { id:'equipe_troca_comissao_tecnica', categoria:'geral',
     texto:(g)=>`${g.tecnico.nome} é substituído no comando do sub-20, e um novo nome assume o time em plena temporada. O grupo passa a semana tentando entender o estilo do novo comandante.`,
-    escolhas:[
-      { label:'Se apresentar rapidamente ao novo treinador, mostrar disposição', efeitos:{relacaoTreinador:5, pressao:2, tracos:{confiante:1}}, extra:(g)=>{ g.tecnico = gerarTecnico(); } },
-      { label:'Esperar para ver como ele trabalha antes de se expor', efeitos:{pressao:1, atributos:{concentracao:1}}, extra:(g)=>{ g.tecnico = gerarTecnico(); } },
-      { label:'Comentar com os colegas que sente falta do comandante anterior', efeitos:{relacaoElenco:2, relacaoTreinador:-3, tracos:{serio:1}}, extra:(g)=>{ g.tecnico = gerarTecnico(); } }
-    ],
-    seguimento:{ texto:(g)=>`Nas primeiras semanas, o novo treinador muda a rotina de treinos e cobra um comportamento mais profissional do elenco, algo que gera resistência silenciosa em parte do grupo.`,
-      escolhas:[
-        { label:'Se adaptar rápido às novas exigências', efeitos:{relacaoTreinador:3, disciplina:2} },
-        { label:'Manter os velhos hábitos, mesmo contrariando o pedido', efeitos:{relacaoTreinador:-4, tracos:{rebelde:1}} }
-      ] } }
+    escolhas:(()=>{
+      const seguimentoNovoTecnico = { texto:(g)=>`Nas primeiras semanas, o novo treinador muda a rotina de treinos e cobra um comportamento mais profissional do elenco, algo que gera resistência silenciosa em parte do grupo.`,
+        escolhas:[
+          { label:'Se adaptar rápido às novas exigências', efeitos:{relacaoTreinador:3, disciplina:2} },
+          { label:'Manter os velhos hábitos, mesmo contrariando o pedido', efeitos:{relacaoTreinador:-4, tracos:{rebelde:1}} }
+        ] };
+      return [
+        { label:'Se apresentar rapidamente ao novo treinador, mostrar disposição', efeitos:{relacaoTreinador:5, pressao:2, tracos:{confiante:1}}, extra:(g)=>{ g.tecnico = gerarTecnico(); }, seguimento:seguimentoNovoTecnico },
+        { label:'Esperar para ver como ele trabalha antes de se expor', efeitos:{pressao:1, atributos:{concentracao:1}}, extra:(g)=>{ g.tecnico = gerarTecnico(); }, seguimento:seguimentoNovoTecnico },
+        { label:'Comentar com os colegas que sente falta do comandante anterior', efeitos:{relacaoElenco:2, relacaoTreinador:-3, tracos:{serio:1}}, extra:(g)=>{ g.tecnico = gerarTecnico(); }, seguimento:seguimentoNovoTecnico }
+      ];
+    })() }
 ];
 
 /* ---------------------- MAIS CONTATO COM O CLUBE -----------------------------
@@ -862,6 +864,49 @@ const EVENTOS_CLUBE = [
    a temporada toda) e gera um evento nomeado com ele, alterando a relação
    individual daquele companheiro (não a relação genérica com "o elenco").
    ------------------------------------------------------------------------- */
+// Segredos distintos revelados em amizade_segredo_guardado (mais abaixo) —
+// sorteado a cada vez que o evento acontece, evitando repetir os últimos 3
+// vistos (GAME.segredosElencoVistos), pra que uma carreira longa ouça
+// confidências diferentes em vez de sempre a mesma conversa genérica.
+const SEGREDOS_ELENCO = [
+  (c) => ({ id:'medo_de_ser_cortado',
+    texto:`— Acho que vou ser cortado no fim do ano. Ouvi o preparador comentando meu nome com o auxiliar outro dia, meio de banda. Não consigo tirar isso da cabeça.`,
+    escolhas:[
+      { label:'Incentivar e lembrar que nada está decidido ainda', efeitos:{amigo:c.id, amigoDelta:8, moral:2, tracos:{humilde:1}} },
+      { label:'Ser realista e sugerir que ele já pense em alternativas', efeitos:{amigo:c.id, amigoDelta:3} }
+    ] }),
+  (c) => ({ id:'financas_familia_elenco',
+    texto:`— Minha família tá muito apertada financeiramente. Venho mandando quase toda minha bolsa pra casa e não sobra quase nada nem pra mim.`,
+    escolhas:[
+      { label:'Oferecer uma ajuda, mesmo que pequena', efeitos:{amigo:c.id, amigoDelta:10, carteira:-50, tracos:{humilde:1}} },
+      { label:'Só ouvir e apoiar emocionalmente, sem se comprometer com dinheiro', efeitos:{amigo:c.id, amigoDelta:5} }
+    ] }),
+  (c) => ({ id:'ansiedade_pre_jogo',
+    texto:`— Antes de quase todo jogo eu vomito de nervoso no banheiro. Ninguém sabe disso, nem o preparador físico. Tenho medo de passar a imagem de fraco se alguém descobrir.`,
+    escolhas:[
+      { label:'Sugerir que ele procure o psicólogo do clube', efeitos:{amigo:c.id, amigoDelta:7, relacaoElenco:1} },
+      { label:'Prometer sigilo total e só apoiar no dia a dia', efeitos:{amigo:c.id, amigoDelta:9} }
+    ] }),
+  (c) => ({ id:'vontade_de_desistir_amigo',
+    texto:`— Às vezes penso seriamente em largar o futebol. Não sei se é isso que eu quero de verdade, ou se é mais um sonho da minha família do que meu.`,
+    escolhas:[
+      { label:'Incentivar a pensar com calma, sem se cobrar tanto', efeitos:{amigo:c.id, amigoDelta:8, tracos:{humilde:1}} },
+      { label:'Dizer que ele não pode desperdiçar o talento que tem', efeitos:{amigo:c.id, amigoDelta:2} }
+    ] }),
+  (c) => ({ id:'pais_se_separando',
+    texto:`— Meus pais estão se separando e ninguém do time sabe. Venho fingindo que tá tudo bem nos treinos, mas em casa a coisa anda pesada.`,
+    escolhas:[
+      { label:'Se colocar à disposição pro que ele precisar', efeitos:{amigo:c.id, amigoDelta:9, tracos:{humilde:1}} },
+      { label:'Dizer que o futebol pode ser um refúgio nesse momento', efeitos:{amigo:c.id, amigoDelta:5} }
+    ] }),
+  (c) => ({ id:'lesao_escondida_amigo',
+    texto:`— Tô sentindo uma dor forte no joelho há semanas e não contei pro departamento médico. Tenho medo de perder minha vaga se parar agora pra tratar.`,
+    escolhas:[
+      { label:'Insistir pra ele contar ao departamento médico', efeitos:{amigo:c.id, amigoDelta:6} },
+      { label:'Respeitar a decisão dele e não insistir', efeitos:{amigo:c.id, amigoDelta:8} }
+    ] })
+];
+
 const EVENTOS_AMIZADE = [
   () => { const c = pick(GAME.elenco); return {
     id:'amizade_convite', categoria:'vestiario',
@@ -925,37 +970,38 @@ const EVENTOS_AMIZADE = [
       { label:'Recusar, cada um cuida da própria parte', efeitos:{amigo:c.id, amigoDelta:-5} },
       { label:'Topar, mas deixar claro que ele te deve essa', efeitos:{amigo:c.id, amigoDelta:6, tracos:{confiante:1}, relacaoElenco:1} }
     ] }; },
-  () => { const c = pick(GAME.elenco); return {
+  () => { const c = pick(GAME.elenco);
+    const vistos = GAME.segredosElencoVistos || [];
+    const candidatos = SEGREDOS_ELENCO.map(fn => fn(c)).filter(s => !vistos.includes(s.id));
+    const segredo = pick(candidatos.length ? candidatos : SEGREDOS_ELENCO.map(fn => fn(c)));
+    const marcarVisto = (g) => { g.segredosElencoVistos = [segredo.id, ...(g.segredosElencoVistos||[])].slice(0,3); };
+    const seguimentoSegredo = { texto:(g)=>`${c.nome} baixa a voz, olhando pro chão.\n\n${segredo.texto}`, escolhas: segredo.escolhas };
+    return {
     id:'amizade_segredo_guardado', categoria:'vestiario',
     texto:(g)=>`Depois do treino, ${c.nome} pede pra conversar a sós, longe dos outros.\n\n— Preciso desabafar uma coisa e não posso falar isso com qualquer um aqui. Fica entre a gente, tá?`,
     escolhas:[
-      { label:'Ouvir com atenção e prometer guardar segredo', efeitos:{amigo:c.id, amigoDelta:12, tracos:{humilde:1}} },
-      { label:'Ouvir, mas tentar minimizar o problema dele', efeitos:{amigo:c.id, amigoDelta:-5} }
-    ],
-    seguimento:{
-      texto:(g)=>`${c.nome} relaxa os ombros depois de falar.\n\n— Valeu por ouvir. Faz diferença ter alguém de confiança aqui dentro.`,
-      escolhas:[
-        { label:'Reforçar que ele pode contar com você sempre', efeitos:{amigo:c.id, amigoDelta:6, tracos:{humilde:1}} },
-        { label:'Só balançar a cabeça e voltar pro vestiário', efeitos:{amigo:c.id, amigoDelta:1} }
-      ]
-    } }; },
+      { label:'Ouvir com atenção e prometer guardar segredo', efeitos:{amigo:c.id, amigoDelta:12, tracos:{humilde:1}},
+        extra:marcarVisto, seguimento:seguimentoSegredo },
+      { label:'Ouvir, mas tentar minimizar o problema dele', efeitos:{amigo:c.id, amigoDelta:-5},
+        extra:marcarVisto, seguimento:seguimentoSegredo }
+    ] }; },
   () => { const c = pick(GAME.elenco); return {
     id:'amizade_desafio_embaixadinhas', categoria:'vestiario',
     texto:(g)=>`Antes do treino começar, ${c.nome} joga a bola pro alto e sorri, provocando.\n\n— Duelo de embaixadinha, quem errar primeiro paga o lanche. Bora ver quem tem mais categoria.`,
     escolhas:[
-      { label:'Aceitar o desafio na hora', efeitos:{amigo:c.id, amigoDelta:6, tracos:{confiante:1}} },
+      { label:'Aceitar o desafio na hora', efeitos:{amigo:c.id, amigoDelta:6, tracos:{confiante:1}},
+        seguimento:{
+          texto:(g)=>pick([
+            `Depois de uma disputa boa, ${c.nome} acaba errando primeiro e ri, aceitando a derrota.`,
+            `Vocês dois empatam de tanto acertar, e o grupo ao redor já está rindo da cena.`
+          ]),
+          escolhas:[
+            { label:'Comemorar na boa e cobrar o lanche prometido', efeitos:{amigo:c.id, amigoDelta:5, moral:3, atributos:{controleDeBola:1}} },
+            { label:'Dizer que valeu o desafio, sem cobrar nada', efeitos:{amigo:c.id, amigoDelta:8, tracos:{humilde:1}} }
+          ]
+        } },
       { label:'Recusar, prefere guardar energia pro treino', efeitos:{amigo:c.id, amigoDelta:-3, energia:2} }
-    ],
-    seguimento:{
-      texto:(g)=>pick([
-        `Depois de uma disputa boa, ${c.nome} acaba errando primeiro e ri, aceitando a derrota.`,
-        `Vocês dois empatam de tanto acertar, e o grupo ao redor já está rindo da cena.`
-      ]),
-      escolhas:[
-        { label:'Comemorar na boa e cobrar o lanche prometido', efeitos:{amigo:c.id, amigoDelta:5, moral:3, atributos:{controleDeBola:1}} },
-        { label:'Dizer que valeu o desafio, sem cobrar nada', efeitos:{amigo:c.id, amigoDelta:8, tracos:{humilde:1}} }
-      ]
-    } }; },
+    ] }; },
   () => { const c = pick(GAME.elenco); return {
     id:'amizade_mesma_paquera', categoria:'vestiario',
     texto:(g)=>`${c.nome} puxa assunto meio sem jeito no vestiário.\n\n— Vou ser direto contigo: percebi que você também tá de olho na mesma pessoa que eu. Não quero que isso estrague nossa amizade.`,
@@ -1017,17 +1063,17 @@ const EVENTOS_AMIZADE = [
   () => { const c = pick(GAME.elenco); return {
     id:'amizade_familia_dificil', categoria:'vestiario',
     texto:(g)=>`${c.nome} chega mais quieto que o normal, se arrasta pelo treino sem o mesmo brilho de sempre. No fim, acaba se abrindo com você.\n\n— Minha família tá passando por um perrengue financeiro em casa. Tá difícil focar em bola pensando nisso.`,
-    escolhas:[
-      { label:'Ficar ao lado dele e ouvir sem pressa', efeitos:{amigo:c.id, amigoDelta:12, tracos:{humilde:1}} },
-      { label:'Tentar animá-lo e mudar de assunto rápido', efeitos:{amigo:c.id, amigoDelta:2} }
-    ],
-    seguimento:{
-      texto:(g)=>`Nos dias seguintes, ${c.nome} volta aos poucos a ser o de sempre, mas ainda carrega um peso na cara.`,
-      escolhas:[
-        { label:`Chamar ${c.nome} pra conversar de novo e ver como ele está`, efeitos:{amigo:c.id, amigoDelta:8, relacaoElenco:1} },
-        { label:'Dar espaço e não tocar mais no assunto', efeitos:{amigo:c.id, amigoDelta:-2} }
-      ]
-    } }; },
+    escolhas:(()=>{
+      const seguimentoFinancas = { texto:(g)=>`Nos dias seguintes, ${c.nome} volta aos poucos a ser o de sempre, mas ainda carrega um peso na cara.`,
+        escolhas:[
+          { label:`Chamar ${c.nome} pra conversar de novo e ver como ele está`, efeitos:{amigo:c.id, amigoDelta:8, relacaoElenco:1} },
+          { label:'Dar espaço e não tocar mais no assunto', efeitos:{amigo:c.id, amigoDelta:-2} }
+        ] };
+      return [
+        { label:'Ficar ao lado dele e ouvir sem pressa', efeitos:{amigo:c.id, amigoDelta:12, tracos:{humilde:1}}, seguimento:seguimentoFinancas },
+        { label:'Tentar animá-lo e mudar de assunto rápido', efeitos:{amigo:c.id, amigoDelta:2}, seguimento:seguimentoFinancas }
+      ];
+    })() }; },
   () => { const c = pick(GAME.elenco); return {
     id:'amizade_climao_provocacao', categoria:'vestiario',
     texto:(g)=>`${c.nome} entra no vestiário se achando depois de um treino em que se destacou mais que você.\n\n— Viu como se joga? Vai ter que correr atrás pra não ficar pra trás na briga pela vaga, hein.`,
@@ -1039,17 +1085,17 @@ const EVENTOS_AMIZADE = [
   () => { const c = pick(GAME.elenco); return {
     id:'amizade_despedida_transferencia', categoria:'vestiario',
     texto:(g)=>`${c.nome} reúne o grupo pra dar uma notícia, mas puxa você de lado antes.\n\n— Fechei com outro clube, vou embora no fim do mês. Queria que você soubesse antes de todo mundo.`,
-    escolhas:[
-      { label:'Apoiar de coração e desejar sucesso', efeitos:{amigo:c.id, amigoDelta:10, tracos:{humilde:1}} },
-      { label:'Ficar magoado por ele não ter contado antes', efeitos:{amigo:c.id, amigoDelta:-5} }
-    ],
-    seguimento:{
-      texto:(g)=>`No último treino junto, ${c.nome} pede seu contato pra continuarem se falando depois que ele for embora.`,
-      escolhas:[
-        { label:'Trocar contato e prometer acompanhar a carreira dele', efeitos:{amigo:c.id, amigoDelta:9, relacaoElenco:1} },
-        { label:'Trocar contato só por educação, sem muita expectativa', efeitos:{amigo:c.id, amigoDelta:1} }
-      ]
-    } }; },
+    escolhas:(()=>{
+      const seguimentoDespedida = { texto:(g)=>`No último treino junto, ${c.nome} pede seu contato pra continuarem se falando depois que ele for embora.`,
+        escolhas:[
+          { label:'Trocar contato e prometer acompanhar a carreira dele', efeitos:{amigo:c.id, amigoDelta:9, relacaoElenco:1} },
+          { label:'Trocar contato só por educação, sem muita expectativa', efeitos:{amigo:c.id, amigoDelta:1} }
+        ] };
+      return [
+        { label:'Apoiar de coração e desejar sucesso', efeitos:{amigo:c.id, amigoDelta:10, tracos:{humilde:1}}, seguimento:seguimentoDespedida },
+        { label:'Ficar magoado por ele não ter contado antes', efeitos:{amigo:c.id, amigoDelta:-5}, seguimento:seguimentoDespedida }
+      ];
+    })() }; },
   () => { const c = pick(GAME.elenco); return {
     id:'amizade_susto_lesao', categoria:'vestiario',
     texto:(g)=>`No meio do coletivo, ${c.nome} torce o tornozelo numa dividida e cai gritando de dor. O departamento médico corre pra atender, e o clima no campo fica tenso.`,
