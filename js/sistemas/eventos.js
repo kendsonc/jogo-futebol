@@ -131,6 +131,8 @@ function sortearEvento(){
     pool.push(...EVENTOS_ELENCO_PAPEL.map(gerador => gerador()).filter(Boolean));
   }
   if(GAME.rival) pool.push(...EVENTOS_RIVAL);
+  if(GAME.relacionamento) pool.push(...EVENTOS_RELACIONAMENTO);
+  else if(GAME.sociais.popularidade >= 15 && chance(15)) pool.push(gerarEventoConhecerAlguem());
   if(GAME.tecnico && GAME.tecnico.estilo) pool.push(...EVENTOS_TECNICO.map(gerador => gerador()).filter(Boolean));
   if(!GAME.empresarioAtual && !ts.empresarioOfertado && ts.periodoIndex >= 1 && chance(40)){
     pool.push(gerarEventoEmpresario());

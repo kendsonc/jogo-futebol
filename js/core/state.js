@@ -121,6 +121,7 @@ function criarNovoJogador(dados){
     elenco: [], tecnico: null, observador: null,
     empresarioAtual: null,
     rival: null,
+    relacionamento: null,
     potencialOculto: rand(40,90),
     noticias: [],
     historico: [],

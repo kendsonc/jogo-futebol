@@ -34,6 +34,7 @@ function render(){
   if(!GAME.consequenciasPendentes) GAME.consequenciasPendentes = [];
   if(GAME.clube && !GAME.rival) GAME.rival = gerarRival();
   if(!GAME.vidaPessoal) GAME.vidaPessoal = { ultimaAcaoSemana: {} };
+  if(GAME.relacionamento === undefined) GAME.relacionamento = null;
   if(!GAME.forma) GAME.forma = { ultimasNotas: [], media: 0, momento: 'regular' };
   if(!GAME.statsCareer) GAME.statsCareer = { jogos:0, gols:0, assistencias:0, minutos:0, titular:0, temporadas:0, premios:[] };
   if(GAME.statsCareer && !GAME.statsCareer.premios) GAME.statsCareer.premios = [];

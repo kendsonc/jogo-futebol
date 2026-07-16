@@ -26,7 +26,7 @@ function gerarAgendaSemanal(){
     ? `Seu próximo adversário é o clube do seu rival, ${GAME.rival.nome} — todo mundo vai comparar vocês dois depois desse jogo.`
     : null;
 
-  const vidaPessoalDisponivel = (ACOES_VIDA_PESSOAL||[]).filter(a => podeUsarAcaoVidaPessoal(a)).map(a => a.nome);
+  const vidaPessoalDisponivel = (ACOES_VIDA_PESSOAL||[]).filter(a => podeUsarAcaoVidaPessoal(a)).map(a => nomeAcaoVidaPessoal(a));
 
   const copasAtivas = Object.values(ts.copas||{})
     .filter(c => !c.campeao)

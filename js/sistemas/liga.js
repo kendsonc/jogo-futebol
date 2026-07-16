@@ -264,6 +264,7 @@ function avancarSemana(){
   const comissao = GAME.empresarioAtual ? (GAME.empresarioComissao||10)/100 : 0;
   GAME.carteira = Math.round((GAME.carteira||0) + ganhoSemanal * (1 - comissao));
   aplicarReputacaoEmpresario();
+  aplicarDesgasteVinculosSemanal();
   ts.subFase = 'agenda';
   salvarJogo();
   render();

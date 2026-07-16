@@ -206,8 +206,10 @@ const EVENTOS_RECORRENTES = [
     escolhas:[
       { label:'Gastar boa parte só com você mesmo', efeitos:{moral:3, relacaoFamilia:-2, tracos:{confiante:1}},
         extra:(g)=>{ const gasto = Math.min(g.carteira||0, Math.round((g.carteira||0)*0.5)); if(gasto>0){ g.carteira = Math.max(0,(g.carteira||0)-gasto); } } },
-      { label:'Guardar quase tudo e não se empolgar', efeitos:{moral:1, relacaoFamilia:2} },
-      { label:'Comprar algo simples e guardar o resto', efeitos:{moral:2, relacaoFamilia:1} }
+      { label:'Guardar quase tudo e não se empolgar', efeitos:{moral:1, relacaoFamilia:2},
+        extra:(g)=>{ const gasto = Math.min(g.carteira||0, Math.round((g.carteira||0)*0.05)); if(gasto>0){ g.carteira = Math.max(0,(g.carteira||0)-gasto); } } },
+      { label:'Comprar algo simples e guardar o resto', efeitos:{moral:2, relacaoFamilia:1},
+        extra:(g)=>{ const gasto = Math.min(g.carteira||0, Math.round((g.carteira||0)*0.15)); if(gasto>0){ g.carteira = Math.max(0,(g.carteira||0)-gasto); } } }
     ] },
   { id:'rec_veterano_conselho', categoria:'vestiario',
     texto:(g)=>`Um jogador mais velho do elenco, que já rodou por vários clubes menores, te chama de lado depois do treino.\n\n— Vem cá, senta um pouco comigo. Quero te falar uma coisa.`,
