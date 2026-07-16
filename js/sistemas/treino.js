@@ -100,7 +100,11 @@ function decidirEscalacao(){
   const bonusStatus = STATUS_ESCALACAO_BONUS[GAME.status.statusElenco] || 0;
   const bonusForma = (GAME.forma && GAME.forma.ultimasNotas.length >= 2) ? clamp((GAME.forma.media-6)*2.5, -8, 8) : 0;
   const bonusTecnico = calcularBonusTecnico(bonusStatus, bonusForma);
-  const score = GAME.relacoes.treinador*0.3 + ts.mediaTreinoRecente*0.3 + GAME.status.energia*0.2 + GAME.atributos.disciplina*0.2 + bonusStatus + bonusForma + bonusTecnico + rand(-15,15);
+  // Volta de lesão: no mesmo clique em que a recuperação termina, a semana já
+  // pode ter jogo marcado — sem esse desconto, o jogador saía de uma entorse
+  // direto pra titular, sem nenhuma partida de transição pra retomar ritmo.
+  const penalidadeRecondicionamento = (GAME.recondicionamentoSemanas||0) > 0 ? -22 : 0;
+  const score = GAME.relacoes.treinador*0.3 + ts.mediaTreinoRecente*0.3 + GAME.status.energia*0.2 + GAME.atributos.disciplina*0.2 + bonusStatus + bonusForma + bonusTecnico + penalidadeRecondicionamento + rand(-15,15);
   if(score >= 65) return 'titular';
   if(score >= 38) return 'reserva';
   return 'naoRelacionado';

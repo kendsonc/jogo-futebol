@@ -29,8 +29,26 @@ function calcularOfertaContrato(){
 }
 function clubesMaioresDisponiveis(){
   if(!(GAME.stats.interesseClubes >= 55 && GAME.stats.notaMedia >= 6.8)) return [];
-  return CLUBES.filter(c => c.reputacao > GAME.clube.reputacao + 8 && c.id !== GAME.clube.id)
-    .sort((a,b) => b.reputacao-a.reputacao).slice(0,2);
+  // Salto de divisão realista: por padrão só sobe 1 divisão (ex: Série C ->
+  // Série B), nunca "qualquer clube do banco de dados" — sem isso, clubes
+  // gigantes como Flamengo/Palmeiras (reputação no teto da escala) sempre
+  // batiam o corte de "reputação > atual+8" pra QUALQUER clube pequeno,
+  // aparecendo anos antes do realista. Só com uma temporada excepcional
+  // (nota alta e muito interesse) o salto pode ser de 2 divisões.
+  const meuTier = tierDoClube(GAME.clube);
+  const indiceTier = TIERS_ORDEM.indexOf(meuTier);
+  const saltoExcepcional = GAME.stats.notaMedia >= 7.6 && GAME.stats.interesseClubes >= 75;
+  const indiceTierMax = Math.min(indiceTier + (saltoExcepcional ? 2 : 1), TIERS_ORDEM.length-1);
+  const candidatos = CLUBES.filter(c => c.reputacao > GAME.clube.reputacao + 8 && c.id !== GAME.clube.id
+      && TIERS_ORDEM.indexOf(tierDoClube(c)) <= indiceTierMax);
+  // Mesmo dentro do alcance de divisão, pegar sempre os de MAIOR reputação
+  // absoluta ainda faria os gigantes históricos (Flamengo, Palmeiras — topo
+  // de toda a base) aparecerem assim que a Série A vira alcançável. Em vez
+  // disso, ordena por proximidade a um degrau razoável acima do clube atual
+  // — só quando a própria reputação do jogador já estiver alta é que esse
+  // degrau naturalmente esbarra nos clubes gigantes.
+  const alvoReputacao = GAME.clube.reputacao + (saltoExcepcional ? 30 : 15);
+  return candidatos.sort((a,b) => Math.abs(a.reputacao-alvoReputacao) - Math.abs(b.reputacao-alvoReputacao)).slice(0,2);
 }
 
 // Contrato pós-transferência: reancora no patamar do clube de DESTINO em vez de

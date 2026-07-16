@@ -80,7 +80,13 @@ function renderSelecaoClubes(){
 // individual, 0-100, que evolui com eventos específicos ao longo do ano)
 const PAPEIS_ELENCO = ['Parceiro inseparável no CT', 'Rival direto pela vaga', 'Veterano do elenco', 'Zoeiro do grupo', 'Mais reservado, mas leal'];
 function gerarElenco(){
-  const embaralhados = [...NOMES_COMPANHEIROS].sort(() => Math.random()-0.5);
+  // Exclui os nomes do elenco atual (se houver) antes de sortear o novo — sem
+  // isso, trocar de clube podia manter boa parte dos mesmos companheiros só
+  // por sorte, já que o sorteio em si não sabia quem já tinha aparecido antes.
+  const nomesAtuais = new Set((GAME.elenco||[]).map(c => c.nome));
+  const disponiveis = NOMES_COMPANHEIROS.filter(n => !nomesAtuais.has(n));
+  const pool = disponiveis.length >= 5 ? disponiveis : NOMES_COMPANHEIROS;
+  const embaralhados = [...pool].sort(() => Math.random()-0.5);
   return embaralhados.slice(0,5).map((nome,i) => ({ id:'comp_'+i, nome, papel: PAPEIS_ELENCO[i % PAPEIS_ELENCO.length], relacao:50 }));
 }
 

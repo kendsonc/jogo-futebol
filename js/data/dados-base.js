@@ -423,7 +423,17 @@ const ESTILOS_TECNICO = ['disciplinador','paizao','retranqueiro','ofensivo','pro
 function gerarTecnico(){ return { nome: pick(NOMES_TECNICOS), estilo: pick(ESTILOS_TECNICO) }; }
 const NOMES_OBSERVADORES = ['Seu Osvaldo','Dona Marlene','Professor Tadeu','Zé Roberto','Coordenador Nilton'];
 const NOMES_DIRIGENTES = ['Presidente Aguinaldo','Diretor Marcelo Tavares','VP Heitor Andrade'];
-const NOMES_COMPANHEIROS = ['Denner','Kauê','Robinho','Bruno Alves','Wendell','Matheusinho','Igor Bahia','Ranielzinho','Cauê Ribeiro','Pablo Vitor'];
+// Pool grande o bastante (40+) pra que trocar de clube realmente troque os
+// rostos do vestiário — com só 10 nomes, sortear 5 de novo a cada transferência
+// repetia boa parte do elenco anterior quase sempre (gerarElenco, js/screens/clubes.js
+// já reforça isso excluindo o elenco atual do sorteio, mas o pool também precisa ser grande).
+const NOMES_COMPANHEIROS = [
+  'Denner','Kauê','Robinho','Bruno Alves','Wendell','Matheusinho','Igor Bahia','Ranielzinho','Cauê Ribeiro','Pablo Vitor',
+  'Jhonatan','Everaldo','Luizinho','Adaílton','Wesley Show','Marquinhos Sales','Deivinho','Rogerinho','Anderson Mineiro','Caíque',
+  'Vitinho Prata','Jean Carlos','Rodriguinho','Elias Farias','Guilherme Cabo','Nathan Duarte','Josimar','Alan Patrick','Renatinho','Diego Castro',
+  'Fabinho Alagoano','Marcos Vinícius','Erick Torres','Yago Felipe','Tiaguinho','Léo Bahia','Douglinhas','Samuel Rosa','Vinícius Barros','Kelvin Oliveira',
+  'Gabriel Poço','Reginaldo Neto','Cristian Souza','Léo Pará'
+];
 const NOMES_EMPRESARIOS = {
   experiente: 'Aurélio Bastos, empresário experiente com décadas de carreira',
   oportunista: 'Diego Marins, agente novo e ambicioso',
