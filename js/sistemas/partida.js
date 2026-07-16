@@ -39,8 +39,16 @@ function prepararPartida(){
   if(desgasteViagem > 0) GAME.status.energia = clamp(GAME.status.energia - desgasteViagem, 0, 100);
 
   const confrontoRival = !!(GAME.rival && oponente && oponente.id === GAME.rival.clubeId);
-  // Duelo direto contra o rival pesa um pouco mais: mais um lance decisivo pra você titular
-  const numLances = titular ? (confrontoRival ? 3 : 2) : (entrouBanco ? 1 : 0);
+  // Quantidade de lances varia partida a partida (nunca fixa): titular tem uma
+  // base de 1 a 3, duelo direto contra o rival soma +1 lance decisivo, e jogar
+  // a maior parte da partida (85+ minutos) também rende +1 chance de aparecer.
+  // Quem entra do banco tem 1 ou 2, dependendo de quanto tempo ficou em campo.
+  let numLances = 0;
+  if(titular){
+    numLances = rand(1,3) + (confrontoRival?1:0) + (minutos>=85?1:0);
+  } else if(entrouBanco){
+    numLances = minutos>=20 ? rand(1,2) : 1;
+  }
   const pool = ehGoleiro ? LANCES_GOLEIRO : ehDefensor ? LANCES_DEFESA : LANCES_ATAQUE;
   const lances = [];
   for(let i=0;i<numLances;i++) lances.push(pick(pool));
