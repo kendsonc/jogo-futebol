@@ -51,6 +51,7 @@ function render(){
   if(GAME.qualificacoesProximaTemporada === undefined) GAME.qualificacoesProximaTemporada = null;
   if(GAME.temporadaState && !GAME.temporadaState.copas) GAME.temporadaState.copas = {};
   if(!GAME.memorial) GAME.memorial = [];
+  repararEstadoEconomia();
   if(GAME.fase === 'historia') return renderHistoriaPassado();
   if(GAME.fase === 'clubes') return renderSelecaoClubes();
   if(GAME.fase === 'peneira') return renderPeneira();

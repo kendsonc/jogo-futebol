@@ -1,0 +1,35 @@
+/* ============================== SHOPPING: TÊNIS ================================
+   30 pares. Marcas fictícias, preços condizentes com o mercado (do popular ao
+   "tênis de grife" caro). categoria só descritiva (não muda o molde do sprite). */
+const TENIS = [
+  { id:'tn01', nome:'Voxx Runner Basic',        marca:'Voxx',        categoria:'corrida',  preco:199,  cor:'#e8e8e8' },
+  { id:'tn02', nome:'Norrik Street Low',        marca:'Norrik',      categoria:'casual',   preco:249,  cor:'#111318' },
+  { id:'tn03', nome:'Bravo Court Classic',      marca:'Bravo Wear',  categoria:'basquete', preco:329,  cor:'#d64550' },
+  { id:'tn04', nome:'Kairos Sprint Pro',        marca:'Kairos Sport',categoria:'corrida',  preco:399,  cor:'#2a9d6f' },
+  { id:'tn05', nome:'Raptor Deck Skate',        marca:'Raptor',      categoria:'skate',    preco:279,  cor:'#3a3f4a' },
+  { id:'tn06', nome:'Meridian Leather Sneak',   marca:'Meridian',    categoria:'casual',   preco:459,  cor:'#f4f4f4' },
+  { id:'tn07', nome:'Zyn Air Cushion',          marca:'Zyn',         categoria:'corrida',  preco:349,  cor:'#2a6bc9' },
+  { id:'tn08', nome:'Fusion Retro 88',          marca:'Fusion',      categoria:'casual',   preco:299,  cor:'#c9b48a' },
+  { id:'tn09', nome:'Prime Line Court Pro',     marca:'Prime Line',  categoria:'basquete', preco:549,  cor:'#1a2130' },
+  { id:'tn10', nome:'Trilha Trail Grip',        marca:'Trilha',      categoria:'trilha',   preco:379,  cor:'#5a6b45' },
+  { id:'tn11', nome:'Voxx Boost Elite',         marca:'Voxx',        categoria:'corrida',  preco:599,  cor:'#e0ab3f' },
+  { id:'tn12', nome:'Norrik High Top',          marca:'Norrik',      categoria:'skate',    preco:319,  cor:'#8a2e35' },
+  { id:'tn13', nome:'Bravo Slip-On Comfort',    marca:'Bravo Wear',  categoria:'casual',   preco:229,  cor:'#7c8aa5' },
+  { id:'tn14', nome:'Kairos Marathon X',        marca:'Kairos Sport',categoria:'corrida',  preco:649,  cor:'#3f9be0' },
+  { id:'tn15', nome:'Raptor Vulcan Skate Pro',  marca:'Raptor',      categoria:'skate',    preco:399,  cor:'#111318' },
+  { id:'tn16', nome:'Meridian Oxford Sneak',    marca:'Meridian',    categoria:'social',   preco:519,  cor:'#2b1d17' },
+  { id:'tn17', nome:'Zyn Cloud Walk',           marca:'Zyn',         categoria:'casual',   preco:279,  cor:'#eef1f7' },
+  { id:'tn18', nome:'Fusion Court Legacy',      marca:'Fusion',      categoria:'basquete', preco:459,  cor:'#d64550' },
+  { id:'tn19', nome:'Prime Line Runner Elite',  marca:'Prime Line',  categoria:'corrida',  preco:699,  cor:'#22262e' },
+  { id:'tn20', nome:'Trilha Mountain Boot Low', marca:'Trilha',      categoria:'trilha',   preco:459,  cor:'#8a3b32' },
+  { id:'tn21', nome:'Voxx Edição Limitada 24K', marca:'Voxx',        categoria:'casual',   preco:899,  cor:'#caa23a' },
+  { id:'tn22', nome:'Norrik Pro Basketball',    marca:'Norrik',      categoria:'basquete', preco:579,  cor:'#3a3f4a' },
+  { id:'tn23', nome:'Bravo Ultraboost Run',     marca:'Bravo Wear',  categoria:'corrida',  preco:499,  cor:'#2a9d6f' },
+  { id:'tn24', nome:'Kairos Street Classic',    marca:'Kairos Sport',categoria:'casual',   preco:259,  cor:'#5a6b85' },
+  { id:'tn25', nome:'Raptor Signature Pro',     marca:'Raptor',      categoria:'skate',    preco:749,  cor:'#e0ab3f' },
+  { id:'tn26', nome:'Meridian Grife Exclusive', marca:'Meridian',    categoria:'grife',    preco:1899, cor:'#111318' },
+  { id:'tn27', nome:'Zyn Kids Court (adulto slim)',marca:'Zyn',       categoria:'basquete', preco:389, cor:'#3f9be0' },
+  { id:'tn28', nome:'Fusion Comfort Walk',      marca:'Fusion',      categoria:'casual',   preco:219,  cor:'#c9b48a' },
+  { id:'tn29', nome:'Prime Line Grife Gold Edition',marca:'Prime Line',categoria:'grife',   preco:2299, cor:'#caa23a' },
+  { id:'tn30', nome:'Trilha Expedition Pro',    marca:'Trilha',      categoria:'trilha',   preco:529,  cor:'#2a2e35' }
+];

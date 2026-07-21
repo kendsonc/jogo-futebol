@@ -2,15 +2,19 @@
    Modal em abas, acessível a qualquer momento durante a peneira/temporada,
    sem interromper o estado do jogo (apenas leitura + botões de salvar/apagar).
    ========================================================================= */
-const PAINEL_ABAS = ['dados','status','atributos','relacoes','estatisticas','contrato','social','noticias','historico','objetivos','agenda','rival','vidaPessoal','calendario','tabela','copas'];
+// "Vida Pessoal" saiu daqui e virou modal próprio (❤️ Vida, barra de status) —
+// esta aba é só leitura/consulta; tudo que altera a carreira (gasta/rende
+// carteira) fica acessível direto na barra, sem precisar abrir o Painel.
+const PAINEL_ABAS = ['dados','status','atributos','relacoes','estatisticas','contrato','social','noticias','historico','objetivos','agenda','rival','calendario','tabela','copas'];
 const PAINEL_LABELS = {
   dados:'Dados', status:'Status', atributos:'Atributos', relacoes:'Relações',
   estatisticas:'Estatísticas', contrato:'Contrato', social:'Redes Sociais', noticias:'Notícias',
-  historico:'Histórico', objetivos:'Objetivos', agenda:'Agenda', rival:'Rival', vidaPessoal:'Vida Pessoal', calendario:'Calendário', tabela:'Classificação', copas:'Copas'
+  historico:'Histórico', objetivos:'Objetivos', agenda:'Agenda', rival:'Rival', calendario:'Calendário', tabela:'Classificação', copas:'Copas'
 };
 let painelAbaAtiva = 'dados';
 
 function abrirPainel(){
+  document.querySelectorAll('.central-overlay').forEach(o => o.remove());
   const overlay = el(`<div id="panel-overlay"></div>`);
   overlay.innerHTML = `
     <div id="panel-modal">
@@ -46,14 +50,9 @@ function renderPainelBody(){
     dados: painelDados, status: painelStatus, atributos: painelAtributos,
     relacoes: painelRelacoes, estatisticas: painelEstatisticas, contrato: painelContrato,
     social: painelSocial, noticias: painelNoticias, historico: painelHistorico, objetivos: painelObjetivos,
-    agenda: painelAgenda, rival: painelRival, vidaPessoal: painelVidaPessoal, calendario: painelCalendario, tabela: painelTabela, copas: painelCopas
+    agenda: painelAgenda, rival: painelRival, calendario: painelCalendario, tabela: painelTabela, copas: painelCopas
   };
   body.innerHTML = fns[painelAbaAtiva]();
-  if(painelAbaAtiva === 'vidaPessoal'){
-    body.querySelectorAll('[data-acao]').forEach(btn => {
-      btn.onclick = () => aplicarAcaoVidaPessoal(btn.dataset.acao);
-    });
-  }
 }
 
 function painelDados(){

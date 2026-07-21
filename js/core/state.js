@@ -147,9 +147,23 @@ function criarNovoJogador(dados){
       copasDoMundo: [] },
     qualificacoesProximaTemporada: null,
     social: { seguidores: rand(120,400), mensagens: [] },
-    historiaPassado: pick(HISTORIAS_PASSADO)(dados)
+    historiaPassado: pick(HISTORIAS_PASSADO)(dados),
+    inventario: { roupas: [], tenis: [], relogios: [] },
+    garagem: [],
+    imoveisComprados: [],
+    banco: { poupanca: 0, investimentos: [], emprestimos: [] }
   };
   salvarJogo();
+}
+
+/* Garante que saves antigos (de antes da Central de Carreira existir) ganhem
+   os campos novos sem perder nada do que já tinham — mesma lógica dos
+   reparos de GAME.vidaPessoal/GAME.forma/etc. já feitos em render() (router.js). */
+function repararEstadoEconomia(){
+  if(!GAME.inventario) GAME.inventario = { roupas: [], tenis: [], relogios: [] };
+  if(!GAME.garagem) GAME.garagem = [];
+  if(!GAME.imoveisComprados) GAME.imoveisComprados = [];
+  if(!GAME.banco) GAME.banco = { poupanca: 0, investimentos: [], emprestimos: [] };
 }
 
 /* ============================== PERSISTÊNCIA (localStorage) ================ */

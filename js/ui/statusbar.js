@@ -18,12 +18,18 @@ function statusBarHtml(){
     <div class="sb-item"><span class="lbl">Gols</span><b>${s.gols}</b></div>
     <div class="sb-item"><span class="lbl">Assist.</span><b>${s.assistencias}</b></div>
     <div class="sb-divider"></div>
-    <div class="sb-item"><span class="lbl">Carteira</span><b>R$ ${Math.round(GAME.carteira||0).toLocaleString('pt-BR')}</b></div>
+    <div class="sb-item"><span class="lbl">Carteira</span><b id="sb-carteira">R$ ${Math.round(GAME.carteira||0).toLocaleString('pt-BR')}</b></div>
     <div class="sb-divider"></div>
     <div class="sb-item"><span class="lbl">Energia</span><b>${GAME.status.energia}</b></div>
     <div class="sb-item"><span class="lbl">Moral</span><b>${GAME.sociais.moral}</b></div>
     <div class="sb-item"><span class="lbl">Status</span><b>${GAME.status.statusElenco}</b></div>
-    <button class="btn btn-small sb-panel-btn" id="btn-abrir-painel">📊 Painel</button>
+    <div class="sb-actions">
+      <button class="btn btn-small" id="btn-abrir-vidapessoal">❤️ Vida</button>
+      <button class="btn btn-small" id="btn-abrir-shopping">🛍️ Shopping</button>
+      <button class="btn btn-small" id="btn-abrir-imoveis">🏠 Imóveis</button>
+      <button class="btn btn-small" id="btn-abrir-banco">🏦 Banco</button>
+      <button class="btn btn-small sb-panel-btn" id="btn-abrir-painel">📊 Painel</button>
+    </div>
   </div>`;
 }
 
@@ -38,4 +44,12 @@ function renderTemporada(){
   else renderTreino();
   const btnPainel = document.getElementById('btn-abrir-painel');
   if(btnPainel) btnPainel.onclick = abrirPainel;
+  const btnVidaPessoal = document.getElementById('btn-abrir-vidapessoal');
+  if(btnVidaPessoal) btnVidaPessoal.onclick = abrirVidaPessoal;
+  const btnShopping = document.getElementById('btn-abrir-shopping');
+  if(btnShopping) btnShopping.onclick = abrirShopping;
+  const btnImoveis = document.getElementById('btn-abrir-imoveis');
+  if(btnImoveis) btnImoveis.onclick = abrirImoveis;
+  const btnBanco = document.getElementById('btn-abrir-banco');
+  if(btnBanco) btnBanco.onclick = abrirBanco;
 }
