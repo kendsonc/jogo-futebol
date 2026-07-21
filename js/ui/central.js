@@ -65,9 +65,10 @@ function abrirShopping(){
   renderShoppingBody();
 }
 function shopGridHtml(lista, possuiFn, tipo){
+  const ordenada = [...lista].sort((a,b) => a.preco - b.preco);
   return `<p class="small muted" style="margin-bottom:10px">Carteira: <b>R$ ${Math.round(GAME.carteira||0).toLocaleString('pt-BR')}</b></p>
   <div class="shop-grid">
-    ${lista.map(item => {
+    ${ordenada.map(item => {
       const tem = possuiFn(item.id);
       const icone = tipo==='roupa' ? pixelRoupa(item.cor, item.categoria, 52)
                   : tipo==='tenis' ? pixelTenis(item.cor, 52)
@@ -89,9 +90,10 @@ function getSelecaoCarro(modelo){
   return carroSelecaoTemp[modelo.id];
 }
 function carrosGridHtml(){
+  const ordenados = [...CARROS_MODELOS].sort((a,b) => a.precoNovo - b.precoNovo);
   return `<p class="small muted" style="margin-bottom:10px">Carteira: <b>R$ ${Math.round(GAME.carteira||0).toLocaleString('pt-BR')}</b></p>
   <div class="shop-grid">
-    ${CARROS_MODELOS.map(modelo => {
+    ${ordenados.map(modelo => {
       const sel = getSelecaoCarro(modelo);
       const precoFinal = sel.usado ? calcularPrecoUsado(modelo.precoNovo, sel.km) : modelo.precoNovo;
       const cores = modelo.coresDisponiveis.map(c => `<span class="color-swatch ${c===sel.cor?'sel':''}" style="background:${c}" data-corcarro="${modelo.id}" data-cor="${c}"></span>`).join('');
