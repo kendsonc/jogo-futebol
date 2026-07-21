@@ -169,14 +169,16 @@ function renderImoveisBody(){
   const possuidosHtml = GAME.imoveisComprados.map(posse => {
     const im = IMOVEIS.find(i => i.id === posse.imovelId);
     if(!im) return '';
+    const empenhado = bemEstaEmpenhado('imovel', posse.instanceId);
     return `<div class="shop-item">
       <div class="shop-item-icon">${pixelImovel(im.tipo, corParedePorPadrao(im.padrao), 56)}</div>
       <div class="shop-item-info">
         <p class="shop-item-nome">${escapeHtml(im.nome)}</p>
         <p class="small muted">${escapeHtml(im.cidade)} • ${im.quartos} quartos</p>
         <p class="small muted">Condomínio R$ ${im.condominioMensal.toLocaleString('pt-BR')}/mês${im.iptuMensal?` + IPTU R$ ${im.iptuMensal.toLocaleString('pt-BR')}/mês`:''}</p>
+        ${empenhado ? `<span class="badge">Em garantia de empréstimo</span>` : ''}
       </div>
-      <button class="btn btn-small btn-danger" data-vender-imovel="${posse.instanceId}">Vender</button>
+      ${empenhado ? '' : `<button class="btn btn-small btn-danger" data-vender-imovel="${posse.instanceId}">Vender</button>`}
     </div>`;
   }).join('');
   const disponiveisHtml = IMOVEIS.map(im => `<div class="shop-item">
@@ -199,6 +201,7 @@ function renderImoveisBody(){
     if(comprarImovel(b.dataset.comprarImovel)){ atualizarCarteiraStatusBar(); renderImoveisBody(); } else alert('Saldo insuficiente na carteira.');
   });
   body.querySelectorAll('[data-vender-imovel]').forEach(b => b.onclick = () => {
+    if(bemEstaEmpenhado('imovel', b.dataset.venderImovel)){ alert('Esse imóvel está dado como garantia de um empréstimo — quite o empréstimo antes de vender.'); return; }
     if(confirm('Vender este imóvel por 92% do valor pago?')){ venderImovel(b.dataset.venderImovel); atualizarCarteiraStatusBar(); renderImoveisBody(); }
   });
 }
@@ -225,13 +228,33 @@ function renderBancoFormHtml(){
   }
   const o = EMPRESTIMO_OPCOES.find(x => x.id === bancoFormAberto.opcaoId);
   if(!bancoFormAberto.parcelas) bancoFormAberto.parcelas = o.parcelasDisponiveis[0];
+  const precisaGarantia = bancoFormAberto.opcaoId === 'emp_garantia';
+  let garantiaHtml = '';
+  let maxEfetivo = o.maxValor;
+  if(precisaGarantia){
+    const bens = bensDisponiveisGarantia();
+    if(!bens.length){
+      return `<div class="card" style="border-color:var(--club-c1)">
+        <p class="small muted">O <b>${escapeHtml(o.nome)}</b> exige um bem seu (carro ou imóvel já comprado) como garantia — você ainda não tem nenhum disponível. Compre um carro ou imóvel no Shopping/Imóveis primeiro.</p>
+        <button class="btn btn-small" id="btn-cancelar-banco-form">Cancelar</button>
+      </div>`;
+    }
+    if(!bancoFormAberto.garantia || !bens.some(b => b.instanceId === bancoFormAberto.garantia.instanceId)) bancoFormAberto.garantia = bens[0];
+    maxEfetivo = Math.min(o.maxValor, bancoFormAberto.garantia.valor);
+    garantiaHtml = `<p class="small muted" style="margin:8px 0 4px">Bem dado como garantia:</p>
+      <div class="row" style="flex-wrap:wrap;gap:6px;margin-bottom:8px">
+        ${bens.map(b => `<button class="btn btn-small ${bancoFormAberto.garantia.instanceId===b.instanceId?'btn-primary':''}" data-garantia-tipo="${b.tipo}" data-garantia-id="${b.instanceId}">${b.tipo==='carro'?'🚗':'🏠'} ${escapeHtml(b.descricao)} (R$ ${b.valor.toLocaleString('pt-BR')})</button>`).join('')}
+      </div>
+      <p class="small muted" style="margin-bottom:8px">Não é possível vender esse bem enquanto ele garantir o empréstimo. Valor máximo com essa garantia: R$ ${maxEfetivo.toLocaleString('pt-BR')}.</p>`;
+  }
   return `<div class="card" style="border-color:var(--club-c1)">
-    <p class="small muted">Quanto pegar emprestado em <b>${escapeHtml(o.nome)}</b>? Máximo R$ ${o.maxValor.toLocaleString('pt-BR')}, juros de ${o.taxaMensal}% ao mês.</p>
+    <p class="small muted">Quanto pegar emprestado em <b>${escapeHtml(o.nome)}</b>? Máximo R$ ${maxEfetivo.toLocaleString('pt-BR')}, juros de ${o.taxaMensal}% ao mês.</p>
+    ${garantiaHtml}
     <div class="row" style="margin:8px 0;flex-wrap:wrap;gap:6px">
       ${o.parcelasDisponiveis.map(p => `<button class="btn btn-small ${p===bancoFormAberto.parcelas?'btn-primary':''}" data-parcelas-emp="${p}">${p}x</button>`).join('')}
     </div>
     <div class="row">
-      <input type="number" id="input-emprestimo-valor" placeholder="Valor em R$" min="1" max="${o.maxValor}" style="max-width:160px">
+      <input type="number" id="input-emprestimo-valor" placeholder="Valor em R$" min="1" max="${maxEfetivo}" style="max-width:160px">
       <button class="btn btn-small btn-primary" id="btn-confirmar-emprestimo">Pegar empréstimo</button>
       <button class="btn btn-small" id="btn-cancelar-banco-form">Cancelar</button>
     </div>
@@ -259,6 +282,7 @@ function renderBancoBody(){
     return `<div class="card">
       <p><b>${escapeHtml(opcao ? opcao.nome : 'Empréstimo')}</b> — saldo devedor R$ ${emp.saldoDevedor.toLocaleString('pt-BR')}</p>
       <p class="small muted">${emp.parcelas}x de R$ ${emp.valorParcela.toLocaleString('pt-BR')}/mês • ${Math.min(emp.parcelas, Math.ceil(emp.semanasPagas/4))}/${emp.parcelas} parcelas pagas</p>
+      ${emp.garantia ? `<p class="small muted">Garantia: ${emp.garantia.tipo==='carro'?'🚗':'🏠'} ${escapeHtml(emp.garantia.descricao)} (bloqueado pra venda)</p>` : ''}
     </div>`;
   }).join('') : '<p class="small muted">Nenhum empréstimo ativo.</p>';
 
@@ -326,6 +350,11 @@ function wireBancoButtons(){
     bancoFormAberto.parcelas = Number(b.dataset.parcelasEmp);
     renderBancoBody();
   });
+  body.querySelectorAll('[data-garantia-tipo]').forEach(b => b.onclick = () => {
+    const bem = bensDisponiveisGarantia().find(x => x.tipo === b.dataset.garantiaTipo && x.instanceId === b.dataset.garantiaId);
+    if(bem) bancoFormAberto.garantia = bem;
+    renderBancoBody();
+  });
   const btnConfirmarInvest = document.getElementById('btn-confirmar-invest');
   if(btnConfirmarInvest) btnConfirmarInvest.onclick = () => {
     const v = Number(document.getElementById('input-invest-valor').value);
@@ -335,7 +364,7 @@ function wireBancoButtons(){
   const btnConfirmarEmprestimo = document.getElementById('btn-confirmar-emprestimo');
   if(btnConfirmarEmprestimo) btnConfirmarEmprestimo.onclick = () => {
     const v = Number(document.getElementById('input-emprestimo-valor').value);
-    if(pedirEmprestimo(bancoFormAberto.opcaoId, v, bancoFormAberto.parcelas)){ bancoFormAberto = null; atualizarCarteiraStatusBar(); renderBancoBody(); }
-    else alert('Valor inválido (acima do limite?) ou parcelas inválidas.');
+    if(pedirEmprestimo(bancoFormAberto.opcaoId, v, bancoFormAberto.parcelas, bancoFormAberto.garantia)){ bancoFormAberto = null; atualizarCarteiraStatusBar(); renderBancoBody(); }
+    else alert('Valor inválido (acima do limite ou do valor do bem em garantia?) ou parcelas inválidas.');
   };
 }

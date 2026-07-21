@@ -85,16 +85,43 @@ function resgatarInvestimento(id){
 
 /* ------------------------------ EMPRÉSTIMOS -----------------------------------
    Tabela Price (parcela mensal fixa); internamente controlado em semanas
-   (parcela mensal / 4) pra bater com o ciclo semanal do jogo. */
+   (parcela mensal / 4) pra bater com o ciclo semanal do jogo.
+   "Crédito com Garantia" exige um bem seu (carro ou imóvel já comprado) como
+   garantia real — sem bem disponível, não dá pra contratar esse empréstimo,
+   e o valor emprestado não pode passar do valor do próprio bem. Um mesmo bem
+   não pode garantir dois empréstimos ao mesmo tempo, e não pode ser vendido
+   (js/sistemas/loja.js, js/sistemas/imoveis.js) enquanto estiver empenhado. */
 function calcularParcelaPrice(principal, taxaMensalPct, parcelas){
   const i = taxaMensalPct/100;
   if(i === 0) return principal/parcelas;
   return principal * (i * Math.pow(1+i, parcelas)) / (Math.pow(1+i, parcelas) - 1);
 }
-function pedirEmprestimo(opcaoId, valor, parcelas){
+function bemEstaEmpenhado(tipo, instanceId){
+  return GAME.banco.emprestimos.some(e => !e.quitado && e.garantia && e.garantia.tipo === tipo && e.garantia.instanceId === instanceId);
+}
+function bensDisponiveisGarantia(){
+  const carros = GAME.garagem.filter(c => !bemEstaEmpenhado('carro', c.instanceId)).map(c => {
+    const modelo = CARROS_MODELOS.find(m => m.id === c.modeloId);
+    return { tipo:'carro', instanceId:c.instanceId, descricao: modelo ? `${modelo.marca} ${modelo.modelo}` : 'Carro', valor:c.valorPago };
+  });
+  const imoveis = GAME.imoveisComprados.filter(i => !bemEstaEmpenhado('imovel', i.instanceId)).map(i => {
+    const im = IMOVEIS.find(x => x.id === i.imovelId);
+    return { tipo:'imovel', instanceId:i.instanceId, descricao: im ? im.nome : 'Imóvel', valor:i.valorPago };
+  });
+  return [...carros, ...imoveis];
+}
+function pedirEmprestimo(opcaoId, valor, parcelas, garantiaRef){
   const opcao = EMPRESTIMO_OPCOES.find(o => o.id === opcaoId);
   valor = Math.round(valor);
-  if(!opcao || valor <= 0 || valor > opcao.maxValor) return false;
+  if(!opcao) return false;
+  let garantia = null;
+  if(opcaoId === 'emp_garantia'){
+    if(!garantiaRef) return false;
+    const bem = bensDisponiveisGarantia().find(b => b.tipo === garantiaRef.tipo && b.instanceId === garantiaRef.instanceId);
+    if(!bem || valor > bem.valor) return false;
+    garantia = { tipo: bem.tipo, instanceId: bem.instanceId, descricao: bem.descricao };
+  }
+  if(valor <= 0 || valor > opcao.maxValor) return false;
   if(!opcao.parcelasDisponiveis.includes(parcelas)) return false;
   const valorParcela = Math.round(calcularParcelaPrice(valor, opcao.taxaMensal, parcelas));
   GAME.carteira = Math.round((GAME.carteira||0) + valor);
@@ -103,9 +130,9 @@ function pedirEmprestimo(opcaoId, valor, parcelas){
     opcaoId, principal: valor, taxaMensal: opcao.taxaMensal,
     parcelas, valorParcela, valorSemanal: valorParcela/4,
     semanasTotais: parcelas*4, semanasPagas: 0,
-    saldoDevedor: valorParcela*parcelas, quitado: false
+    saldoDevedor: valorParcela*parcelas, quitado: false, garantia
   });
-  pushHistorico(`Contraiu empréstimo de R$ ${valor.toLocaleString('pt-BR')} (${opcao.nome}, ${parcelas}x de R$ ${valorParcela.toLocaleString('pt-BR')}).`);
+  pushHistorico(`Contraiu empréstimo de R$ ${valor.toLocaleString('pt-BR')} (${opcao.nome}, ${parcelas}x de R$ ${valorParcela.toLocaleString('pt-BR')})${garantia ? `, dando ${garantia.descricao} como garantia` : ''}.`);
   salvarJogo();
   return true;
 }

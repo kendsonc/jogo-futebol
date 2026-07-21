@@ -61,7 +61,7 @@ function comprarCarro(modeloId, opcoes){
 }
 function venderCarro(instanceId){
   const idx = GAME.garagem.findIndex(c => c.instanceId === instanceId);
-  if(idx === -1) return false;
+  if(idx === -1 || bemEstaEmpenhado('carro', instanceId)) return false;
   const carro = GAME.garagem[idx];
   const modelo = CARROS_MODELOS.find(c => c.id === carro.modeloId);
   const valorVenda = Math.round(carro.valorPago * 0.8);

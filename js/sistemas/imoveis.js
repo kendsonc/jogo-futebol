@@ -17,7 +17,7 @@ function comprarImovel(id){
 }
 function venderImovel(instanceId){
   const idx = GAME.imoveisComprados.findIndex(i => i.instanceId === instanceId);
-  if(idx === -1) return false;
+  if(idx === -1 || bemEstaEmpenhado('imovel', instanceId)) return false;
   const posse = GAME.imoveisComprados[idx];
   const im = IMOVEIS.find(i => i.id === posse.imovelId);
   const valorVenda = Math.round(posse.valorPago * 0.92);
