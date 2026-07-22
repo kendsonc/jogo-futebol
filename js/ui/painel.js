@@ -324,13 +324,20 @@ function painelCopas(){
   const ids = Object.keys(copas);
   const blocosAtivos = ids.map(id => {
     const c = copas[id];
-    const faseAtualNome = c.campeao ? 'Encerrada' : (c.nomesRodadas[c.rodadaAtual] || '—');
+    // A chave inteira segue rodando (outros times jogam as fases seguintes)
+    // mesmo depois que VOCÊ caiu — sem checar isso, "Fase atual" ficava
+    // mostrando a rodada atual do TORNEIO (ex: Quartas de Final) mesmo já
+    // eliminado nas Oitavas, dando a impressão de que você ainda seguia vivo.
+    const meuEliminado = c.historicoRodadas.some(h => h.confrontos.some(x => x.envolveJogador && !x.jogadorVenceu));
+    const faseAtualNome = c.campeao ? (c.campeao.souEu ? 'Campeão!' : 'Encerrada')
+      : meuEliminado ? 'Eliminado' : (c.nomesRodadas[c.rodadaAtual] || '—');
     const historicoHtml = c.historicoRodadas.map(h => {
       const meu = h.confrontos.find(x => x.envolveJogador);
       if(!meu) return `<p class="small muted">${escapeHtml(h.nomeRodada)}: você não estava mais na disputa.</p>`;
       const escudoA = escudoClubeHtml({ nome:meu.aNome, cor1:meu.aCor1, cor2:meu.aCor2 }, 20);
       const escudoB = escudoClubeHtml({ nome:meu.bNome, cor1:meu.bCor1, cor2:meu.bCor2 }, 20);
-      return `<p class="small"><span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${escapeHtml(h.nomeRodada)}: ${escudoA}${escapeHtml(meu.aNome)} ${meu.golsA} x ${meu.golsB} ${escudoB}${escapeHtml(meu.bNome)}${meu.penaltis?' (pênaltis)':''} — <b>${meu.jogadorVenceu?'Avançou':'Eliminado'}</b></span></p>`;
+      const idaVoltaTxt = (meu.ida && meu.volta) ? ` <span class="muted">(ida ${meu.ida.golsA}x${meu.ida.golsB}, volta ${meu.volta.golsA}x${meu.volta.golsB})</span>` : '';
+      return `<p class="small"><span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${escapeHtml(h.nomeRodada)}: ${escudoA}${escapeHtml(meu.aNome)} ${meu.golsA} x ${meu.golsB} ${escudoB}${escapeHtml(meu.bNome)}${meu.penaltis?' (pênaltis)':''}${idaVoltaTxt} — <b>${meu.jogadorVenceu?'Avançou':'Eliminado'}</b></span></p>`;
     }).join('');
     return `<div class="card">
       <div class="card-title">${escapeHtml(c.nome)}</div>

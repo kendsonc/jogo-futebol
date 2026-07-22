@@ -145,7 +145,7 @@ function criarNovoJogador(dados){
     statsCareer: { jogos:0, gols:0, assistencias:0, minutos:0, titular:0, temporadas:0, premios:[],
       titulos:0, acessos:0, clubesPassados:[], notaMediaCareer:0, convocacoes:[],
       titulosCopas: { copaBrasil:0, libertadores:0, championsLeague:0, mundialClubes:0, copaDoMundo:0, bolaDeOuro:0 },
-      copasDoMundo: [] },
+      copasDoMundo: [], confrontosHistorico: {} },
     qualificacoesProximaTemporada: null,
     social: { seguidores: rand(120,400), mensagens: [] },
     historiaPassado: pick(HISTORIAS_PASSADO)(dados),
@@ -153,7 +153,8 @@ function criarNovoJogador(dados){
     garagem: [],
     imoveisComprados: [],
     banco: { poupanca: 0, investimentos: [], emprestimos: [] },
-    rostosNpc: {}
+    rostosNpc: {},
+    audioConfig: { mutado:false, volumeMusica:0.15, volumeEfeitos:0.7 }
   };
   salvarJogo();
 }
@@ -167,6 +168,7 @@ function repararEstadoEconomia(){
   if(!GAME.imoveisComprados) GAME.imoveisComprados = [];
   if(!GAME.banco) GAME.banco = { poupanca: 0, investimentos: [], emprestimos: [] };
   if(!GAME.rostosNpc) GAME.rostosNpc = {};
+  if(!GAME.audioConfig) GAME.audioConfig = { mutado:false, volumeMusica:0.15, volumeEfeitos:0.7 };
   if(GAME.identidade && !GAME.identidade.aparencia) GAME.identidade.aparencia = gerarAparenciaAleatoria(Math.random, 'm');
   if(GAME.relacionamento){
     if(GAME.relacionamento.casado === undefined) GAME.relacionamento.casado = false;

@@ -255,12 +255,19 @@ function avancarSemana(){
     } else {
       pushNoticia('geral', `Início do período: ${periodoAtualObj().nome}.`);
       ts.checkinVidaPessoalPendente = true;
-      // Se alguma copa parou numa disputa de pênaltis interativa (seu
-      // confronto foi a pênaltis), a semana PAUSA aqui — já foi renderizado
-      // dentro de avancarTodasAsCopasAtivas/iniciarPenaltisCopaInterativo.
-      // O resto desta função só roda depois, em concluirTickSemanal.
+      // Se alguma copa parou numa disputa de pênaltis interativa ou num
+      // confronto jogável (seu clube envolvido), a semana PAUSA aqui — já foi
+      // renderizado dentro de avancarTodasAsCopasAtivas. O resto desta função
+      // só roda depois, em concluirTickSemanal.
       if(avancarTodasAsCopasAtivas()) return;
     }
+  } else if(periodoAtualObj().nome === 'Encerramento' && ts.semanaNoPeriodo === 1){
+    // Janela extra dedicada à final das copas: as 3 transições de período já
+    // resolvem oitavas/quartas/semifinal, mas a final (a única rodada que
+    // ainda resta na chave neste ponto) nunca tinha uma ocasião própria —
+    // sem isso, ela só era decidida de forma forçada em finalizarTemporada()
+    // (resolverRodadaFinalDasCopas), sem chance de jogo/pênaltis interativos.
+    if(avancarTodasAsCopasAtivas()) return;
   }
   concluirTickSemanal();
 }

@@ -76,27 +76,27 @@ function criarCopa(id, nome, participantes){
 // venceu, registrar histórico e narrar o que aconteceu com VOCÊ especificamente
 // (as outras 7 partidas da rodada ficam só nos dados, sem virar spam de notícia).
 //
-// Quando o SEU confronto empata e vai pra pênaltis, e isso não é a resolução
-// forçada de fim de temporada (forcarAutomatico), a rodada PAUSA aqui e vira
-// uma disputa de pênaltis interativa (iniciarPenaltisCopaInterativo) — sem
-// isso, você era eliminado numa cobrança que nunca via acontecer. Retorna
+// Confrontos que não envolvem o seu clube continuam 100% automáticos, via
+// simularConfrontoMataMata, como sempre. Quando o SEU confronto aparece (e
+// isso não é a resolução forçada de fim de temporada, forcarAutomatico), a
+// rodada PAUSA aqui e vira um confronto de ida e volta JOGÁVEL
+// (iniciarConfrontoCopaJogavel — ver seção "COPAS JOGÁVEIS" abaixo). Retorna
 // 'pendente' nesse caso (quem chamou não deve seguir a semana ainda) ou 'ok'
-// quando a rodada foi resolvida (com ou sem pênaltis) de uma vez.
+// quando a rodada foi resolvida por completo de uma vez.
 function avancarRodadaCopa(copa, forcarAutomatico){
   if(!copa || copa.campeao || !copa.chaveAtual || !copa.chaveAtual.length) return null;
   const bonus = bonusFormaJogador();
   const vencedores = [];
   const confrontosRodada = [];
-  for(let idx=0; idx<copa.chaveAtual.length; idx++){
-    const [a,b] = copa.chaveAtual[idx];
+  let parJogador = null;
+  copa.chaveAtual.forEach(([a,b]) => {
     const souEuA = !!a.souEu, souEuB = !!b.souEu;
     const envolveJogador = souEuA || souEuB;
-    const r = simularConfrontoMataMata(a, b, souEuA?bonus:0, souEuB?bonus:0);
-    if(!forcarAutomatico && envolveJogador && r.golsA === r.golsB){
-      const restanteChave = copa.chaveAtual.slice(idx+1);
-      iniciarPenaltisCopaInterativo(copa, { a, b, souEuA, golsA:r.golsA, golsB:r.golsB, vencedoresParciais:vencedores, confrontosParciaisRodada:confrontosRodada, restanteChave });
-      return 'pendente';
+    if(envolveJogador && !forcarAutomatico){
+      parJogador = { a, b, souEuA }; // adia — vira partida jogável, não resolve aqui
+      return;
     }
+    const r = simularConfrontoMataMata(a, b, souEuA?bonus:0, souEuB?bonus:0);
     const vencedor = r.vencedor === 'A' ? a : b;
     vencedores.push(vencedor);
     confrontosRodada.push({ aNome:a.nome, bNome:b.nome, golsA:r.golsA, golsB:r.golsB, penaltis:r.penaltis, vencedorNome:vencedor.nome,
@@ -104,6 +104,10 @@ function avancarRodadaCopa(copa, forcarAutomatico){
       // painelCopas conseguir desenhar o escudo dos dois lados do confronto
       aCor1:a.cor1, aCor2:a.cor2, bCor1:b.cor1, bCor2:b.cor2,
       envolveJogador, jogadorVenceu: envolveJogador ? !!vencedor.souEu : null });
+  });
+  if(parJogador){
+    iniciarConfrontoCopaJogavel(copa, { a:parJogador.a, b:parJogador.b, souEuA:parJogador.souEuA, vencedoresParciais:vencedores, confrontosParciaisRodada:confrontosRodada });
+    return 'pendente';
   }
   finalizarRodadaCopa(copa, vencedores, confrontosRodada);
   return 'ok';
@@ -139,6 +143,159 @@ function finalizarRodadaCopa(copa, vencedores, confrontosRodada){
   return meuConfronto;
 }
 
+/* ============================== COPAS JOGÁVEIS (IDA E VOLTA) ==================
+   Quando o confronto da chave envolve o SEU clube, em vez de resolver na hora
+   (simularConfrontoMataMata), vira um mata-mata de ida e volta jogável de
+   verdade — usando o mesmo motor de partida ao vivo do Brasileirão
+   (prepararPartida/renderPartidaAoVivo, js/sistemas/partida.js), só que com o
+   tema visual/música da competição e sem entrar na tabela da liga. O estado
+   "meu confronto está em andamento" vive em GAME.temporadaState.confrontoCopaJogavel
+   — efêmero, no mesmo espírito de GAME.temporadaState.penaltisCopa — e NÃO
+   altera o formato de copa.chaveAtual/historicoRodadas (compatibilidade com
+   painelCopas e saves antigos preservada).
+   ========================================================================= */
+// Time de menor força manda o jogo de ida — replica a regra real de mata-mata
+// (o "azarão" joga em casa primeiro); empate de força decide por sorteio.
+function decidirCasaIda(a, b){
+  const forcaA = a.nivelBase || a.forca || a.reputacao || 50;
+  const forcaB = b.nivelBase || b.forca || b.reputacao || 50;
+  if(forcaA === forcaB) return chance(50) ? 'A' : 'B';
+  return forcaA < forcaB ? 'A' : 'B';
+}
+function iniciarConfrontoCopaJogavel(copa, ctx){
+  GAME.temporadaState.confrontoCopaJogavel = {
+    copaId: copa.id, nomeRodada: copa.nomesRodadas[copa.rodadaAtual] || `Rodada ${copa.rodadaAtual+1}`,
+    a: ctx.a, b: ctx.b, souEuA: ctx.souEuA,
+    casaIda: decidirCasaIda(ctx.a, ctx.b), leg:'ida',
+    resultadoIda: null, resultadoVolta: null,
+    vencedoresParciais: ctx.vencedoresParciais, confrontosParciaisRodada: ctx.confrontosParciaisRodada
+  };
+  GAME.temporadaState.subFase = 'preJogoCopa';
+  salvarJogo();
+  render();
+}
+// Tela de "Dia de Copa" — análoga a renderPreJogo (partida.js), mas mostra a
+// fase da copa e (no jogo de volta) o placar já feito na ida.
+function renderPreJogoCopa(){
+  const status = decidirEscalacao(); // decidido aqui, repassado pra prepararPartida (mesma regra da Liga)
+  const p = GAME.temporadaState.confrontoCopaJogavel;
+  const copa = GAME.temporadaState.copas[p.copaId];
+  const meuLado = p.souEuA ? 'A' : 'B';
+  const souMandante = p.casaIda === meuLado;
+  const oponente = p.souEuA ? p.b : p.a;
+  let agregadoTxt = '';
+  if(p.leg === 'volta' && p.resultadoIda){
+    const meuAg = p.souEuA ? p.resultadoIda.golsA : p.resultadoIda.golsB;
+    const advAg = p.souEuA ? p.resultadoIda.golsB : p.resultadoIda.golsA;
+    agregadoTxt = ` Jogo de ida: ${escapeHtml(GAME.clube.nome)} ${meuAg} x ${advAg} ${escapeHtml(oponente.nome)}.`;
+  }
+  const matchupHtml = `
+    <div style="display:flex; align-items:center; justify-content:center; gap:18px; margin:6px 0 16px">
+      <div style="text-align:center">${escudoClubeHtml(souMandante?GAME.clube:oponente, 56)}<p class="small muted" style="margin-top:6px;max-width:90px">${escapeHtml((souMandante?GAME.clube:oponente).nome)}</p></div>
+      <div style="font-family:var(--font-display); font-weight:800; color:var(--text-faint); font-size:15px">VS</div>
+      <div style="text-align:center">${escudoClubeHtml(souMandante?oponente:GAME.clube, 56)}<p class="small muted" style="margin-top:6px;max-width:90px">${escapeHtml((souMandante?oponente:GAME.clube).nome)}</p></div>
+    </div>`;
+  app.innerHTML = `
+    ${statusBarHtml()}
+    <div class="screen-hero">
+      <div class="screen-hero-kicker">${escapeHtml(copa.nome)} — ${escapeHtml(p.nomeRodada)}</div>
+      <h1>${p.leg === 'ida' ? 'Jogo de Ida' : 'Jogo de Volta'}</h1>
+      ${badgeEscalacaoHtml(status)}
+      ${matchupHtml}
+      <p class="screen-hero-sub">${souMandante ? 'Jogo em casa.' : 'Jogo fora de casa.'}${agregadoTxt}</p>
+    </div>
+    <div class="card center">
+      <div class="choices"><button class="btn btn-primary" id="btn-jogar-copa">Ir para a partida</button></div>
+    </div>
+  `;
+  document.getElementById('btn-jogar-copa').onclick = () => {
+    prepararPartida({ oponente, mandante: souMandante, competicao: p.copaId, aoFinalizarNome: 'copa', statusPreDecidido: status });
+  };
+}
+// Callback de finalização passado como aoFinalizarNome:'copa' — chamado por
+// encerrarPartidaAoVivo() (partida.js) ao fim de cada perna (ida/volta).
+// Reaproveita consolidarDesempenhoPartida (mesma consolidação de stats/moral
+// da Liga), mas a cauda é toda de copa: sem tabela, sem processarRodadaLiga.
+function finalizarPartidaCopaJogavel(){
+  const pm = GAME.temporadaState.partidaEmAndamento;
+  const r = consolidarDesempenhoPartida(pm);
+  const p = GAME.temporadaState.confrontoCopaJogavel;
+  const copa = GAME.temporadaState.copas[p.copaId];
+
+  const placarTxt = `${r.golsTime}x${r.golsAdversario}`;
+  if(r.status === 'naoRelacionado'){
+    pushNoticia('treinador', `${GAME.identidade.apelido} ficou fora dos relacionados. ${GAME.clube.nome} ${placarTxt} ${r.adversario} (${copa.nome}).`);
+  } else if(r.minutos === 0){
+    pushNoticia('treinador', `${GAME.identidade.apelido} ficou no banco. ${GAME.clube.nome} ${placarTxt} ${r.adversario} (${copa.nome}).`);
+  } else if(r.gols>0){
+    pushNoticia('torcida', `${GAME.identidade.apelido} marca no ${GAME.clube.nome} ${placarTxt} ${r.adversario} pela ${copa.nome}!`);
+  } else {
+    pushNoticia('geral', `${GAME.clube.nome} ${placarTxt} ${r.adversario} pela ${copa.nome} — ${GAME.identidade.apelido} atuou ${r.minutos} min, nota ${r.nota.toFixed(1)}.`);
+  }
+
+  // Traduz o resultado da partida (do ponto de vista do MEU clube) pro
+  // placar do confronto (lado A/B da chave, que pode ser eu ou o adversário)
+  const golsA = p.souEuA ? r.golsTime : r.golsAdversario;
+  const golsB = p.souEuA ? r.golsAdversario : r.golsTime;
+
+  GAME.temporadaState.jogoAtual = null;
+  GAME.temporadaState.partidaEmAndamento = null;
+
+  if(p.leg === 'ida'){
+    p.resultadoIda = { golsA, golsB };
+    p.leg = 'volta';
+    p.casaIda = p.casaIda === 'A' ? 'B' : 'A'; // manda a volta quem NÃO mandou a ida
+    GAME.temporadaState.subFase = 'preJogoCopa';
+    salvarJogo();
+    render();
+    return;
+  }
+
+  p.resultadoVolta = { golsA, golsB };
+  const agA = p.resultadoIda.golsA + golsA, agB = p.resultadoIda.golsB + golsB;
+  if(agA === agB){
+    GAME.temporadaState.confrontoCopaJogavel = null;
+    // Você só bate/defende pênaltis de verdade se terminou a partida EM CAMPO
+    // (titular que jogou os 90, ou reserva que entrou) — quem foi substituído
+    // ou nem foi relacionado não está mais lá pra cobrar nada.
+    const jogadorDisponivel = (r.titular && r.minutos >= 90) || (r.status === 'reserva' && r.entrouBanco);
+    // reaproveita 100% a disputa de pênaltis interativa já existente
+    iniciarPenaltisCopaInterativo(copa, { a:p.a, b:p.b, souEuA:p.souEuA, golsA:agA, golsB:agB, jogadorDisponivel,
+      vencedoresParciais:p.vencedoresParciais, confrontosParciaisRodada:p.confrontosParciaisRodada, restanteChave:[] });
+    return;
+  }
+  const vencedor = agA > agB ? p.a : p.b;
+  const meuConfronto = { aNome:p.a.nome, bNome:p.b.nome, golsA:agA, golsB:agB, penaltis:null, vencedorNome:vencedor.nome,
+    aCor1:p.a.cor1, aCor2:p.a.cor2, bCor1:p.b.cor1, bCor2:p.b.cor2, envolveJogador:true, jogadorVenceu:!!vencedor.souEu,
+    ida:p.resultadoIda, volta:p.resultadoVolta };
+  GAME.temporadaState.resultadoConfrontoCopa = { copaNome:copa.nome, nomeRodada:p.nomeRodada, ...meuConfronto };
+  GAME.temporadaState.confrontoCopaJogavel = null;
+  finalizarRodadaCopa(copa, [...p.vencedoresParciais, vencedor], [...p.confrontosParciaisRodada, meuConfronto]);
+  GAME.temporadaState.subFase = 'resultadoConfrontoCopa';
+  salvarJogo();
+  render();
+}
+function renderResultadoConfrontoCopa(){
+  const r = GAME.temporadaState.resultadoConfrontoCopa;
+  app.innerHTML = `
+    ${statusBarHtml()}
+    <div class="screen-hero">
+      <div class="screen-hero-kicker">${escapeHtml(r.nomeRodada)} — ${escapeHtml(r.copaNome)}</div>
+      <h1>${escapeHtml(r.aNome)} ${r.golsA} x ${r.golsB} ${escapeHtml(r.bNome)} <span class="small muted">(agregado)</span></h1>
+      <span class="result-badge-big ${r.jogadorVenceu?'good':'bad'}">${r.jogadorVenceu?'Classificado!':'Eliminado'}</span>
+      <p class="screen-hero-sub">Ida ${r.ida.golsA}x${r.ida.golsB} — Volta ${r.volta.golsA}x${r.volta.golsB}</p>
+    </div>
+    <div class="card"><div class="choices"><button class="btn btn-primary" id="btn-continuar-confronto-copa">Continuar</button></div></div>
+  `;
+  document.getElementById('btn-continuar-confronto-copa').onclick = () => {
+    Som.tocarAmbiente('menu');
+    GAME.temporadaState.resultadoConfrontoCopa = null;
+    const aindaPendente = continuarProcessarCopasPendentes();
+    if(aindaPendente){ salvarJogo(); render(); }
+    else concluirTickSemanal();
+  };
+}
+
 /* ============================== PÊNALTIS INTERATIVOS ============================
    Só entra em ação quando O SEU confronto foi pra pênaltis (fora da resolução
    forçada de fim de temporada). Em vez do coinflip silencioso de
@@ -166,20 +323,25 @@ function iniciarPenaltisCopaInterativo(copa, ctx){
   for(let i=0;i<5;i++){ ordem.push({ lado:'A', indice:i }); ordem.push({ lado:'B', indice:i }); }
   const meuLado = souA ? 'A' : 'B';
   const golKeeper = GAME.identidade.posicaoPrincipal === 'Goleiro';
+  // Só bate/defende de verdade quem terminou a partida em campo — ctx.jogadorDisponivel
+  // vem false quando o jogador foi substituído ou nem chegou a entrar (ver
+  // finalizarPartidaCopaJogavel). Sem isso, ele "cobraria" pênalti mesmo já
+  // tendo saído da partida.
+  const jogadorDisponivel = ctx.jogadorDisponivel !== false;
   // se eu sou goleiro, as cobranças decisivas que eu "jogo de verdade" são as
   // do ADVERSÁRIO (eu defendendo); qualquer outra posição, são as do meu time
   const ladoInterativo = golKeeper ? (meuLado === 'A' ? 'B' : 'A') : meuLado;
-  ordem.forEach(k => { k.interativo = (k.lado === ladoInterativo && (k.indice === 0 || k.indice === 3)); });
+  ordem.forEach(k => { k.interativo = jogadorDisponivel && (k.lado === ladoInterativo && (k.indice === 0 || k.indice === 3)); });
   GAME.temporadaState.penaltisCopa = {
     copaId: copa.id, nomeRodada: copa.nomesRodadas[copa.rodadaAtual] || 'Pênaltis',
-    a: ctx.a, b: ctx.b, souA, golKeeper,
+    a: ctx.a, b: ctx.b, souA, golKeeper, jogadorDisponivel,
     golsA: ctx.golsA, golsB: ctx.golsB,
     placarPenA: 0, placarPenB: 0,
-    ordem, posOrdem: 0, ultimoResultado: null,
+    ordem, posOrdem: 0, ultimoResultado: null, resultados: [], piscando: null,
     vencedoresParciais: ctx.vencedoresParciais, confrontosParciaisRodada: ctx.confrontosParciaisRodada,
     restanteChave: ctx.restanteChave
   };
-  processarPenaltisAteProximaDecisao();
+  processarProximaCobranca();
 }
 function resolverCobrancaAutomatica(k){
   const p = GAME.temporadaState.penaltisCopa;
@@ -187,28 +349,52 @@ function resolverCobrancaAutomatica(k){
   const forca = clube.reputacao || clube.forca || 60;
   const foiGol = chance(clamp(76 + (forca-60)/8, 55, 92));
   if(foiGol){ if(k.lado==='A') p.placarPenA++; else p.placarPenB++; }
+  p.resultados.push({ lado:k.lado, indice:k.indice, gol:foiGol });
+  p.ultimoResultado = `${clube.nome} cobra... ${foiGol ? 'e marca!' : 'e perde!'}`;
 }
-function processarPenaltisAteProximaDecisao(){
+// Processa uma cobrança de cada vez, com ritmo (bolinha "piscando" antes de
+// resolver), pra disputa parecer de verdade — intercalando lado A/lado B,
+// como uma disputa real. Cobranças do PRÓPRIO jogador pausam de vez pra ele
+// escolher (resolverCobrancaInterativa continua o fluxo depois).
+function processarProximaCobranca(){
   const p = GAME.temporadaState.penaltisCopa;
-  while(p.posOrdem < p.ordem.length){
-    const k = p.ordem[p.posOrdem];
-    if(k.interativo){
-      GAME.temporadaState.subFase = 'penaltisCopa';
+  if(!p) return; // disputa já foi encerrada nesse meio tempo
+  if(p.posOrdem >= p.ordem.length){
+    if(p.placarPenA === p.placarPenB){
+      // morte súbita: mais um par de cobranças (alternado, decide assim que
+      // os dois já tiverem cobrado nessa rodada extra e o placar diferir)
+      const proxIndice = p.ordem.length/2;
+      p.ordem.push({ lado:'A', indice:proxIndice, interativo:false }, { lado:'B', indice:proxIndice, interativo:false });
       salvarJogo();
-      render();
+      processarProximaCobranca();
       return;
     }
-    resolverCobrancaAutomatica(k);
-    p.posOrdem += 1;
-  }
-  if(p.placarPenA === p.placarPenB){
-    // morte súbita: mais um par de cobranças (só automáticas, pra não alongar demais)
-    const proxIndice = p.ordem.length/2;
-    p.ordem.push({ lado:'A', indice:proxIndice }, { lado:'B', indice:proxIndice });
-    processarPenaltisAteProximaDecisao();
+    finalizarPenaltisCopa();
     return;
   }
-  finalizarPenaltisCopa();
+  const k = p.ordem[p.posOrdem];
+  if(k.interativo){
+    p.piscando = null;
+    GAME.temporadaState.subFase = 'penaltisCopa';
+    salvarJogo();
+    render();
+    return;
+  }
+  // cobrança automática: mostra a bolinha "piscando" um instante antes de resolver
+  p.piscando = p.posOrdem;
+  GAME.temporadaState.subFase = 'penaltisCopa';
+  salvarJogo();
+  render();
+  setTimeout(() => {
+    const pp = GAME.temporadaState.penaltisCopa;
+    if(!pp) return;
+    resolverCobrancaAutomatica(k);
+    pp.posOrdem += 1;
+    pp.piscando = null;
+    salvarJogo();
+    render();
+    setTimeout(processarProximaCobranca, 550);
+  }, 900);
 }
 function resolverCobrancaInterativa(escolha){
   const p = GAME.temporadaState.penaltisCopa;
@@ -220,10 +406,11 @@ function resolverCobrancaInterativa(escolha){
   // sucesso do cobrador = gol; sucesso do goleiro = defesa (NÃO sofre gol)
   const foiGol = p.golKeeper ? !sucesso : sucesso;
   if(foiGol){ if(k.lado==='A') p.placarPenA++; else p.placarPenB++; }
+  p.resultados.push({ lado:k.lado, indice:k.indice, gol:foiGol });
   p.ultimoResultado = foiGol ? escolha.textoGol : escolha.textoDefesa;
   p.posOrdem += 1;
   salvarJogo();
-  processarPenaltisAteProximaDecisao();
+  processarProximaCobranca();
 }
 function finalizarPenaltisCopa(){
   const p = GAME.temporadaState.penaltisCopa;
@@ -257,16 +444,44 @@ function finalizarPenaltisCopa(){
   salvarJogo();
   render();
 }
+// Uma bolinha por cobrança de um lado, na ordem real: vazia (ainda não
+// chegou a vez), piscando (cobrando agora), verde (gol) ou vermelha (perdeu).
+function dotsPenaltiHtml(lado, p){
+  const indices = p.ordem.filter(k => k.lado === lado).map(k => k.indice);
+  return indices.map(i => {
+    const res = p.resultados.find(r => r.lado===lado && r.indice===i);
+    const kIdx = p.ordem.findIndex(k => k.lado===lado && k.indice===i);
+    let cls = 'lm-pen-dot';
+    if(res) cls += res.gol ? ' gol' : ' erro';
+    else if(p.piscando === kIdx) cls += ' piscando';
+    return `<span class="${cls}"></span>`;
+  }).join('');
+}
 function renderPenaltisCopa(){
   const p = GAME.temporadaState.penaltisCopa;
-  const k = p.ordem[p.posOrdem];
   const meuClube = p.souA ? p.a : p.b;
   const oponenteClube = p.souA ? p.b : p.a;
   const escolhas = p.golKeeper ? ESCOLHAS_DEFESA_PENALTI : ESCOLHAS_COBRANCA_PENALTI;
-  const cobradorNestaVez = k.lado === 'A' ? p.a : p.b;
-  const acaoTxt = p.golKeeper
-    ? `O goleiro é você: cobrança decisiva do ${escapeHtml(oponenteClube.nome)}.`
-    : `Sua vez de cobrar pelo ${escapeHtml(meuClube.nome)}.`;
+  const kAtual = p.posOrdem < p.ordem.length ? p.ordem[p.posOrdem] : null;
+
+  let cenaHtml;
+  if(kAtual && kAtual.interativo){
+    const acaoTxt = p.golKeeper
+      ? `O goleiro é você: cobrança decisiva do ${escapeHtml(oponenteClube.nome)}.`
+      : `Sua vez de cobrar pelo ${escapeHtml(meuClube.nome)}.`;
+    cenaHtml = `
+      <div id="scene-text">${acaoTxt}</div>
+      <div class="choices">
+        ${escolhas.map((e,i)=>`<button class="btn" data-i="${i}">${escapeHtml(e.label)}</button>`).join('')}
+      </div>`;
+  } else if(p.piscando != null){
+    const kPiscando = p.ordem[p.piscando];
+    const clubePiscando = kPiscando.lado === 'A' ? p.a : p.b;
+    cenaHtml = `<div id="scene-text">🔴 ${escapeHtml(clubePiscando.nome)} se prepara para cobrar...</div>`;
+  } else {
+    cenaHtml = `<div id="scene-text">${p.ultimoResultado ? escapeHtml(p.ultimoResultado) : 'A disputa está prestes a começar...'}</div>`;
+  }
+
   app.innerHTML = `
     ${statusBarHtml()}
     <div class="card">
@@ -275,16 +490,16 @@ function renderPenaltisCopa(){
         ${escudoClubeHtml(p.a, 22)}${escapeHtml(p.a.nome)} ${p.placarPenA} x ${p.placarPenB} ${escapeHtml(p.b.nome)}${escudoClubeHtml(p.b, 22)}
         <span class="muted">(tempo normal ${p.golsA}x${p.golsB})</span>
       </p>
-      ${p.ultimoResultado ? `<p class="small" style="margin-bottom:8px">💬 ${escapeHtml(p.ultimoResultado)}</p>` : ''}
-      <div id="scene-text">${acaoTxt}</div>
-      <div class="choices">
-        ${escolhas.map((e,i)=>`<button class="btn" data-i="${i}">${escapeHtml(e.label)}</button>`).join('')}
-      </div>
+      <div class="lm-pen-row"><span class="lm-pen-nome">${escapeHtml(p.a.nome)}</span><div class="lm-pen-dots">${dotsPenaltiHtml('A', p)}</div></div>
+      <div class="lm-pen-row"><span class="lm-pen-nome">${escapeHtml(p.b.nome)}</span><div class="lm-pen-dots">${dotsPenaltiHtml('B', p)}</div></div>
+      ${cenaHtml}
     </div>
   `;
-  document.querySelectorAll('.choices .btn').forEach(btn => {
-    btn.onclick = () => resolverCobrancaInterativa(escolhas[parseInt(btn.dataset.i,10)]);
-  });
+  if(kAtual && kAtual.interativo){
+    document.querySelectorAll('.choices .btn').forEach(btn => {
+      btn.onclick = () => resolverCobrancaInterativa(escolhas[parseInt(btn.dataset.i,10)]);
+    });
+  }
 }
 function renderResultadoPenaltisCopa(){
   const r = GAME.temporadaState.resultadoPenaltisCopa;
@@ -299,6 +514,7 @@ function renderResultadoPenaltisCopa(){
     <div class="card"><div class="choices"><button class="btn btn-primary" id="btn-continuar-penaltis">Continuar</button></div></div>
   `;
   document.getElementById('btn-continuar-penaltis').onclick = () => {
+    Som.tocarAmbiente('menu');
     GAME.temporadaState.resultadoPenaltisCopa = null;
     const aindaPendente = continuarProcessarCopasPendentes();
     if(aindaPendente){ salvarJogo(); render(); }

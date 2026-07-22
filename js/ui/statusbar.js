@@ -40,8 +40,10 @@ function renderTemporada(){
   else if(ts.subFase === 'lesao') renderLesao();
   else if(ts.subFase === 'evento') renderEvento();
   else if(ts.subFase === 'preJogo') renderPreJogo();
-  else if(ts.subFase === 'lance') renderLance();
+  else if(ts.subFase === 'partidaAoVivo') renderPartidaAoVivo();
   else if(ts.subFase === 'resultadoJogo') renderResultadoJogo();
+  else if(ts.subFase === 'preJogoCopa') renderPreJogoCopa();
+  else if(ts.subFase === 'resultadoConfrontoCopa') renderResultadoConfrontoCopa();
   else if(ts.subFase === 'penaltisCopa') renderPenaltisCopa();
   else if(ts.subFase === 'resultadoPenaltisCopa') renderResultadoPenaltisCopa();
   else renderTreino();

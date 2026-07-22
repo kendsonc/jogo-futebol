@@ -1,5 +1,6 @@
 /* ============================== TELA: INÍCIO ============================== */
 function renderStart(){
+  Som.tocarAmbiente('menu');
   const temSave = existeSave();
   const resumo = temSave ? obterResumoSave() : null;
   app.innerHTML = `

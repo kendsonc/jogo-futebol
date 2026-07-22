@@ -509,3 +509,93 @@
     transition: color .15s ease, border-color .15s ease;
   }
   .feature-pill:hover { color: var(--text); border-color: color-mix(in srgb, var(--club-c1) 45%, var(--border) 55%); }
+
+  /* ===================== TEMA POR COMPETIÇÃO (partida ao vivo) =====================
+     Sobrepõe gradientes extras de baixa opacidade ao fundo já existente do
+     clube — sutil o bastante pra não competir visualmente com a UI. */
+  body.tema-copa-brasil {
+    background:
+      radial-gradient(1000px circle at 10% -10%, rgba(60,170,80,.09), transparent 55%),
+      radial-gradient(900px circle at 105% 105%, rgba(224,196,60,.08), transparent 55%),
+      radial-gradient(1200px circle at 12% -12%, color-mix(in srgb, var(--club-c1) 26%, transparent), transparent 58%),
+      radial-gradient(1000px circle at 108% 8%, color-mix(in srgb, var(--club-c2) 20%, transparent), transparent 55%),
+      var(--bg-base);
+    background-attachment: fixed;
+  }
+  body.tema-libertadores {
+    background:
+      radial-gradient(1000px circle at 8% -8%, rgba(60,120,200,.08), transparent 55%),
+      radial-gradient(900px circle at 100% 100%, rgba(224,196,60,.07), transparent 55%),
+      radial-gradient(800px circle at 50% 50%, rgba(60,170,90,.05), transparent 60%),
+      radial-gradient(1200px circle at 12% -12%, color-mix(in srgb, var(--club-c1) 26%, transparent), transparent 58%),
+      radial-gradient(1000px circle at 108% 8%, color-mix(in srgb, var(--club-c2) 20%, transparent), transparent 55%),
+      var(--bg-base);
+    background-attachment: fixed;
+  }
+
+  /* ===================== PARTIDA AO VIVO ===================== */
+  .live-match-card { text-align: center; }
+  .live-match-top { display: flex; align-items: center; justify-content: center; gap: 22px; }
+  .live-match-team { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1 1 120px; min-width: 0; }
+  .live-match-team span { font-size: 12.5px; color: var(--text-dim); max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .live-match-center { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 110px; }
+  .live-match-clock {
+    font-family: var(--font-display); font-weight: 700; font-size: 13px; color: var(--text-dim);
+    letter-spacing: .4px;
+  }
+  .live-match-placar {
+    font-family: var(--font-display); font-weight: 800; font-size: 30px; letter-spacing: .5px;
+    transition: transform .15s ease;
+  }
+  .live-match-placar.pulse { animation: placarPulso .5s ease; }
+  @keyframes placarPulso { 0% { transform: scale(1); } 35% { transform: scale(1.18); color: var(--club-c1); } 100% { transform: scale(1); } }
+  .live-match-celebracao {
+    height: 0; overflow: hidden; opacity: 0; transform: scale(.8);
+    transition: opacity .2s ease, transform .2s ease;
+    font-family: var(--font-display); font-weight: 800; font-size: 34px; letter-spacing: 1px;
+    color: var(--club-c1); text-shadow: 0 0 22px color-mix(in srgb, var(--club-c1) 70%, transparent);
+    text-align: center; margin-top: 0;
+  }
+  .live-match-celebracao.show {
+    height: auto; opacity: 1; transform: scale(1); margin-top: 14px;
+    animation: golPulso .6s ease;
+  }
+  @keyframes golPulso {
+    0% { transform: scale(.4); opacity: 0; }
+    55% { transform: scale(1.15); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .live-match-feed { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
+  .live-match-feed p { color: var(--text-dim); }
+  .live-match-lance { margin-top: 10px; }
+  .live-match-stats-card { padding-top: 14px; padding-bottom: 8px; }
+  .lm-stat-row { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--border-soft); }
+  .lm-stat-row:last-child { border-bottom: none; }
+  .lm-stat-val { font-family: var(--font-display); font-weight: 700; font-size: 13.5px; text-align: center; }
+  /* Painel do VAR reaproveita o overlay de celebração (mesmo elemento), com
+     um visual distinto (preto/amarelo, estilo transmissão) enquanto ativo. */
+  .live-match-celebracao.lm-var {
+    background: repeating-linear-gradient(135deg, rgba(224,196,60,.08) 0 10px, transparent 10px 20px);
+    border: 1px solid rgba(224,196,60,.4); border-radius: 12px; padding: 14px 10px;
+  }
+  .lm-var-badge {
+    display: inline-block; background: #111; color: #e0c43c; font-family: var(--font-display);
+    font-weight: 800; font-size: 13px; letter-spacing: 2px; padding: 3px 12px; border-radius: 5px;
+    border: 1px solid #e0c43c; margin-bottom: 8px;
+  }
+  .lm-var-texto { font-family: var(--font-display); font-weight: 700; font-size: 16px; color: var(--text); }
+  .lm-var-sub { margin-top: 6px; }
+
+  /* ===================== BOLINHAS DA DISPUTA DE PÊNALTIS ===================== */
+  .lm-pen-row { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
+  .lm-pen-nome { font-size: 12.5px; color: var(--text-dim); min-width: 90px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lm-pen-dots { display: flex; gap: 7px; flex-wrap: wrap; }
+  .lm-pen-dot {
+    width: 16px; height: 16px; border-radius: 50%; display: inline-block;
+    background: var(--surface-2); border: 1px solid var(--border);
+  }
+  .lm-pen-dot.gol { background: #2a9d6f; border-color: #3fc98a; box-shadow: 0 0 8px -1px rgba(63,201,138,.7); }
+  .lm-pen-dot.erro { background: #a8323a; border-color: #d64550; box-shadow: 0 0 8px -1px rgba(214,69,80,.6); }
+  .lm-pen-dot.piscando { animation: penaltiPisca .5s ease-in-out infinite alternate; border-color: #e0c43c; }
+  @keyframes penaltiPisca { from { background: var(--surface-2); opacity: .5; } to { background: #e0c43c; opacity: 1; } }
+  .lm-stat-label { font-size: 12px; color: var(--text-dim); text-align: center; }

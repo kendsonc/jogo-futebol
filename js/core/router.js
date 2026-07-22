@@ -12,6 +12,22 @@ function sincronizarTemaClube(){
   if(GAME && GAME.clube) aplicarTemaClube(GAME.clube); else removerTemaClube();
 }
 
+// Overlay visual sutil por competição (só Copa do Brasil/Libertadores ganham
+// classe própria — Brasileirão se diferencia só pela música, não pelo fundo)
+const CLASSES_TEMA_COMPETICAO = ['tema-copa-brasil','tema-libertadores'];
+function aplicarTemaCompeticao(competicao){
+  document.body.classList.remove(...CLASSES_TEMA_COMPETICAO);
+  if(competicao === 'copaBrasil') document.body.classList.add('tema-copa-brasil');
+  else if(competicao === 'libertadores') document.body.classList.add('tema-libertadores');
+}
+function removerTemaCompeticao(){ document.body.classList.remove(...CLASSES_TEMA_COMPETICAO); }
+function sincronizarTemaCompeticao(){
+  const ts = GAME && GAME.temporadaState;
+  const emPartida = !!(ts && ts.subFase === 'partidaAoVivo' && ts.partidaEmAndamento);
+  if(emPartida) aplicarTemaCompeticao(ts.partidaEmAndamento.competicao);
+  else removerTemaCompeticao();
+}
+
 // Dispara uma transição suave sempre que o conteúdo principal muda de tela
 const appObserver = new MutationObserver(() => {
   app.classList.remove('fade-in');
@@ -22,6 +38,8 @@ appObserver.observe(app, { childList: true });
 
 function render(){
   sincronizarTemaClube();
+  sincronizarTemaCompeticao();
+  Som.sincronizarComGame();
   if(!GAME){ return renderStart(); }
   // Reparo de saves antigos (de antes da liga/tabela existir): sem isso, o
   // painel de classificação ficaria vazio e as partidas cairiam no adversário
@@ -47,11 +65,20 @@ function render(){
     if(!GAME.statsCareer.convocacoes) GAME.statsCareer.convocacoes = [];
     if(!GAME.statsCareer.titulosCopas) GAME.statsCareer.titulosCopas = { copaBrasil:0, libertadores:0, championsLeague:0, mundialClubes:0, copaDoMundo:0, bolaDeOuro:0 };
     if(!GAME.statsCareer.copasDoMundo) GAME.statsCareer.copasDoMundo = [];
+    if(!GAME.statsCareer.confrontosHistorico) GAME.statsCareer.confrontosHistorico = {};
   }
   if(GAME.qualificacoesProximaTemporada === undefined) GAME.qualificacoesProximaTemporada = null;
   if(GAME.temporadaState && !GAME.temporadaState.copas) GAME.temporadaState.copas = {};
   if(!GAME.memorial) GAME.memorial = [];
   repararEstadoEconomia();
+  // Reparo de saves de antes da partida ao vivo existir: migra a partida que
+  // estava no meio de um lance (subFase antiga 'lance') para o novo formato,
+  // preservando a decisão pendente em vez de perder o jogo em andamento.
+  if(GAME.temporadaState && GAME.temporadaState.subFase === 'lance' && GAME.temporadaState.partidaEmAndamento){
+    migrarPartidaEmAndamentoLegado(GAME.temporadaState.partidaEmAndamento);
+    GAME.temporadaState.subFase = 'partidaAoVivo';
+    salvarJogo();
+  }
   if(GAME.fase === 'historia') return renderHistoriaPassado();
   if(GAME.fase === 'clubes') return renderSelecaoClubes();
   if(GAME.fase === 'peneira') return renderPeneira();
