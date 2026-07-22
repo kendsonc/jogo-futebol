@@ -75,18 +75,44 @@ function criarCopa(id, nome, participantes){
 // no fechamento de temporada, pra resolver a final). Cuida de avançar quem
 // venceu, registrar histórico e narrar o que aconteceu com VOCÊ especificamente
 // (as outras 7 partidas da rodada ficam só nos dados, sem virar spam de notícia).
-function avancarRodadaCopa(copa){
+//
+// Quando o SEU confronto empata e vai pra pênaltis, e isso não é a resolução
+// forçada de fim de temporada (forcarAutomatico), a rodada PAUSA aqui e vira
+// uma disputa de pênaltis interativa (iniciarPenaltisCopaInterativo) — sem
+// isso, você era eliminado numa cobrança que nunca via acontecer. Retorna
+// 'pendente' nesse caso (quem chamou não deve seguir a semana ainda) ou 'ok'
+// quando a rodada foi resolvida (com ou sem pênaltis) de uma vez.
+function avancarRodadaCopa(copa, forcarAutomatico){
   if(!copa || copa.campeao || !copa.chaveAtual || !copa.chaveAtual.length) return null;
   const bonus = bonusFormaJogador();
   const vencedores = [];
-  const confrontosRodada = copa.chaveAtual.map(([a,b]) => {
+  const confrontosRodada = [];
+  for(let idx=0; idx<copa.chaveAtual.length; idx++){
+    const [a,b] = copa.chaveAtual[idx];
     const souEuA = !!a.souEu, souEuB = !!b.souEu;
+    const envolveJogador = souEuA || souEuB;
     const r = simularConfrontoMataMata(a, b, souEuA?bonus:0, souEuB?bonus:0);
+    if(!forcarAutomatico && envolveJogador && r.golsA === r.golsB){
+      const restanteChave = copa.chaveAtual.slice(idx+1);
+      iniciarPenaltisCopaInterativo(copa, { a, b, souEuA, golsA:r.golsA, golsB:r.golsB, vencedoresParciais:vencedores, confrontosParciaisRodada:confrontosRodada, restanteChave });
+      return 'pendente';
+    }
     const vencedor = r.vencedor === 'A' ? a : b;
     vencedores.push(vencedor);
-    return { aNome:a.nome, bNome:b.nome, golsA:r.golsA, golsB:r.golsB, penaltis:r.penaltis, vencedorNome:vencedor.nome,
-      envolveJogador: souEuA||souEuB, jogadorVenceu: (souEuA||souEuB) ? !!vencedor.souEu : null };
-  });
+    confrontosRodada.push({ aNome:a.nome, bNome:b.nome, golsA:r.golsA, golsB:r.golsB, penaltis:r.penaltis, vencedorNome:vencedor.nome,
+      // cor1/cor2 junto (leve — só as cores, não o objeto todo) pra
+      // painelCopas conseguir desenhar o escudo dos dois lados do confronto
+      aCor1:a.cor1, aCor2:a.cor2, bCor1:b.cor1, bCor2:b.cor2,
+      envolveJogador, jogadorVenceu: envolveJogador ? !!vencedor.souEu : null });
+  }
+  finalizarRodadaCopa(copa, vencedores, confrontosRodada);
+  return 'ok';
+}
+// Fecha a rodada: registra histórico, avança a chave (ou decide o campeão) e
+// narra o que aconteceu com você — extraído de avancarRodadaCopa pra ser
+// reaproveitado também depois de uma disputa de pênaltis interativa
+// (finalizarPenaltisCopa), que monta vencedores/confrontosRodada na mão.
+function finalizarRodadaCopa(copa, vencedores, confrontosRodada){
   const nomeRodada = copa.nomesRodadas[copa.rodadaAtual] || `Rodada ${copa.rodadaAtual+1}`;
   copa.historicoRodadas.push({ nomeRodada, confrontos: confrontosRodada });
   const meuConfronto = confrontosRodada.find(c => c.envolveJogador);
@@ -111,6 +137,173 @@ function avancarRodadaCopa(copa){
     }
   }
   return meuConfronto;
+}
+
+/* ============================== PÊNALTIS INTERATIVOS ============================
+   Só entra em ação quando O SEU confronto foi pra pênaltis (fora da resolução
+   forçada de fim de temporada). Em vez do coinflip silencioso de
+   simularConfrontoMataMata, monta uma disputa de 5 cobranças por lado (+ morte
+   súbita se empatar) e para a ação nas 2 cobranças mais decisivas do SEU lado
+   pra você escolher de verdade — goleiro DEFENDE cobranças do adversário,
+   qualquer outra posição BATE cobranças do próprio time (mesma lógica de
+   ehGoleiro/ehDefensor em prepararPartida, js/sistemas/partida.js). As demais
+   cobranças (e o resto da disputa se você não for o goleiro/cobrador daquela
+   vez) são resolvidas automaticamente, pra não virar 10 cliques por disputa.
+   ========================================================================= */
+const ESCOLHAS_COBRANCA_PENALTI = [
+  { label:'Cantinho baixo, no pé da trave', attr:'frieza', textoGol:'Categoria! Bola no cantinho, sem chance pro goleiro.', textoDefesa:'O goleiro leu a intenção e espalmou no canto.' },
+  { label:'Cavadinha no meio do gol', attr:'frieza', textoGol:'Cavadinha! O goleiro já tinha caído pro lado.', textoDefesa:'O goleiro ficou parado no meio e pegou fácil.' },
+  { label:'Força total no ângulo mais alto', attr:'finalizacao', textoGol:'Uma bomba no ângulo — impossível de defender!', textoDefesa:'Chutou forte demais e mandou por cima do travessão.' }
+];
+const ESCOLHAS_DEFESA_PENALTI = [
+  { label:'Pular para o canto esquerdo', attr:'agilidade', textoGol:'Pulou para o lado errado — gol do adversário.', textoDefesa:'Adivinhou o canto e fez a defesa!' },
+  { label:'Ficar plantado no meio, de olho na cavadinha', attr:'concentracao', textoGol:'O cobrador foi no canto — gol do adversário.', textoDefesa:'Ficou esperto no meio e segurou a cavadinha!' },
+  { label:'Pular para o canto direito', attr:'agilidade', textoGol:'Pulou para o lado errado — gol do adversário.', textoDefesa:'Escolheu o lado certo e fez a defesa!' }
+];
+function iniciarPenaltisCopaInterativo(copa, ctx){
+  const souA = ctx.souEuA;
+  const ordem = [];
+  for(let i=0;i<5;i++){ ordem.push({ lado:'A', indice:i }); ordem.push({ lado:'B', indice:i }); }
+  const meuLado = souA ? 'A' : 'B';
+  const golKeeper = GAME.identidade.posicaoPrincipal === 'Goleiro';
+  // se eu sou goleiro, as cobranças decisivas que eu "jogo de verdade" são as
+  // do ADVERSÁRIO (eu defendendo); qualquer outra posição, são as do meu time
+  const ladoInterativo = golKeeper ? (meuLado === 'A' ? 'B' : 'A') : meuLado;
+  ordem.forEach(k => { k.interativo = (k.lado === ladoInterativo && (k.indice === 0 || k.indice === 3)); });
+  GAME.temporadaState.penaltisCopa = {
+    copaId: copa.id, nomeRodada: copa.nomesRodadas[copa.rodadaAtual] || 'Pênaltis',
+    a: ctx.a, b: ctx.b, souA, golKeeper,
+    golsA: ctx.golsA, golsB: ctx.golsB,
+    placarPenA: 0, placarPenB: 0,
+    ordem, posOrdem: 0, ultimoResultado: null,
+    vencedoresParciais: ctx.vencedoresParciais, confrontosParciaisRodada: ctx.confrontosParciaisRodada,
+    restanteChave: ctx.restanteChave
+  };
+  processarPenaltisAteProximaDecisao();
+}
+function resolverCobrancaAutomatica(k){
+  const p = GAME.temporadaState.penaltisCopa;
+  const clube = k.lado === 'A' ? p.a : p.b;
+  const forca = clube.reputacao || clube.forca || 60;
+  const foiGol = chance(clamp(76 + (forca-60)/8, 55, 92));
+  if(foiGol){ if(k.lado==='A') p.placarPenA++; else p.placarPenB++; }
+}
+function processarPenaltisAteProximaDecisao(){
+  const p = GAME.temporadaState.penaltisCopa;
+  while(p.posOrdem < p.ordem.length){
+    const k = p.ordem[p.posOrdem];
+    if(k.interativo){
+      GAME.temporadaState.subFase = 'penaltisCopa';
+      salvarJogo();
+      render();
+      return;
+    }
+    resolverCobrancaAutomatica(k);
+    p.posOrdem += 1;
+  }
+  if(p.placarPenA === p.placarPenB){
+    // morte súbita: mais um par de cobranças (só automáticas, pra não alongar demais)
+    const proxIndice = p.ordem.length/2;
+    p.ordem.push({ lado:'A', indice:proxIndice }, { lado:'B', indice:proxIndice });
+    processarPenaltisAteProximaDecisao();
+    return;
+  }
+  finalizarPenaltisCopa();
+}
+function resolverCobrancaInterativa(escolha){
+  const p = GAME.temporadaState.penaltisCopa;
+  const k = p.ordem[p.posOrdem];
+  const oponenteClube = p.souA ? p.b : p.a;
+  const dificuldade = clamp(oponenteClube.reputacao || oponenteClube.forca || 60, 15, 95);
+  const nivel = resolverNivelLance(escolha.attr, dificuldade);
+  const sucesso = (nivel === 'otimo' || nivel === 'bom');
+  // sucesso do cobrador = gol; sucesso do goleiro = defesa (NÃO sofre gol)
+  const foiGol = p.golKeeper ? !sucesso : sucesso;
+  if(foiGol){ if(k.lado==='A') p.placarPenA++; else p.placarPenB++; }
+  p.ultimoResultado = foiGol ? escolha.textoGol : escolha.textoDefesa;
+  p.posOrdem += 1;
+  salvarJogo();
+  processarPenaltisAteProximaDecisao();
+}
+function finalizarPenaltisCopa(){
+  const p = GAME.temporadaState.penaltisCopa;
+  const copa = GAME.temporadaState.copas[p.copaId];
+  const venceuA = p.placarPenA > p.placarPenB;
+  const vencedorMeuJogo = venceuA ? p.a : p.b;
+  const jogadorVenceu = !!vencedorMeuJogo.souEu;
+  const vencedores = [...p.vencedoresParciais, vencedorMeuJogo];
+  const confrontosRodada = [...p.confrontosParciaisRodada, {
+    aNome:p.a.nome, bNome:p.b.nome, golsA:p.golsA, golsB:p.golsB, penaltis: venceuA?'A':'B', vencedorNome:vencedorMeuJogo.nome,
+    aCor1:p.a.cor1, aCor2:p.a.cor2, bCor1:p.b.cor1, bCor2:p.b.cor2,
+    envolveJogador:true, jogadorVenceu
+  }];
+  // resto da MESMA rodada que ainda não tinha sido resolvido (nunca envolve
+  // você — só pode haver um confronto seu por rodada) segue automático
+  (p.restanteChave||[]).forEach(([a,b]) => {
+    const r = simularConfrontoMataMata(a, b, 0, 0);
+    const vencedor = r.vencedor === 'A' ? a : b;
+    vencedores.push(vencedor);
+    confrontosRodada.push({ aNome:a.nome, bNome:b.nome, golsA:r.golsA, golsB:r.golsB, penaltis:r.penaltis, vencedorNome:vencedor.nome,
+      aCor1:a.cor1, aCor2:a.cor2, bCor1:b.cor1, bCor2:b.cor2, envolveJogador:false, jogadorVenceu:null });
+  });
+  GAME.temporadaState.resultadoPenaltisCopa = {
+    copaNome: copa.nome, nomeRodada: p.nomeRodada,
+    aNome:p.a.nome, bNome:p.b.nome, aCor1:p.a.cor1, aCor2:p.a.cor2, bCor1:p.b.cor1, bCor2:p.b.cor2,
+    placarPenA:p.placarPenA, placarPenB:p.placarPenB, golsA:p.golsA, golsB:p.golsB, jogadorVenceu
+  };
+  GAME.temporadaState.penaltisCopa = null;
+  finalizarRodadaCopa(copa, vencedores, confrontosRodada);
+  GAME.temporadaState.subFase = 'resultadoPenaltisCopa';
+  salvarJogo();
+  render();
+}
+function renderPenaltisCopa(){
+  const p = GAME.temporadaState.penaltisCopa;
+  const k = p.ordem[p.posOrdem];
+  const meuClube = p.souA ? p.a : p.b;
+  const oponenteClube = p.souA ? p.b : p.a;
+  const escolhas = p.golKeeper ? ESCOLHAS_DEFESA_PENALTI : ESCOLHAS_COBRANCA_PENALTI;
+  const cobradorNestaVez = k.lado === 'A' ? p.a : p.b;
+  const acaoTxt = p.golKeeper
+    ? `O goleiro é você: cobrança decisiva do ${escapeHtml(oponenteClube.nome)}.`
+    : `Sua vez de cobrar pelo ${escapeHtml(meuClube.nome)}.`;
+  app.innerHTML = `
+    ${statusBarHtml()}
+    <div class="card">
+      <div class="card-title">Disputa de pênaltis — ${escapeHtml(p.nomeRodada)} da ${escapeHtml(GAME.temporadaState.copas[p.copaId].nome)}</div>
+      <p class="small muted" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        ${escudoClubeHtml(p.a, 22)}${escapeHtml(p.a.nome)} ${p.placarPenA} x ${p.placarPenB} ${escapeHtml(p.b.nome)}${escudoClubeHtml(p.b, 22)}
+        <span class="muted">(tempo normal ${p.golsA}x${p.golsB})</span>
+      </p>
+      ${p.ultimoResultado ? `<p class="small" style="margin-bottom:8px">💬 ${escapeHtml(p.ultimoResultado)}</p>` : ''}
+      <div id="scene-text">${acaoTxt}</div>
+      <div class="choices">
+        ${escolhas.map((e,i)=>`<button class="btn" data-i="${i}">${escapeHtml(e.label)}</button>`).join('')}
+      </div>
+    </div>
+  `;
+  document.querySelectorAll('.choices .btn').forEach(btn => {
+    btn.onclick = () => resolverCobrancaInterativa(escolhas[parseInt(btn.dataset.i,10)]);
+  });
+}
+function renderResultadoPenaltisCopa(){
+  const r = GAME.temporadaState.resultadoPenaltisCopa;
+  app.innerHTML = `
+    ${statusBarHtml()}
+    <div class="screen-hero">
+      <div class="screen-hero-kicker">${escapeHtml(r.nomeRodada)} — ${escapeHtml(r.copaNome)}</div>
+      <h1>${escapeHtml(r.aNome)} ${r.placarPenA} x ${r.placarPenB} ${escapeHtml(r.bNome)} <span class="small muted">(pênaltis)</span></h1>
+      <span class="result-badge-big ${r.jogadorVenceu?'good':'bad'}">${r.jogadorVenceu?'Classificado nos pênaltis!':'Eliminado nos pênaltis'}</span>
+      <p class="screen-hero-sub">Tempo normal: ${r.golsA}x${r.golsB}</p>
+    </div>
+    <div class="card"><div class="choices"><button class="btn btn-primary" id="btn-continuar-penaltis">Continuar</button></div></div>
+  `;
+  document.getElementById('btn-continuar-penaltis').onclick = () => {
+    GAME.temporadaState.resultadoPenaltisCopa = null;
+    const aindaPendente = continuarProcessarCopasPendentes();
+    if(aindaPendente){ salvarJogo(); render(); }
+    else concluirTickSemanal();
+  };
 }
 
 /* ------------------------------ MONTAGEM DOS CAMPOS --------------------------- */
@@ -191,19 +384,41 @@ function montarCopasTemporada(){
 // js/sistemas/liga.js) — avança exatamente 1 rodada de cada copa ativa. Com
 // chave de 16 (4 rodadas) e 3 transições de período na temporada, sobra
 // exatamente a final pra ser resolvida em resolverRodadaFinalDasCopas().
+// Retorna true se alguma copa parou numa disputa de pênaltis interativa —
+// nesse caso quem chamou (avancarSemana) NÃO deve seguir o resto da semana
+// ainda (o fluxo só continua depois que a disputa for resolvida, ver
+// continuarProcessarCopasPendentes/concluirTickSemanal).
 function avancarTodasAsCopasAtivas(){
   const copas = GAME.temporadaState.copas || {};
-  Object.values(copas).forEach(copa => { if(!copa.campeao) avancarRodadaCopa(copa); });
+  GAME.temporadaState._copasParaProcessar = Object.keys(copas).filter(id => copas[id] && !copas[id].campeao);
+  return continuarProcessarCopasPendentes();
+}
+// Processa a fila de copas ainda pendentes desta transição de período, uma
+// de cada vez; para (retorna true) assim que uma precisar de uma disputa de
+// pênaltis interativa — o resto da fila só é retomado depois, quando essa
+// disputa terminar (renderResultadoPenaltisCopa -> aqui de novo).
+function continuarProcessarCopasPendentes(){
+  const fila = GAME.temporadaState._copasParaProcessar || [];
+  while(fila.length){
+    const id = fila.shift();
+    const copa = GAME.temporadaState.copas[id];
+    if(!copa || copa.campeao) continue;
+    if(avancarRodadaCopa(copa) === 'pendente') return true;
+  }
+  return false;
 }
 
 // Chamada em finalizarTemporada() (fim-temporada.js), antes de calcular
 // premiações — garante (com segurança contra qualquer descompasso de rodadas)
 // que toda copa ativa chegue a um campeão antes do relatório de fim de temporada.
+// forcarAutomatico=true: mesmo um confronto seu que vá aos pênaltis aqui é
+// resolvido na hora (sem pausar pra decisão interativa) — fim de temporada
+// precisa fechar tudo de uma vez pro relatório sair completo.
 function resolverRodadaFinalDasCopas(){
   const copas = GAME.temporadaState.copas || {};
   Object.values(copas).forEach(copa => {
     let guarda = 0;
-    while(!copa.campeao && copa.chaveAtual && copa.chaveAtual.length && guarda < 10){ avancarRodadaCopa(copa); guarda++; }
+    while(!copa.campeao && copa.chaveAtual && copa.chaveAtual.length && guarda < 10){ avancarRodadaCopa(copa, true); guarda++; }
     if(copa.campeao && copa.campeao.souEu) GAME.premiacoesTemporada.push(`Campeão da ${copa.nome}`);
   });
 }

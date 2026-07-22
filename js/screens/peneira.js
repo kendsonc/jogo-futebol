@@ -90,7 +90,7 @@ const NOMES_FASES_PENEIRA = ['Chegada', 'Avaliação Física', 'Treino Técnico'
 function peneiraStatusBarHtml(ps){
   return `
     <div id="status-bar">
-      <div class="sb-club">${crestHtml(GAME.clube, 34)}<div><div class="sb-club-name">${escapeHtml(GAME.clube.nome)}</div>${tierBadgeHtml(GAME.clube.divisao)}</div></div>
+      <div class="sb-club">${escudoClubeHtml(GAME.clube, 34)}<div><div class="sb-club-name">${escapeHtml(GAME.clube.nome)}</div>${tierBadgeHtml(GAME.clube.divisao)}</div></div>
       <div class="sb-divider"></div>
       <div class="sb-item"><span class="lbl">Energia</span><b>${GAME.status.energia}</b></div>
       <div class="sb-item"><span class="lbl">Confiança</span><b>${GAME.sociais.confianca}</b></div>
@@ -102,16 +102,25 @@ function peneiraStatusBarHtml(ps){
   `;
 }
 
+// Quem conduz cada fase da peneira: só o treino técnico (fase 2) é com o
+// técnico, as demais são conduzidas pelo observador.
+function peneiraRetratoAtual(faseIndex){
+  return faseIndex === 2 ? { nome:GAME.tecnico.nome, papel:'tecnico' } : { nome:GAME.observador, papel:'observador' };
+}
 function renderPeneira(){
   const ps = GAME.peneiraState;
   if(ps.faseIndex >= FASES_PENEIRA.length){ return renderResultadoPeneira(); }
   if(ps.seguimentoAtual) return renderSeguimentoPeneira();
   const fase = FASES_PENEIRA[ps.faseIndex];
   const texto = typeof fase.texto === 'function' ? fase.texto(GAME) : pick(fase.texto).replace('{OBS}', GAME.observador).replace('{TEC}', GAME.tecnico.nome).replace('{CLUBE}', GAME.clube.nome);
+  const retrato = peneiraRetratoAtual(ps.faseIndex);
   app.innerHTML = `
     ${peneiraStatusBarHtml(ps)}
     <div class="card">
-      <div id="scene-text">${escapeHtml(texto).replace(/\n/g,'<br>')}</div>
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        ${retratoNpcHtml(retrato.nome, retrato)}
+        <div style="flex:1"><div id="scene-text">${escapeHtml(texto).replace(/\n/g,'<br>')}</div></div>
+      </div>
       <div class="choices">
         ${fase.escolhas.map((esc,i) => `<button class="btn" data-i="${i}">${escapeHtml(esc.label)}</button>`).join('')}
       </div>
@@ -140,10 +149,14 @@ function renderSeguimentoPeneira(){
   const ps = GAME.peneiraState;
   const { seguimento } = ps.seguimentoAtual;
   const texto = typeof seguimento.texto === 'function' ? seguimento.texto(GAME) : seguimento.texto;
+  const retrato = peneiraRetratoAtual(ps.faseIndex);
   app.innerHTML = `
     ${peneiraStatusBarHtml(ps)}
     <div class="card">
-      <div id="scene-text">${escapeHtml(texto).replace(/\n/g,'<br>')}</div>
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        ${retratoNpcHtml(retrato.nome, retrato)}
+        <div style="flex:1"><div id="scene-text">${escapeHtml(texto).replace(/\n/g,'<br>')}</div></div>
+      </div>
       <div class="choices">
         ${seguimento.escolhas.map((esc,i) => `<button class="btn" data-i="${i}">${escapeHtml(esc.label)}</button>`).join('')}
       </div>
@@ -229,7 +242,10 @@ function renderResultadoPeneira(){
       <span class="result-badge-big ${aprovado?'good':'bad'}">${aprovado?'✅ Aprovado':'❌ Não aprovado'}</span>
     </div>
     <div class="card">
-      <div id="scene-text">${escapeHtml(texto).replace(/\n/g,'<br>')}</div>
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        ${retratoNpcHtml(GAME.observador, { papel:'observador' })}
+        <div style="flex:1"><div id="scene-text">${escapeHtml(texto).replace(/\n/g,'<br>')}</div></div>
+      </div>
       <div class="choices">
         ${escolhas.map((e,i)=>`<button class="btn ${aprovado?'btn-primary':''}" data-i="${i}">${escapeHtml(e.label)}</button>`).join('')}
       </div>

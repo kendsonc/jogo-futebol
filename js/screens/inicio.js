@@ -55,10 +55,33 @@ function renderStart(){
 }
 
 /* ============================== TELA: CRIAÇÃO DE PERSONAGEM ================ */
+// Estado de trabalho da customização visual — vive só durante a tela de
+// criação (não é o GAME ainda); repintado a cada mudança de swatch/seta sem
+// precisar re-renderizar o formulário inteiro (preservaria os outros campos).
+let criacaoAparencia = null;
+function atualizarPreviewAparencia(){
+  const el = document.getElementById('preview-rosto');
+  if(el) el.innerHTML = pixelRostoSvg(criacaoAparencia, 140);
+  const nomeCorte = document.getElementById('preview-corte-nome');
+  if(nomeCorte) nomeCorte.textContent = CORTES_CABELO[criacaoAparencia.corteCabelo].nome;
+  const nomeBarba = document.getElementById('preview-barba-nome');
+  if(nomeBarba) nomeBarba.textContent = ESTILOS_BARBA[criacaoAparencia.estiloBarba].nome;
+  document.querySelectorAll('[data-swatch-grupo]').forEach(sw => {
+    const grupo = sw.dataset.swatchGrupo;
+    const campo = { pele:'corPele', cabelo:'corCabelo', barba:'corBarba', olhos:'corOlhos' }[grupo];
+    sw.classList.toggle('sel', criacaoAparencia[campo] === sw.dataset.cor);
+  });
+  const secaoBarba = document.getElementById('secao-barba');
+  if(secaoBarba) secaoBarba.style.display = criacaoAparencia.genero === 'f' ? 'none' : '';
+}
+function swatchesHtml(grupo, paleta, corAtual){
+  return paleta.map(c => `<span class="color-swatch ${c===corAtual?'sel':''}" style="background:${c}" data-swatch-grupo="${grupo}" data-cor="${c}"></span>`).join('');
+}
 function renderCriacaoPersonagem(){
   const posOpts = POSICOES.map(p=>`<option value="${p}">${p}</option>`).join('');
   const estOpts = Object.keys(ESTILOS).map(k=>`<option value="${k}">${ESTILOS[k].nome} — ${ESTILOS[k].desc}</option>`).join('');
   const ufOpts = UF_LIST.map(uf=>`<option value="${uf}">${uf} (${REGIOES[uf]})</option>`).join('');
+  criacaoAparencia = gerarAparenciaAleatoria(Math.random, 'm');
   app.innerHTML = `
     <div class="screen-hero">
       <div class="screen-hero-kicker">Criação de Jogador</div>
@@ -102,11 +125,83 @@ function renderCriacaoPersonagem(){
           <label>Perfil de formação / estilo</label>
           <select id="f-estilo">${estOpts}</select>
         </fieldset>
+        <fieldset>
+          <legend>Aparência</legend>
+          <div class="row" style="align-items:flex-start;gap:18px">
+            <div id="preview-rosto" style="flex:0 0 auto"></div>
+            <div style="flex:1;min-width:220px">
+              <div class="row" style="margin-bottom:8px">
+                <button type="button" class="btn btn-small ${'m'==='m'?'btn-primary':''}" id="btn-genero-m">Masculino</button>
+                <button type="button" class="btn btn-small" id="btn-genero-f">Feminino</button>
+              </div>
+              <p class="small muted" style="margin-bottom:2px">Cor de pele</p>
+              <div class="row" style="gap:6px;margin-bottom:8px">${swatchesHtml('pele', PALETA_PELE, criacaoAparencia.corPele)}</div>
+              <p class="small muted" style="margin-bottom:2px">Cor de cabelo</p>
+              <div class="row" style="gap:6px;margin-bottom:8px;flex-wrap:wrap">${swatchesHtml('cabelo', PALETA_CABELO, criacaoAparencia.corCabelo)}</div>
+              <p class="small muted" style="margin-bottom:2px">Cor dos olhos</p>
+              <div class="row" style="gap:6px;margin-bottom:8px">${swatchesHtml('olhos', PALETA_OLHOS, criacaoAparencia.corOlhos)}</div>
+              <p class="small muted" style="margin-bottom:2px">Corte de cabelo</p>
+              <div class="row" style="align-items:center;gap:8px;margin-bottom:8px">
+                <button type="button" class="btn btn-small" id="btn-corte-prev">◀</button>
+                <span class="small" id="preview-corte-nome" style="min-width:140px;text-align:center">${CORTES_CABELO[criacaoAparencia.corteCabelo].nome}</span>
+                <button type="button" class="btn btn-small" id="btn-corte-next">▶</button>
+              </div>
+              <div id="secao-barba">
+                <p class="small muted" style="margin-bottom:2px">Cor da barba</p>
+                <div class="row" style="gap:6px;margin-bottom:8px;flex-wrap:wrap">${swatchesHtml('barba', PALETA_CABELO, criacaoAparencia.corBarba)}</div>
+                <p class="small muted" style="margin-bottom:2px">Barba</p>
+                <div class="row" style="align-items:center;gap:8px">
+                  <button type="button" class="btn btn-small" id="btn-barba-prev">◀</button>
+                  <span class="small" id="preview-barba-nome" style="min-width:140px;text-align:center">${ESTILOS_BARBA[criacaoAparencia.estiloBarba].nome}</span>
+                  <button type="button" class="btn btn-small" id="btn-barba-next">▶</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </fieldset>
         <div class="spacer"></div>
         <button type="submit" class="btn btn-primary">Confirmar e escolher clube</button>
       </form>
     </div>
   `;
+  atualizarPreviewAparencia();
+  document.getElementById('btn-genero-m').onclick = () => {
+    criacaoAparencia.genero = 'm';
+    document.getElementById('btn-genero-m').classList.add('btn-primary');
+    document.getElementById('btn-genero-f').classList.remove('btn-primary');
+    atualizarPreviewAparencia();
+  };
+  document.getElementById('btn-genero-f').onclick = () => {
+    criacaoAparencia.genero = 'f';
+    criacaoAparencia.estiloBarba = 0;
+    document.getElementById('btn-genero-f').classList.add('btn-primary');
+    document.getElementById('btn-genero-m').classList.remove('btn-primary');
+    atualizarPreviewAparencia();
+  };
+  document.querySelectorAll('[data-swatch-grupo]').forEach(sw => {
+    sw.onclick = () => {
+      const grupo = sw.dataset.swatchGrupo;
+      const campo = { pele:'corPele', cabelo:'corCabelo', barba:'corBarba', olhos:'corOlhos' }[grupo];
+      criacaoAparencia[campo] = sw.dataset.cor;
+      atualizarPreviewAparencia();
+    };
+  });
+  document.getElementById('btn-corte-prev').onclick = () => {
+    criacaoAparencia.corteCabelo = (criacaoAparencia.corteCabelo + CORTES_CABELO.length - 1) % CORTES_CABELO.length;
+    atualizarPreviewAparencia();
+  };
+  document.getElementById('btn-corte-next').onclick = () => {
+    criacaoAparencia.corteCabelo = (criacaoAparencia.corteCabelo + 1) % CORTES_CABELO.length;
+    atualizarPreviewAparencia();
+  };
+  document.getElementById('btn-barba-prev').onclick = () => {
+    criacaoAparencia.estiloBarba = (criacaoAparencia.estiloBarba + ESTILOS_BARBA.length - 1) % ESTILOS_BARBA.length;
+    atualizarPreviewAparencia();
+  };
+  document.getElementById('btn-barba-next').onclick = () => {
+    criacaoAparencia.estiloBarba = (criacaoAparencia.estiloBarba + 1) % ESTILOS_BARBA.length;
+    atualizarPreviewAparencia();
+  };
   document.getElementById('form-criacao').onsubmit = (e) => {
     e.preventDefault();
     const dados = {
@@ -121,7 +216,8 @@ function renderCriacaoPersonagem(){
       peso: parseInt(document.getElementById('f-peso').value,10),
       posicaoPrincipal: document.getElementById('f-posPrincipal').value,
       posicaoSecundaria: document.getElementById('f-posSecundaria').value,
-      estilo: document.getElementById('f-estilo').value
+      estilo: document.getElementById('f-estilo').value,
+      aparencia: criacaoAparencia
     };
     if(!dados.nomeCompleto || !dados.apelido || !dados.cidade){ alert('Preencha todos os campos obrigatórios.'); return; }
     criarNovoJogador(dados);

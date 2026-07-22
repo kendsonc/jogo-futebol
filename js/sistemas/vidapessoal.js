@@ -56,11 +56,19 @@ function aplicarDesgasteVinculosSemanal(){
   if(GAME.relacionamento){
     const r = GAME.relacionamento;
     r.semanasJuntos = (r.semanasJuntos||0) + 1;
-    r.relacao = clamp(r.relacao - 2, 0, 100);
-    if(r.relacao <= 12 && chance(30)){
-      pushNoticia('familia', `Depois de um tempo de distância, você e ${r.nome} decidiram terminar.`);
-      GAME.sociais.moral = clamp(GAME.sociais.moral - 8, 0, 100);
-      GAME.relacionamento = null;
+    if(r.casado){
+      // casamento é um vínculo mais estável que namoro: desgasta mais devagar
+      // e nunca termina sozinho por relação baixa — isso vira um evento de
+      // crise (gerarEventoCriseCasamento) em vez de um término silencioso.
+      r.semanasCasado = (r.semanasCasado||0) + 1;
+      r.relacao = clamp(r.relacao - 1, 0, 100);
+    } else {
+      r.relacao = clamp(r.relacao - 2, 0, 100);
+      if(r.relacao <= 12 && chance(30)){
+        pushNoticia('familia', `Depois de um tempo de distância, você e ${r.nome} decidiram terminar.`);
+        GAME.sociais.moral = clamp(GAME.sociais.moral - 8, 0, 100);
+        GAME.relacionamento = null;
+      }
     }
   }
 }
@@ -71,16 +79,27 @@ function aplicarDesgasteVinculosSemanal(){
    [nome]" acima e com eventos temáticos; esfria sozinho sem manutenção
    (aplicarDesgasteVinculosSemanal) e pode terminar se cair demais.
    ========================================================================= */
-const NOMES_PARCEIROS = ['Aline Duarte','Bruna Castilho','Camila Torres','Diego Marinho','Fernanda Rocha','Gustavo Peixoto','Isabela Franco','Lucas Andrade','Mariana Vidal','Rafael Nunes','Sofia Almeida','Thiago Bezerra'];
+// Única lista de nome realmente mista (não é toda masculina/toda feminina por
+// papel como as outras em dados-base.js) — por isso guarda o gênero junto de
+// cada nome em vez de depender da heurística genérica de generoDe() (rostos.js),
+// que erraria em casos como "Aline" (termina em "e", não em "a").
+const NOMES_PARCEIROS = [
+  { nome:'Aline Duarte', genero:'f' }, { nome:'Bruna Castilho', genero:'f' }, { nome:'Camila Torres', genero:'f' },
+  { nome:'Diego Marinho', genero:'m' }, { nome:'Fernanda Rocha', genero:'f' }, { nome:'Gustavo Peixoto', genero:'m' },
+  { nome:'Isabela Franco', genero:'f' }, { nome:'Lucas Andrade', genero:'m' }, { nome:'Mariana Vidal', genero:'f' },
+  { nome:'Rafael Nunes', genero:'m' }, { nome:'Sofia Almeida', genero:'f' }, { nome:'Thiago Bezerra', genero:'m' }
+];
 
 function gerarEventoConhecerAlguem(){
-  const nome = pick(NOMES_PARCEIROS);
+  const parceiro = pick(NOMES_PARCEIROS);
+  const nome = parceiro.nome, genero = parceiro.genero;
   return {
     id:'relacionamento_inicio', categoria:'geral',
     texto:(g)=>`Depois do treino, ${nome} — que você já tinha reparado por ali algumas vezes — puxa assunto com você, sem pressa, como quem já queria essa conversa há um tempo.`,
+    retrato:()=>({ nome, papel:'parceiro', genero }),
     escolhas:[
       { label:'Se abrir e topar continuar se falando', efeitos:{moral:5, tracos:{descontraido:1}},
-        extra:(g)=>{ g.relacionamento = { nome, relacao:55, semanasJuntos:0 }; pushNoticia('geral', `${g.identidade.apelido} começou a ficar com ${nome}.`); } },
+        extra:(g)=>{ g.relacionamento = { nome, genero, relacao:55, semanasJuntos:0, casado:false, semanasCasado:0 }; pushNoticia('geral', `${g.identidade.apelido} começou a ficar com ${nome}.`); } },
       { label:'Ser simpático mas manter distância por enquanto', efeitos:{moral:1, tracos:{serio:1}} }
     ]
   };
@@ -89,6 +108,7 @@ function gerarEventoConhecerAlguem(){
 const EVENTOS_RELACIONAMENTO = [
   { id:'relacionamento_encontro', categoria:'geral',
     texto:(g)=>`${g.relacionamento.nome} separa um tempo na agenda só pra ficar com você, sem pressa nem crise — só vocês dois.`,
+    retrato:(g)=>({ nome:g.relacionamento.nome, papel:'parceiro', genero:g.relacionamento.genero }),
     escolhas:[
       { label:'Aproveitar o tempo juntos de verdade', efeitos:{moral:5},
         extra:(g)=>{ g.relacionamento.relacao = clamp(g.relacionamento.relacao+8, 0, 100); } },
@@ -97,6 +117,7 @@ const EVENTOS_RELACIONAMENTO = [
     ] },
   { id:'relacionamento_distancia', categoria:'geral',
     texto:(g)=>`${g.relacionamento.nome} comenta, meio sem graça, que vocês têm se falado bem menos ultimamente.\n\n— Não é uma cobrança, só... senti sua falta.`,
+    retrato:(g)=>({ nome:g.relacionamento.nome, papel:'parceiro', genero:g.relacionamento.genero }),
     escolhas:[
       { label:'Reconhecer e se comprometer a mudar isso', efeitos:{moral:2, tracos:{humilde:1}},
         extra:(g)=>{ g.relacionamento.relacao = clamp(g.relacionamento.relacao+4, 0, 100); } },
@@ -104,6 +125,57 @@ const EVENTOS_RELACIONAMENTO = [
         extra:(g)=>{ g.relacionamento.relacao = clamp(g.relacionamento.relacao-6, 0, 100); } }
     ] }
 ];
+
+/* ============================== CASAMENTO =======================================
+   Namoro que evolui bem por tempo suficiente pode virar pedido de casamento —
+   thresholds altos de propósito (relação sustentada + tempo junto real, não
+   um namoro de 2 semanas). Casado desgasta mais devagar e não termina sozinho
+   por relação baixa (vira uma "crise no casamento" em vez de término direto).
+   ========================================================================= */
+function gerarEventoPedidoCasamento(){
+  const g = GAME;
+  if(!g.relacionamento || g.relacionamento.casado) return null;
+  if(g.relacionamento.relacao < 82 || (g.relacionamento.semanasJuntos||0) < 24) return null;
+  const nome = g.relacionamento.nome, genero = g.relacionamento.genero;
+  return {
+    id:'relacionamento_pedido_casamento', categoria:'geral',
+    texto:(g)=>`Depois de tanto tempo juntos, ${nome} olha pra você com um misto de nervosismo e certeza.\n\n— Eu já pensei bastante sobre isso... quero seguir esse caminho com você. Topa oficializar?`,
+    retrato:()=>({ nome, papel:'parceiro', genero }),
+    escolhas:[
+      { label:'Aceitar — pedir/topar o casamento', efeitos:{moral:8, tracos:{humilde:1}},
+        extra:(g)=>{
+          g.relacionamento.casado = true; g.relacionamento.semanasCasado = 0;
+          g.relacionamento.relacao = clamp(g.relacionamento.relacao+10, 0, 100);
+          registrarMarco('Casamento', `${g.identidade.apelido} se casou com ${nome}.`, 'alta');
+          pushNoticia('familia', `${g.identidade.apelido} e ${nome} se casaram!`);
+        } },
+      { label:'Pedir mais um tempo antes de decidir', efeitos:{pressaoPsicologica:2},
+        extra:(g)=>{ g.relacionamento.relacao = clamp(g.relacionamento.relacao-3, 0, 100); } }
+    ]
+  };
+}
+// Casamento em baixa (relação caiu bastante) — dispara em vez do término
+// automático do namoro, já que casamento é tratado como vínculo mais estável.
+function gerarEventoCriseCasamento(){
+  const g = GAME;
+  if(!g.relacionamento || !g.relacionamento.casado || g.relacionamento.relacao > 25) return null;
+  const nome = g.relacionamento.nome, genero = g.relacionamento.genero;
+  return {
+    id:'relacionamento_crise_casamento', categoria:'geral',
+    texto:(g)=>`${nome} puxa uma conversa séria em casa.\n\n— A gente precisa se olhar de novo. Tá difícil ultimamente, e eu não quero que a gente vire só rotina.`,
+    retrato:()=>({ nome, papel:'parceiro', genero }),
+    escolhas:[
+      { label:'Priorizar o casamento e se reaproximar', efeitos:{moral:3, tracos:{humilde:1}},
+        extra:(g)=>{ g.relacionamento.relacao = clamp(g.relacionamento.relacao+18, 0, 100); } },
+      { label:'Reconhecer que talvez o momento seja de seguir caminhos separados', efeitos:{moral:-4, tracos:{serio:1}},
+        extra:(g)=>{
+          pushNoticia('familia', `${g.identidade.apelido} e ${nome} se separaram.`);
+          GAME.sociais.moral = clamp(GAME.sociais.moral-10, 0, 100);
+          g.relacionamento = null;
+        } }
+    ]
+  };
+}
 
 // Check-in narrativo forçado 1x por período (sem depender do roll de 45% de evento comum)
 function gerarEventoCheckinVidaPessoal(){
@@ -131,7 +203,10 @@ function painelVidaPessoal(){
   }).join('');
   const relacionamentoHtml = g.relacionamento ? `
     <div class="spacer"></div>
-    <p class="small muted" style="margin-bottom:2px">Namorando <b>${escapeHtml(g.relacionamento.nome)}</b> há ${g.relacionamento.semanasJuntos} semana(s)</p>
+    <div style="display:flex;align-items:center;gap:10px">
+      ${retratoNpcHtml(g.relacionamento.nome, { papel:'parceiro', genero:g.relacionamento.genero, size:48 })}
+      <p class="small muted" style="margin-bottom:2px">${g.relacionamento.casado ? 'Casado(a) com' : 'Namorando'} <b>${escapeHtml(g.relacionamento.nome)}</b> há ${g.relacionamento.casado ? (g.relacionamento.semanasCasado||0) : g.relacionamento.semanasJuntos} semana(s)</p>
+    </div>
     ${barraHtml('Relacionamento', g.relacionamento.relacao, g.relacionamento.relacao<25?'danger':g.relacionamento.relacao<50?'warn':undefined)}
   ` : '';
   return `<div class="card">

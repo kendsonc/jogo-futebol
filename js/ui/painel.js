@@ -19,7 +19,7 @@ function abrirPainel(){
   overlay.innerHTML = `
     <div id="panel-modal">
       <div class="panel-header">
-        <div style="display:flex;align-items:center;gap:10px">${GAME.clube ? crestHtml(GAME.clube, 36) : ''}<h2>Painel do Jogador</h2></div>
+        <div style="display:flex;align-items:center;gap:10px">${GAME.clube ? escudoClubeHtml(GAME.clube, 36) : ''}<h2>Painel do Jogador</h2></div>
         <button class="btn btn-small" id="btn-fechar-painel">Fechar ✕</button>
       </div>
       <div class="tabs">${PAINEL_ABAS.map(a=>`<button class="tab-btn ${a===painelAbaAtiva?'active':''}" data-aba="${a}">${PAINEL_LABELS[a]}</button>`).join('')}</div>
@@ -59,7 +59,8 @@ function painelDados(){
   const g = GAME;
   return `<div class="card">
     <div style="display:flex; align-items:center; gap:14px; margin-bottom:14px">
-      ${g.clube ? crestHtml(g.clube, 56) : ''}
+      ${g.identidade.aparencia ? pixelRostoSvg(g.identidade.aparencia, 64) : ''}
+      ${g.clube ? escudoClubeHtml(g.clube, 56) : ''}
       <div>
         <p style="font-size:28px; line-height:1"><b>${calcularOverall()}</b></p>
         <p class="muted small">OVERALL — força geral atual</p>
@@ -203,7 +204,11 @@ function painelObjetivos(){
   }).join('<hr style="border-color:#232b3a;margin:8px 0">')}</div>`;
 }
 function painelAgenda(){
-  if(!GAME.temporadaState) return `<div class="card muted">A temporada ainda não começou.</div>`;
+  // Entre temporadas (entressafra), GAME.temporadaState ainda existe (é da
+  // temporada que acabou de fechar, com periodoIndex já além do fim) — sem
+  // checar a fase, periodoAtualObj() caía em `undefined` e gerarAgendaSemanal
+  // quebrava tentando ler `.semanas` dele.
+  if(!GAME.temporadaState || GAME.fase !== 'temporada') return `<div class="card muted">A temporada ainda não começou.</div>`;
   const info = gerarAgendaSemanal();
   const itens = [];
   if(info.rivalDestaque) itens.push(`<p>⚔️ ${escapeHtml(info.rivalDestaque)}</p>`);
@@ -273,7 +278,7 @@ function painelCalendario(){
     return `<tr style="border-top:1px solid #232b3a;${i===liga.rodadaAtual?'background:rgba(42,157,111,.10)':''}">
       <td style="padding:4px 6px">${i+1}</td>
       <td style="padding:4px 6px">${mandante?'Casa':'Fora'}</td>
-      <td style="padding:4px 6px">${escapeHtml(placarTxt)}</td>
+      <td style="padding:4px 6px"><span style="display:flex;align-items:center;gap:6px">${oponente?escudoClubeHtml(oponente,20):''}${escapeHtml(placarTxt)}</span></td>
       <td style="padding:4px 6px">${statusTag}</td>
     </tr>`;
   }).filter(Boolean).join('');
@@ -306,7 +311,7 @@ function painelTabela(){
       </tr></thead>
       <tbody>
       ${linhas.map((l,i) => `<tr style="border-top:1px solid #232b3a;${l.c.id===GAME.clube.id?'background:rgba(42,157,111,.14);font-weight:600':''}">
-        ${cel(i+1)}<td style="padding:4px 6px">${escapeHtml(l.c.nome)}</td>
+        ${cel(i+1)}<td style="padding:4px 6px"><span style="display:flex;align-items:center;gap:6px">${escudoClubeHtml(l.c, 20)}${escapeHtml(l.c.nome)}</span></td>
         ${cel(l.t.pj)}${cel(l.t.v)}${cel(l.t.e)}${cel(l.t.d)}${cel(l.t.gp)}${cel(l.t.gc)}${cel(l.t.sg)}<td style="padding:4px 6px"><b>${l.t.pts}</b></td>
       </tr>`).join('')}
       </tbody>
@@ -323,8 +328,9 @@ function painelCopas(){
     const historicoHtml = c.historicoRodadas.map(h => {
       const meu = h.confrontos.find(x => x.envolveJogador);
       if(!meu) return `<p class="small muted">${escapeHtml(h.nomeRodada)}: você não estava mais na disputa.</p>`;
-      const placar = `${meu.aNome} ${meu.golsA} x ${meu.golsB} ${meu.bNome}${meu.penaltis?' (pênaltis)':''}`;
-      return `<p class="small">${escapeHtml(h.nomeRodada)}: ${escapeHtml(placar)} — <b>${meu.jogadorVenceu?'Avançou':'Eliminado'}</b></p>`;
+      const escudoA = escudoClubeHtml({ nome:meu.aNome, cor1:meu.aCor1, cor2:meu.aCor2 }, 20);
+      const escudoB = escudoClubeHtml({ nome:meu.bNome, cor1:meu.bCor1, cor2:meu.bCor2 }, 20);
+      return `<p class="small"><span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${escapeHtml(h.nomeRodada)}: ${escudoA}${escapeHtml(meu.aNome)} ${meu.golsA} x ${meu.golsB} ${escudoB}${escapeHtml(meu.bNome)}${meu.penaltis?' (pênaltis)':''} — <b>${meu.jogadorVenceu?'Avançou':'Eliminado'}</b></span></p>`;
     }).join('');
     return `<div class="card">
       <div class="card-title">${escapeHtml(c.nome)}</div>

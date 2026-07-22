@@ -131,7 +131,13 @@ function sortearEvento(){
     pool.push(...EVENTOS_ELENCO_PAPEL.map(gerador => gerador()).filter(Boolean));
   }
   if(GAME.rival) pool.push(...EVENTOS_RIVAL);
-  if(GAME.relacionamento) pool.push(...EVENTOS_RELACIONAMENTO);
+  if(GAME.relacionamento){
+    pool.push(...EVENTOS_RELACIONAMENTO);
+    const pedido = gerarEventoPedidoCasamento();
+    if(pedido) pool.push(pedido);
+    const crise = gerarEventoCriseCasamento();
+    if(crise) pool.push(crise);
+  }
   else if(GAME.sociais.popularidade >= 15 && chance(15)) pool.push(gerarEventoConhecerAlguem());
   if(GAME.tecnico && GAME.tecnico.estilo) pool.push(...EVENTOS_TECNICO.map(gerador => gerador()).filter(Boolean));
   if(!GAME.empresarioAtual && !ts.empresarioOfertado && ts.periodoIndex >= 1 && chance(40)){
@@ -164,11 +170,21 @@ function renderEvento(){
   if(ts.seguimentoEvento) return renderSeguimentoEvento();
   const evt = ts.eventoAtual;
   const texto = evt.texto(GAME);
+  // Convenção: evento pode declarar `retrato:(g)=>({nome,papel,genero?})` pra
+  // ganhar o rosto do NPC envolvido sem precisar tocar no texto — o hub central
+  // cobre de uma vez todos os eventos que já capturam o NPC em closure.
+  const retratoInfo = evt.retrato ? evt.retrato(GAME) : null;
+  const retratoHtml = retratoInfo ? retratoNpcHtml(retratoInfo.nome, retratoInfo) : '';
   app.innerHTML = `
     ${statusBarHtml()}
     <div class="card">
       <div class="card-title">Evento</div>
-      <div id="scene-text">${escapeHtml(texto).replace(/\n/g,'<br>')}</div>
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        ${retratoHtml}
+        <div style="flex:1">
+          <div id="scene-text">${escapeHtml(texto).replace(/\n/g,'<br>')}</div>
+        </div>
+      </div>
       <div class="choices">
         ${evt.escolhas.map((e,i)=>`<button class="btn" data-i="${i}">${escapeHtml(e.label)}</button>`).join('')}
       </div>
@@ -180,7 +196,7 @@ function renderEvento(){
       if(evt.categoria === 'obscuro') ts.eventosObscurosOcorridos += 1;
       if(evt.categoria === 'luto' && !esc.seguimento){ esc.seguimento = renderSeguimentoLuto(); ts.lutoOcorrido = true; }
       if(esc.seguimento){
-        ts.seguimentoEvento = { baseEfeitos: esc.efeitos, baseExtra: esc.extra, seguimento: esc.seguimento, eventoId: evt.id };
+        ts.seguimentoEvento = { baseEfeitos: esc.efeitos, baseExtra: esc.extra, seguimento: esc.seguimento, eventoId: evt.id, retrato: retratoInfo };
         salvarJogo();
         render();
         return;
@@ -201,13 +217,19 @@ function renderEvento(){
 // Segunda réplica de um evento da temporada que foi prolongado
 function renderSeguimentoEvento(){
   const ts = GAME.temporadaState;
-  const { seguimento } = ts.seguimentoEvento;
+  const { seguimento, retrato } = ts.seguimentoEvento;
   const texto = typeof seguimento.texto === 'function' ? seguimento.texto(GAME) : seguimento.texto;
+  const retratoHtml = retrato ? retratoNpcHtml(retrato.nome, retrato) : '';
   app.innerHTML = `
     ${statusBarHtml()}
     <div class="card">
       <div class="card-title">Evento (continuação)</div>
-      <div id="scene-text">${escapeHtml(texto).replace(/\n/g,'<br>')}</div>
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        ${retratoHtml}
+        <div style="flex:1">
+          <div id="scene-text">${escapeHtml(texto).replace(/\n/g,'<br>')}</div>
+        </div>
+      </div>
       <div class="choices">
         ${seguimento.escolhas.map((e,i)=>`<button class="btn" data-i="${i}">${escapeHtml(e.label)}</button>`).join('')}
       </div>

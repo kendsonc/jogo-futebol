@@ -225,7 +225,7 @@ function renderEntressafraTransferencia(){
     <div class="menu-tiles">
       ${opcoes.map((c,i) => `
         <button class="menu-tile" data-i="${i}">
-          ${crestHtml(c,50)}
+          ${escudoClubeHtml(c,50)}
           <span class="menu-tile-body">
             <span class="menu-tile-title">${escapeHtml(c.nome)} ${tierBadgeHtml(c.liga || c.divisao)}</span>
             <span class="menu-tile-sub">${escapeHtml(localClube(c))} — ${escapeHtml(PERFIL_CLUBE_BLURB[perfilClube(c)])}</span>
@@ -233,7 +233,7 @@ function renderEntressafraTransferencia(){
           <span class="menu-tile-arrow">→</span>
         </button>`).join('')}
       <button class="menu-tile" data-i="ficar">
-        ${crestHtml(GAME.clube,50)}
+        ${escudoClubeHtml(GAME.clube,50)}
         <span class="menu-tile-body">
           <span class="menu-tile-title">Permanecer no ${escapeHtml(GAME.clube.nome)} ${tierBadgeHtml(GAME.clube.liga || GAME.clube.divisao)}</span>
           <span class="menu-tile-sub">Seguir construindo sua história onde você já está</span>
@@ -256,8 +256,8 @@ function renderEntressafraTransferencia(){
         const ofertaTransferencia = calcularOfertaTransferencia(novoClube);
         GAME.contrato = { tipo:ofertaTransferencia.tipo, bolsa:ofertaTransferencia.bolsa, duracao:ofertaTransferencia.duracao,
           expectativa:ofertaTransferencia.expectativa, confiancaDiretoria:ofertaTransferencia.confiancaDiretoria };
-        GAME.tecnico = gerarTecnico();
-        GAME.observador = pick(NOMES_OBSERVADORES);
+        GAME.tecnico = gerarTecnico(GAME.tecnico && GAME.tecnico.nome);
+        GAME.observador = pickExcluindo(NOMES_OBSERVADORES, GAME.observador);
         GAME.elenco = gerarElenco(); // novo clube, novos companheiros de elenco
         GAME.relacoes.treinador = 50; GAME.relacoes.elenco = 50; GAME.relacoes.diretoria = 50; GAME.relacoes.torcida = 15;
         GAME.status.statusElenco = 'Novo reforço';

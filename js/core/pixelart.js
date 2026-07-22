@@ -175,16 +175,27 @@ function pixelRelogio(cor, metal, size){
 
 /* ------------------------------ MOLDES: CARRO ---------------------------------
    Um perfil lateral por categoria (linha do teto muda o "tipo" de carro),
-   sempre com para-brisa, roda e faróis nítidos, só a lataria muda de cor. */
-function construirCarro(perfilTeto, comprimento){
+   sempre com para-brisa, roda e faróis nítidos. Cada categoria tem 3
+   VARIANTES de silhueta/acabamento (perfil de teto + capota/friso/aerofólio
+   opcionais) — a variante de cada carro é escolhida por hash estável do seu
+   `id` (hashString, js/core/utils.js), então o mesmo carro sempre desenha
+   igual entre renders/saves, mas carros diferentes da mesma categoria não
+   ficam todos com a cara idêntica só recolorida. */
+function construirCarro(perfilTeto, comprimento, extras){
+  extras = extras || {};
   const cols = comprimento, rows = 9;
   const g = novaGrade(cols, rows);
   const carroceriaY0 = 5, carroceriaY1 = 7;
   pintarRetangulo(g, 1, carroceriaY0, cols-2, carroceriaY1, 'C');
-  perfilTeto.forEach(([x0,x1,y0]) => pintarRetangulo(g, x0, y0, x1, carroceriaY0-1, 'C'));
+  const corTeto = extras.capotaEscura ? 'Z' : 'C';
+  perfilTeto.forEach(([x0,x1,y0]) => pintarRetangulo(g, x0, y0, x1, carroceriaY0-1, corTeto));
   // para-brisa: fatia de vidro logo abaixo do teto
   const tetoTopo = Math.min(...perfilTeto.map(f => f[2]));
   pintarRetangulo(g, Math.round(cols*0.32), tetoTopo+1, Math.round(cols*0.66), carroceriaY0-1, 'J');
+  // friso lateral: risco claro corrido na lataria (acabamento esportivo/premium)
+  if(extras.friso) pintarRetangulo(g, 2, carroceriaY0+1, cols-3, carroceriaY0+1, 'F');
+  // aerofólio: pequeno bloco elevado na traseira (esportivos/superesportivos)
+  if(extras.spoiler) pintarRetangulo(g, cols-5, carroceriaY0-1, cols-2, carroceriaY0-1, 'C');
   // faróis
   pintar(g, cols-2, carroceriaY0, 'H'); pintar(g, 1, carroceriaY0, 'L');
   // rodas
@@ -193,60 +204,125 @@ function construirCarro(perfilTeto, comprimento){
   aplicarContorno(g, 'K');
   return gradeParaLinhas(g);
 }
-// perfilTeto: lista de [x0,x1,y0] — cada trecho do teto, do mais alto (y0 menor) ao capô.
-const MOLDES_CARRO = {
-  popular:        construirCarro([[5,13,2]], 20),
-  sedan:          construirCarro([[5,15,2],[15,19,3]], 24),
-  suv:            construirCarro([[4,15,1]], 22),
-  esportivo:      construirCarro([[7,14,3],[14,19,4]], 24),
-  superesportivo: construirCarro([[8,16,4],[16,22,5]], 27)
+// Cada entrada: [perfilTeto, comprimento, extras]. perfilTeto = lista de
+// [x0,x1,y0] (cada trecho do teto, do mais alto/y0 menor ao capô).
+const VARIANTES_CARRO = {
+  popular: [
+    [[[5,13,2]], 20, {}],
+    [[[6,12,2]], 20, {friso:true}],
+    [[[4,9,2],[9,14,3]], 21, {capotaEscura:true}]
+  ],
+  sedan: [
+    [[[5,15,2],[15,19,3]], 24, {}],
+    [[[4,14,2],[14,20,3]], 24, {friso:true}],
+    [[[6,13,1],[13,19,2]], 25, {capotaEscura:true}]
+  ],
+  suv: [
+    [[[4,15,1]], 22, {}],
+    [[[3,10,1],[10,16,2]], 22, {friso:true}],
+    [[[5,14,0]], 23, {capotaEscura:true}]
+  ],
+  esportivo: [
+    [[[7,14,3],[14,19,4]], 24, {}],
+    [[[6,13,4],[13,20,5]], 24, {spoiler:true}],
+    [[[8,15,3],[15,19,4]], 25, {capotaEscura:true, spoiler:true}]
+  ],
+  superesportivo: [
+    [[[8,16,4],[16,22,5]], 27, {spoiler:true}],
+    [[[7,14,3],[14,23,5]], 28, {friso:true, spoiler:true}],
+    [[[9,15,4],[15,21,4]], 26, {capotaEscura:true, spoiler:true}]
+  ]
 };
-function pixelCarro(categoria, cor, size){
-  const molde = MOLDES_CARRO[categoria] || MOLDES_CARRO.popular;
-  const paleta = { K:corContornoPara(cor), C:cor, J:'#bcdcf2', R:'#3a4050', H:'#ffe9a8', L:'#c94a3a' };
+function pixelCarro(modelo, cor, size){
+  // Aceita tanto o objeto do modelo (recomendado, permite variante estável
+  // por id) quanto só a string da categoria (uso antigo, cai na variante 0).
+  const categoria = typeof modelo === 'string' ? modelo : modelo.categoria;
+  const variantes = VARIANTES_CARRO[categoria] || VARIANTES_CARRO.popular;
+  const indice = typeof modelo === 'string' ? 0 : hashString(modelo.id) % variantes.length;
+  const [perfilTeto, comprimento, extras] = variantes[indice];
+  const molde = construirCarro(perfilTeto, comprimento, extras);
+  const paleta = { K:corContornoPara(cor), C:cor, Z:pixelShade(cor,-60), F:pixelShade(cor,90), J:'#bcdcf2', R:'#3a4050', H:'#ffe9a8', L:'#c94a3a' };
   return pixelArtSvg(molde, paleta, size || 64);
 }
 
 /* ------------------------------ MOLDES: IMÓVEL --------------------------------
-   Casa: telhado triangular + fachada com 2 janelas e porta central.
-   Prédio: fachada retangular alta com grade de janelas.
-   Cobertura: prédio com um recuo de terraço no topo. */
-function construirCasa(){
+   Casa: telhado + fachada com janelas e porta central — 3 variantes de
+   telhado/planta (triangular clássica, meia-água ampla com garagem, sobrado
+   de 2 andares). Prédio/Cobertura: fachada com grade de janelas — a altura
+   (nº de andares) reflete os quartos do imóvel, e o padrão da fachada (grade,
+   fitas horizontais ou varanda) varia por variante. A variante e, no caso do
+   prédio/cobertura, os andares, são escolhidos a partir de dados reais do
+   próprio imóvel (id via hashString + quartos), então cada imóvel tem uma
+   aparência própria em vez de reaproveitar sempre o mesmo desenho genérico. */
+function construirCasa(estilo){
   const g = novaGrade(15, 11);
-  for(let i=0; i<5; i++) pintarRetangulo(g, 4+i, 1+i, 10-i, 1+i, 'T'); // telhado triangular
-  pintarRetangulo(g, 2, 6, 12, 10, 'C');   // fachada
-  pintarRetangulo(g, 3, 7, 5, 8, 'J');     // janela esquerda
-  pintarRetangulo(g, 9, 7, 11, 8, 'J');    // janela direita
-  pintarRetangulo(g, 6, 8, 8, 10, 'D');    // porta
-  aplicarContorno(g, 'K');
-  return gradeParaLinhas(g);
-}
-function construirPredio(){
-  const g = novaGrade(13, 15);
-  pintarRetangulo(g, 1, 1, 11, 14, 'C');
-  for(let andar=0; andar<5; andar++){
-    const y = 2 + andar*2;
-    pintarRetangulo(g, 2, y, 3, y, 'J'); pintarRetangulo(g, 5, y, 6, y, 'J'); pintarRetangulo(g, 8, y, 9, y, 'J');
+  if(estilo === 'meiaAgua'){
+    for(let i=0; i<5; i++) pintarRetangulo(g, 3, 2+i, 13-i, 2+i, 'T'); // telhado de uma água só
+    pintarRetangulo(g, 1, 7, 13, 10, 'C');   // fachada mais larga
+    pintarRetangulo(g, 2, 8, 4, 9, 'J');
+    pintarRetangulo(g, 10, 8, 12, 9, 'G');   // portão da garagem
+    pintarRetangulo(g, 6, 9, 8, 10, 'D');    // porta
+  } else if(estilo === 'sobrado'){
+    pintarRetangulo(g, 4, 0, 10, 1, 'T');    // telhado baixo/plano do 2º andar
+    pintarRetangulo(g, 3, 2, 11, 5, 'C');    // fachada do 2º andar
+    pintarRetangulo(g, 4, 3, 5, 4, 'J'); pintarRetangulo(g, 9, 3, 10, 4, 'J');
+    pintarRetangulo(g, 2, 6, 12, 10, 'C');   // fachada do térreo
+    pintarRetangulo(g, 3, 7, 5, 8, 'J'); pintarRetangulo(g, 9, 7, 11, 8, 'J');
+    pintarRetangulo(g, 6, 8, 8, 10, 'D');
+  } else { // triangular (clássica)
+    for(let i=0; i<5; i++) pintarRetangulo(g, 4+i, 1+i, 10-i, 1+i, 'T');
+    pintarRetangulo(g, 2, 6, 12, 10, 'C');
+    pintarRetangulo(g, 3, 7, 5, 8, 'J');
+    pintarRetangulo(g, 9, 7, 11, 8, 'J');
+    pintarRetangulo(g, 6, 8, 8, 10, 'D');
   }
-  pintarRetangulo(g, 5, 12, 7, 14, 'D'); // porta de entrada
   aplicarContorno(g, 'K');
   return gradeParaLinhas(g);
 }
-function construirCobertura(){
-  const g = novaGrade(13, 15);
-  pintarRetangulo(g, 1, 3, 11, 14, 'C');
-  pintarRetangulo(g, 3, 1, 9, 2, 'T');   // recuo do terraço, mais estreito que o prédio
-  for(let andar=0; andar<4; andar++){
-    const y = 5 + andar*2;
-    pintarRetangulo(g, 2, y, 3, y, 'J'); pintarRetangulo(g, 5, y, 6, y, 'J'); pintarRetangulo(g, 8, y, 9, y, 'J');
+const ESTILOS_CASA = ['triangular','meiaAgua','sobrado'];
+// terracoTopo: quando há recuo de terraço (cobertura), reserva as 2 primeiras
+// linhas pro terraço antes de começar os andares normais.
+function construirPredioOuCobertura(andares, estiloFachada, comTerraço){
+  andares = clamp(andares, 3, 9);
+  const rows = 4 + andares*2 + (comTerraço?2:0);
+  const g = novaGrade(13, rows);
+  let y0 = 1;
+  if(comTerraço){
+    pintarRetangulo(g, 3, 1, 9, 2, 'T');
+    y0 = 3;
   }
-  pintarRetangulo(g, 5, 12, 7, 14, 'D');
+  pintarRetangulo(g, 1, y0, 11, rows-1, 'C');
+  for(let andar=0; andar<andares; andar++){
+    const y = y0 + 1 + andar*2;
+    if(y >= rows-3) break;
+    if(estiloFachada === 'fitas'){
+      pintarRetangulo(g, 2, y, 10, y, 'J'); // faixa de vidro corrida
+    } else if(estiloFachada === 'varanda'){
+      pintarRetangulo(g, 2, y, 4, y, 'J'); pintarRetangulo(g, 8, y, 10, y, 'J');
+      pintarRetangulo(g, 2, y+1, 10, y+1, 'V'); // parapeito da varanda
+    } else { // grade (clássica, 3 colunas)
+      pintarRetangulo(g, 2, y, 3, y, 'J'); pintarRetangulo(g, 5, y, 6, y, 'J'); pintarRetangulo(g, 8, y, 9, y, 'J');
+    }
+  }
+  pintarRetangulo(g, 5, rows-3, 7, rows-1, 'D'); // porta de entrada
   aplicarContorno(g, 'K');
   return gradeParaLinhas(g);
 }
-const MOLDES_IMOVEL = { casa: construirCasa(), predio: construirPredio(), cobertura: construirCobertura() };
-function pixelImovel(tipo, corParede, size){
-  const molde = MOLDES_IMOVEL[tipo] || MOLDES_IMOVEL.casa;
-  const paleta = { K:corContornoPara(corParede), C:corParede, T:'#8a3b32', J:'#bcdcf2', D:'#5a3a22' };
+const ESTILOS_FACHADA = ['grade','fitas','varanda'];
+function andaresPorQuartos(quartos){ return clamp(3 + Math.round((quartos||2)/1.2), 4, 9); }
+function pixelImovel(imovel, corParede, size){
+  // Aceita tanto o objeto do imóvel (recomendado, permite variante estável
+  // por id + altura pelos quartos) quanto só a string do tipo (uso antigo).
+  const tipo = typeof imovel === 'string' ? imovel : imovel.tipo;
+  const idx = typeof imovel === 'string' ? 0 : hashString(imovel.id);
+  let molde;
+  if(tipo === 'predio' || tipo === 'cobertura'){
+    const andares = typeof imovel === 'string' ? 5 : andaresPorQuartos(imovel.quartos);
+    const estiloFachada = ESTILOS_FACHADA[idx % ESTILOS_FACHADA.length];
+    molde = construirPredioOuCobertura(andares, estiloFachada, tipo === 'cobertura');
+  } else {
+    molde = construirCasa(ESTILOS_CASA[idx % ESTILOS_CASA.length]);
+  }
+  const paleta = { K:corContornoPara(corParede), C:corParede, T:'#8a3b32', J:'#bcdcf2', D:'#5a3a22', G:'#5a6272', V:pixelShade(corParede,-35) };
   return pixelArtSvg(molde, paleta, size || 60);
 }

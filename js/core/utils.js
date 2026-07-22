@@ -17,6 +17,17 @@ function golsPoisson(forca){
   for(let i=0;i<6;i++){ if(chance(lambda/6*100)) n++; }
   return n;
 }
+// Hash simples e estável de string -> inteiro >=0. Usado sempre que algo
+// precisa de uma escolha "aleatória" que na verdade tem que ser sempre a
+// MESMA pra um mesmo nome/id entre renders/saves (variante visual de um
+// carro/imóvel pelo id, aparência de um NPC pelo nome, etc.) — dá pra tirar
+// `% n` do resultado pra escolher entre n opções de forma determinística.
+function hashString(s){
+  let h = 0;
+  const str = String(s);
+  for(let i=0; i<str.length; i++){ h = (h*31 + str.charCodeAt(i)) | 0; }
+  return Math.abs(h);
+}
 function fmtData(d){ const dd=String(d.getDate()).padStart(2,'0'), mm=String(d.getMonth()+1).padStart(2,'0'); return `${dd}/${mm}/${d.getFullYear()}`; }
 function el(html){ const t=document.createElement('template'); t.innerHTML=html.trim(); return t.content.firstChild; }
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }

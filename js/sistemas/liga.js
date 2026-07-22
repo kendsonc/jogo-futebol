@@ -73,8 +73,11 @@ function montarLigaTemporada(){
       pool = pool.concat(extras);
     }
   }
-  const rivais = pool.slice(0,19).map(c => ({ id:c.id, nome:c.nome, nivelBase:c.nivelBase, reputacao:c.reputacao, divisao:c.divisao, cidade:c.cidade, uf:c.uf }));
-  const clubes = [{ id:GAME.clube.id, nome:GAME.clube.nome, nivelBase:GAME.clube.nivelBase, reputacao:GAME.clube.reputacao, divisao:GAME.clube.divisao, cidade:GAME.clube.cidade, uf:GAME.clube.uf }, ...rivais];
+  // cor1/cor2 vão junto (além de servirem pra tematizar a interface, são a
+  // base do fallback procedural de escudo — js/core/escudos.js — pra clubes
+  // que ainda não têm uma spec fiel cadastrada em ESCUDOS_CLUBES)
+  const rivais = pool.slice(0,19).map(c => ({ id:c.id, nome:c.nome, nivelBase:c.nivelBase, reputacao:c.reputacao, divisao:c.divisao, cidade:c.cidade, uf:c.uf, cor1:c.cor1, cor2:c.cor2 }));
+  const clubes = [{ id:GAME.clube.id, nome:GAME.clube.nome, nivelBase:GAME.clube.nivelBase, reputacao:GAME.clube.reputacao, divisao:GAME.clube.divisao, cidade:GAME.clube.cidade, uf:GAME.clube.uf, cor1:GAME.clube.cor1, cor2:GAME.clube.cor2 }, ...rivais];
   const tabela = {};
   clubes.forEach(c => { tabela[c.id] = { pj:0, v:0, e:0, d:0, gp:0, gc:0, sg:0, pts:0 }; });
   return { clubes, tabela, divisao: meuTier, calendario: gerarCalendarioRoundRobin(clubes.map(c=>c.id)), rodadaAtual:0, historico:[] };
@@ -102,8 +105,8 @@ function montarLigaInternacional(){
     const preenchimento = ordenarPorProximidade(CLUBES.filter(c => c.divisao === 'Série A' && !usados.has(c.id)));
     pool = pool.concat(preenchimento);
   }
-  const rivais = pool.slice(0,19).map(c => ({ id:c.id, nome:c.nome, nivelBase:c.nivelBase, reputacao:c.reputacao, divisao:c.divisao, cidade:c.cidade, uf:c.uf||null }));
-  const clubes = [{ id:GAME.clube.id, nome:GAME.clube.nome, nivelBase:GAME.clube.nivelBase, reputacao:GAME.clube.reputacao, divisao:GAME.clube.divisao, cidade:GAME.clube.cidade, uf:GAME.clube.uf||null }, ...rivais];
+  const rivais = pool.slice(0,19).map(c => ({ id:c.id, nome:c.nome, nivelBase:c.nivelBase, reputacao:c.reputacao, divisao:c.divisao, cidade:c.cidade, uf:c.uf||null, cor1:c.cor1, cor2:c.cor2 }));
+  const clubes = [{ id:GAME.clube.id, nome:GAME.clube.nome, nivelBase:GAME.clube.nivelBase, reputacao:GAME.clube.reputacao, divisao:GAME.clube.divisao, cidade:GAME.clube.cidade, uf:GAME.clube.uf||null, cor1:GAME.clube.cor1, cor2:GAME.clube.cor2 }, ...rivais];
   const tabela = {};
   clubes.forEach(c => { tabela[c.id] = { pj:0, v:0, e:0, d:0, gp:0, gc:0, sg:0, pts:0 }; });
   return { clubes, tabela, divisao:'Internacional', calendario: gerarCalendarioRoundRobin(clubes.map(c=>c.id)), rodadaAtual:0, historico:[] };
@@ -190,7 +193,9 @@ function processarRodadaLiga(confronto, golsJogador, golsAdversario){
     if(!home || !away) return;
     const sim = simularPartidaGenerica(home, away);
     atualizarLinhaTabela(liga.tabela, home.id, away.id, sim.golsA, sim.golsB);
-    outros.push(`${home.nome} ${sim.golsA}x${sim.golsB} ${away.nome}`);
+    // objeto estruturado (não string pronta) pra permitir mostrar o escudo dos
+    // dois lados em outrosHtml (js/sistemas/partida.js), não só o nome em texto
+    outros.push({ homeNome:home.nome, awayNome:away.nome, golsA:sim.golsA, golsB:sim.golsB, homeCor1:home.cor1, homeCor2:home.cor2, awayCor1:away.cor1, awayCor2:away.cor2 });
   });
   liga.rodadaAtual += 1;
   return outros;
@@ -250,9 +255,21 @@ function avancarSemana(){
     } else {
       pushNoticia('geral', `Início do período: ${periodoAtualObj().nome}.`);
       ts.checkinVidaPessoalPendente = true;
-      avancarTodasAsCopasAtivas();
+      // Se alguma copa parou numa disputa de pênaltis interativa (seu
+      // confronto foi a pênaltis), a semana PAUSA aqui — já foi renderizado
+      // dentro de avancarTodasAsCopasAtivas/iniciarPenaltisCopaInterativo.
+      // O resto desta função só roda depois, em concluirTickSemanal.
+      if(avancarTodasAsCopasAtivas()) return;
     }
   }
+  concluirTickSemanal();
+}
+// Segunda metade de avancarSemana: o tick semanal genérico (energia, salário,
+// juros/empréstimos/imóveis, desgaste de vínculos). Extraído pra poder ser
+// chamado tanto direto de avancarSemana quanto depois de uma disputa de
+// pênaltis de copa terminar (copas.js renderResultadoPenaltisCopa).
+function concluirTickSemanal(){
+  const ts = GAME.temporadaState;
   GAME.status.semanaGlobal += 1;
   // recuperação natural leve de energia entre semanas
   GAME.status.energia = clamp(GAME.status.energia + 6, 0, 100);
@@ -303,6 +320,7 @@ function gerarEventoEmpresario(){
   const comissao = COMISSAO_EMPRESARIO[tipo];
   return {
     id:'empresario', categoria:'empresario',
+    retrato:()=>({ nome:nomeCurto, papel:'empresario' }),
     texto:(g)=>`Depois do treino, um homem bem vestido te aborda no estacionamento do CT.\n\n— Oi, ${g.identidade.apelido}. Meu nome é ${descricaoCompleta}. Andei acompanhando seus últimos jogos. Podemos conversar sobre seu futuro?`,
     escolhas:[
       { label:'Aceitar conversar e ouvir a proposta', efeitos:{pressaoPsicologica:4},

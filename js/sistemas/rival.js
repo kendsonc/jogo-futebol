@@ -67,6 +67,7 @@ function gerarNoticiaComparativaRival(){
 
 const EVENTOS_RIVAL = [
   { id: 'rival_comparacao_midia', categoria: 'rival',
+    retrato: (g) => ({ nome: g.rival.nome, papel: 'rival' }),
     texto: (g) => `Um repórter te aborda depois do treino com o celular já gravando.\n\n— ${g.identidade.apelido}, o pessoal fica comparando você com ${g.rival.nome}, do ${g.rival.clubeNome}. O que acha disso?`,
     escolhas: [
       { label: 'Elogiar o rival e desviar do assunto', efeitos: { imagemMidia: 4, pressaoPsicologica: -2, tracos: { humilde: 1 } } },
@@ -74,6 +75,7 @@ const EVENTOS_RIVAL = [
       { label: 'Provocar de volta, dizendo que está na frente', efeitos: { popularidade: 5, pressaoPsicologica: 5, relacaoTreinador: -2, tracos: { confiante: 1 } } }
     ] },
   { id: 'rival_provocacao_redes', categoria: 'rival',
+    retrato: (g) => ({ nome: g.rival.nome, papel: 'rival' }),
     texto: (g) => `Nas redes sociais, um vídeo de ${g.rival.nome} comemorando um gol vem com a legenda "alguém aí ainda duvida?" — e boa parte dos comentários te cita.`,
     escolhas: [
       { label: 'Ignorar e focar no próximo treino', efeitos: { pressaoPsicologica: -2, tracos: { serio: 1 } } },
@@ -81,6 +83,7 @@ const EVENTOS_RIVAL = [
       { label: 'Guardar rancor e usar isso como motivação', efeitos: { atributos: { concentracao: 1 }, pressaoPsicologica: 4, tracos: { rebelde: 1 } } }
     ] },
   { id: 'rival_disputa_convocacao', categoria: 'rival',
+    retrato: (g) => ({ nome: g.rival.nome, papel: 'rival' }),
     texto: (g) => `Corre a notícia de que a comissão técnica de uma seleção de base está de olho tanto em você quanto em ${g.rival.nome} para a mesma posição.`,
     escolhas: [
       { label: 'Tentar não pensar nisso e manter a rotina', efeitos: { pressaoPsicologica: 3, tracos: { serio: 1 } } },

@@ -29,6 +29,11 @@ function prepararPartida(){
   const ehGoleiro = posicao === 'Goleiro';
   const ehAtacante = ['Ponta-direita','Ponta-esquerda','Segundo atacante','Centroavante','Meia ofensivo'].includes(posicao);
   const ehDefensor = ['Zagueiro','Lateral-direito','Lateral-esquerdo','Volante'].includes(posicao);
+  // Meio-campista central não é nem defensor puro nem atacante: no meio-campo,
+  // o trabalho real mistura passe/criação com marcação, então os lances e o
+  // peso da nota (abaixo) também devem misturar as duas coisas, em vez de
+  // cair no balde de "ataque" só por não estar nas outras duas listas.
+  const ehMeio = posicao === 'Meio-campista';
   const forcaOponente = oponente ? oponente.reputacao : GAME.clube.reputacao;
   const dificuldade = clamp(forcaOponente*0.6 + (mandante?-3:3) + rand(-10,15), 15, 95);
 
@@ -49,7 +54,8 @@ function prepararPartida(){
   } else if(entrouBanco){
     numLances = minutos>=20 ? rand(1,2) : 1;
   }
-  const pool = ehGoleiro ? LANCES_GOLEIRO : ehDefensor ? LANCES_DEFESA : LANCES_ATAQUE;
+  const poolMeio = [...LANCES_ATAQUE, ...LANCES_DEFESA];
+  const pool = ehGoleiro ? LANCES_GOLEIRO : ehDefensor ? LANCES_DEFESA : ehMeio ? poolMeio : LANCES_ATAQUE;
   const lances = [];
   for(let i=0;i<numLances;i++) lances.push(pick(pool));
 
@@ -62,13 +68,34 @@ function prepararPartida(){
     return clamp(Math.round(entradaMin + fatia*(i+1) + rand(-4,4)), entradaMin+1, Math.max(entradaMin+1, saidaMin-1));
   });
 
+  // Simula o desempenho coletivo do time (sem contar você) e do adversário
+  // ANTES dos lances, pra existir um placar "em andamento" pra mostrar durante
+  // o jogo — em vez de só revelar tudo de uma vez no resultado final. Os gols
+  // que você mesmo fizer/assistir nos lances entram DEPOIS, ao vivo, somando-se
+  // a esse placar-base (resolverEscolhaLance), então o placar exibido a cada
+  // lance é sempre exatamente o placar real até aquele minuto.
+  const penalidadeViagem = mandante ? 0 : clamp((distanciaKm||300)/350, 0, 5);
+  const forcaTime = clamp(GAME.clube.nivelBase + (GAME.relacoes.elenco-50)*0.2 + (GAME.temporadaState.mediaTreinoRecente-50)*0.15 + (mandante?4:-2-penalidadeViagem) + rand(-12,12), 15, 95);
+  const forcaAdversario = clamp((oponente ? oponente.reputacao*0.6 + oponente.nivelBase*0.3 : GAME.clube.reputacao*0.6) + (mandante?-2:4) + rand(-15,20), 15, 95);
+  const golsTimeBase = golsPoisson(forcaTime); // gols do time SEM contar os seus (somados depois)
+  const golsAdversarioFinal = golsPoisson(forcaAdversario); // adversário não é afetado pelos seus lances
+  const cronologiaGols = [];
+  for(let i=0;i<golsTimeBase;i++){
+    const nome = GAME.elenco && GAME.elenco.length ? pick(GAME.elenco).nome : 'Time';
+    cronologiaGols.push({ minuto: rand(1,90), texto: nome, nome });
+  }
+  for(let i=0;i<golsAdversarioFinal;i++){
+    cronologiaGols.push({ minuto: rand(1,90), texto: adversario, adversario:true });
+  }
+
   GAME.temporadaState.partidaEmAndamento = {
     status, adversario, minutos, entrouBanco, titular, dificuldade, mandante,
     oponenteId: oponente ? oponente.id : null, confrontoRival,
     distanciaKm, desgasteViagem,
-    ehGoleiro, ehAtacante, ehDefensor,
+    ehGoleiro, ehAtacante, ehDefensor, ehMeio,
     lances, minutosLances, indiceLance:0,
-    acumulado: { gols:0, assist:0, erros:0, amarelo:0, vermelho:0, defesaImportante:0, eventos:[], golsMinutos:[], assistMinutos:[] }
+    golsTimeBase, golsAdversarioFinal, cronologiaGols,
+    acumulado: { gols:0, assist:0, erros:0, amarelo:0, vermelho:0, defesaImportante:0, desarmesCertos:0, eventos:[], golsMinutos:[], assistMinutos:[] }
   };
   if(lances.length === 0){
     finalizarPartida(); // já salva e renderiza
@@ -79,12 +106,26 @@ function prepararPartida(){
   }
 }
 
-// Uma linha de contexto (minuto, mando, rival) que antecede a cena do lance —
-// um único ponto de mudança que dá ambientação a todos os lances existentes
-// sem precisar reescrever cada um deles.
+// Placar real até o minuto do lance atual: soma as entradas de cronologiaGols
+// (base do time + adversário, já fixas desde prepararPartida) com o que os
+// seus próprios lances já resolvidos até aqui adicionaram ao vivo.
+function placarAteAgora(p){
+  const minutoAtual = p.minutosLances[p.indiceLance];
+  let meus = 0, deles = 0;
+  p.cronologiaGols.forEach(gc => {
+    if(gc.minuto > minutoAtual) return;
+    if(gc.adversario) deles++; else meus++;
+  });
+  return { meus, deles };
+}
+
+// Uma linha de contexto (minuto, placar, mando, rival) que antecede a cena do
+// lance — um único ponto de mudança que dá ambientação a todos os lances
+// existentes sem precisar reescrever cada um deles.
 function contextoLanceHtml(p){
   const minuto = p.minutosLances[p.indiceLance];
-  let linha = `${minuto}' — jogo ${p.mandante ? 'em casa' : 'fora de casa'} contra o ${p.adversario}.`;
+  const placar = placarAteAgora(p);
+  let linha = `${minuto}' — ${GAME.clube.nome} ${placar.meus} x ${placar.deles} ${p.adversario} (jogo ${p.mandante ? 'em casa' : 'fora de casa'}).`;
   if(p.confrontoRival && p.indiceLance === 0 && GAME.rival){
     linha += ` De olho na comparação com ${GAME.rival.nome}, seu rival de carreira.`;
   }
@@ -116,26 +157,31 @@ function resolverEscolhaLance(escolha){
   const nivel = resolverNivelLance(escolha.attr, p.dificuldade);
   let texto = '';
   if(escolha.perfil === 'finalizar'){
-    if(nivel==='otimo'){ ac.gols++; ac.golsMinutos.push(p.minutosLances[p.indiceLance]); texto = 'Bola na rede! Um golaço seu.'; GAME.sociais.moral = clamp(GAME.sociais.moral+4,0,100); }
+    if(nivel==='otimo'){ ac.gols++; ac.golsMinutos.push(p.minutosLances[p.indiceLance]); p.cronologiaGols.push({ minuto:p.minutosLances[p.indiceLance], texto:'Você', nome:'Você' }); texto = 'Bola na rede! Um golaço seu.'; GAME.sociais.moral = clamp(GAME.sociais.moral+4,0,100); }
     else if(nivel==='bom'){ texto = 'Quase! A bola passou raspando a trave.'; }
     else if(nivel==='neutro'){ texto = 'O goleiro conseguiu encaixar a finalização.'; }
     else if(nivel==='ruim'){ ac.erros++; texto = 'Você chutou muito mal, a torcida reclamou.'; GAME.sociais.moral = clamp(GAME.sociais.moral-3,0,100); }
     else { ac.erros++; texto = 'Chute horrível, foi longe do gol. Frustração total.'; GAME.sociais.moral = clamp(GAME.sociais.moral-6,0,100); }
   } else if(escolha.perfil === 'passar'){
-    if(nivel==='otimo'){ ac.assist++; ac.assistMinutos.push(p.minutosLances[p.indiceLance]); texto = 'Passe perfeito — seu companheiro só empurrou para o gol!'; GAME.sociais.moral = clamp(GAME.sociais.moral+3,0,100); }
+    if(nivel==='otimo'){
+      ac.assist++; ac.assistMinutos.push(p.minutosLances[p.indiceLance]);
+      const nomeAssistido = GAME.elenco && GAME.elenco.length ? pick(GAME.elenco).nome : 'um companheiro';
+      p.cronologiaGols.push({ minuto:p.minutosLances[p.indiceLance], texto:`${nomeAssistido} (assist. sua)`, nome:nomeAssistido });
+      texto = 'Passe perfeito — seu companheiro só empurrou para o gol!'; GAME.sociais.moral = clamp(GAME.sociais.moral+3,0,100);
+    }
     else if(nivel==='bom'){ texto = 'Bom passe, mas o companheiro não conseguiu concluir.'; }
     else if(nivel==='neutro'){ texto = 'O passe chegou fraco e a defesa cortou.'; }
     else if(nivel==='ruim'){ ac.erros++; texto = 'Passe errado, perdeu a bola numa área perigosa.'; GAME.sociais.moral = clamp(GAME.sociais.moral-3,0,100); }
     else { ac.erros++; texto = 'Errou feio o passe e o adversário quase aproveitou no contra-ataque.'; GAME.sociais.moral = clamp(GAME.sociais.moral-6,0,100); }
   } else if(escolha.perfil === 'driblar'){
-    if(nivel==='otimo'){ ac.gols++; ac.golsMinutos.push(p.minutosLances[p.indiceLance]); texto = 'Driblou todo mundo e ainda balançou as redes! A torcida foi à loucura.'; GAME.sociais.moral = clamp(GAME.sociais.moral+6,0,100); atualizarRedesSociais(rand(20,60),'elogio'); }
+    if(nivel==='otimo'){ ac.gols++; ac.golsMinutos.push(p.minutosLances[p.indiceLance]); p.cronologiaGols.push({ minuto:p.minutosLances[p.indiceLance], texto:'Você', nome:'Você' }); texto = 'Driblou todo mundo e ainda balançou as redes! A torcida foi à loucura.'; GAME.sociais.moral = clamp(GAME.sociais.moral+6,0,100); atualizarRedesSociais(rand(20,60),'elogio'); }
     else if(nivel==='bom'){ texto = 'Ótimo drible, mas a jogada não terminou em gol.'; }
     else if(nivel==='neutro'){ texto = 'Tentou o drible, mas a defesa se recompôs a tempo.'; }
     else if(nivel==='ruim'){ ac.erros++; texto = 'Perdeu a bola no drible, torcida vaiou.'; GAME.sociais.moral = clamp(GAME.sociais.moral-4,0,100); }
     else { ac.erros++; texto = 'Perdeu a bola de forma feia bem no meio do campo, contra-ataque perigoso.'; GAME.sociais.moral = clamp(GAME.sociais.moral-7,0,100); }
   } else if(escolha.perfil === 'desarmar'){
-    if(nivel==='otimo'){ texto = 'Desarme perfeito, cortou o perigo com autoridade.'; GAME.sociais.moral = clamp(GAME.sociais.moral+4,0,100); }
-    else if(nivel==='bom'){ texto = 'Conseguiu tirar a bola, mas deu escanteio.'; }
+    if(nivel==='otimo'){ ac.desarmesCertos++; texto = 'Desarme perfeito, cortou o perigo com autoridade.'; GAME.sociais.moral = clamp(GAME.sociais.moral+4,0,100); }
+    else if(nivel==='bom'){ ac.desarmesCertos++; texto = 'Conseguiu tirar a bola, mas deu escanteio.'; }
     else if(nivel==='neutro'){ texto = 'O lance seguiu, sem grandes consequências.'; }
     else if(nivel==='ruim'){ ac.erros++; texto = 'Chegou atrasado no lance, deu falta perigosa perto da área.'; GAME.sociais.moral = clamp(GAME.sociais.moral-3,0,100); }
     else { ac.erros++; ac.amarelo++; texto = 'Errou o tempo da divida e ainda levou cartão amarelo.'; GAME.sociais.moral = clamp(GAME.sociais.moral-6,0,100); }
@@ -261,64 +307,42 @@ function reacaoElencoPosJogo(nota, resultadoJogo, cartaoGrave){
 
 function finalizarPartida(){
   const p = GAME.temporadaState.partidaEmAndamento;
-  const { status, adversario, entrouBanco, titular, ehGoleiro, ehDefensor, mandante, oponenteId, distanciaKm } = p;
+  const { status, adversario, entrouBanco, titular, ehGoleiro, ehDefensor, ehMeio, mandante, oponenteId, distanciaKm } = p;
   let { minutos } = p;
   const ac = p.acumulado;
-  const { gols, assist, erros, amarelo, vermelho, defesaImportante, eventos } = ac;
+  const { gols, assist, erros, amarelo, vermelho, defesaImportante, desarmesCertos, eventos } = ac;
 
-  // Um pouco de estatística "de fundo" para o resto da partida que não virou lance
+  // Estatística de desarmes deixou de ser decorativa/aleatória: reflete direto
+  // os desarmes que você realmente resolveu bem nos lances de defesa da partida.
   let finalizacoes = gols + (chance(40)?1:0);
-  let desarmes = ehDefensor ? rand(0,3) : 0;
+  let desarmes = desarmesCertos || 0;
   let interceptacoes = ehDefensor ? rand(0,2) : 0;
 
   if(minutos > 0) checarLesao(Math.round(minutos/10));
-  // Simula o resultado coletivo da partida (o time todo, não só você),
-  // garantindo que os gols que você marcou entrem na conta do placar.
   const liga = GAME.temporadaState.liga;
-  const oponente = liga && oponenteId ? liga.clubes.find(c => c.id === oponenteId) : null;
-  // quanto mais longe a viagem (jogo fora), maior o desgaste coletivo do time
-  const penalidadeViagem = mandante ? 0 : clamp((distanciaKm||300)/350, 0, 5);
-  const forcaTime = clamp(GAME.clube.nivelBase + (GAME.relacoes.elenco-50)*0.2 + (GAME.temporadaState.mediaTreinoRecente-50)*0.15 + (mandante?4:-2-penalidadeViagem) + rand(-12,12), 15, 95);
-  const forcaAdversario = clamp((oponente ? oponente.reputacao*0.6 + oponente.nivelBase*0.3 : GAME.clube.reputacao*0.6) + (mandante?-2:4) + rand(-15,20), 15, 95);
-  let golsTime = golsPoisson(forcaTime);
-  const golsAdversario = golsPoisson(forcaAdversario);
-  // seus gols E suas assistências sempre entram no placar do time — cada assistência
-  // é, por definição, um gol de um companheiro que você serviu
-  if(golsTime < gols + assist) golsTime = gols + assist;
+  // O placar já foi simulado em prepararPartida (pra existir um placar "ao
+  // vivo" durante os lances) e cresceu ao vivo a cada gol/assistência sua
+  // resolvida em resolverEscolhaLance — aqui só consolidamos o que já está
+  // em p.cronologiaGols, sem recalcular nada.
+  const golsTime = p.golsTimeBase + gols + assist;
+  const golsAdversario = p.golsAdversarioFinal;
+  const cronologiaGols = p.cronologiaGols.slice().sort((a,b) => a.minuto-b.minuto);
   const artilheiros = [];
-  // cronologia: minuto a minuto de cada gol da partida (seus, de companheiros e do adversário)
-  const cronologiaGols = [];
-  (ac.golsMinutos||[]).forEach(m => cronologiaGols.push({ minuto:m, texto:'Você' }));
-  if(gols > 0) artilheiros.push({ nome:'Você', gols });
   function golPara(nome){
     const existente = artilheiros.find(a => a.nome === nome);
     if(existente) existente.gols++; else artilheiros.push({ nome, gols:1 });
   }
-  // gols que vieram das SUAS assistências, atribuídos a um companheiro específico
-  (ac.assistMinutos||[]).forEach(m => {
-    const nome = GAME.elenco && GAME.elenco.length ? pick(GAME.elenco).nome : 'um companheiro';
-    golPara(nome);
-    cronologiaGols.push({ minuto:m, texto:`${nome} (assist. sua)` });
-  });
-  // gols do time que não têm relação com você (nem seus, nem de suas assistências)
-  let golsRestantes = golsTime - gols - assist;
-  if(golsRestantes > 0 && GAME.elenco && GAME.elenco.length){
-    for(let i=0;i<golsRestantes;i++){
-      const nome = pick(GAME.elenco).nome;
-      golPara(nome);
-      cronologiaGols.push({ minuto: rand(1,90), texto: nome });
-    }
-  } else if(golsRestantes > 0){
-    artilheiros.push({ nome:'Time', gols:golsRestantes });
-    for(let i=0;i<golsRestantes;i++) cronologiaGols.push({ minuto: rand(1,90), texto:'Time' });
-  }
-  for(let i=0;i<golsAdversario;i++) cronologiaGols.push({ minuto: rand(1,90), texto: adversario, adversario:true });
-  cronologiaGols.sort((a,b) => a.minuto-b.minuto);
+  cronologiaGols.forEach(gc => { if(!gc.adversario) golPara(gc.nome); });
   const resultadoJogo = golsTime > golsAdversario ? 'vitoria' : golsTime < golsAdversario ? 'derrota' : 'empate';
 
   let nota = 0;
   if(minutos > 0){
-    nota = 6.0 + gols*0.9 + assist*0.5 + defesaImportante*0.6 - erros*0.5 - amarelo*0.3 - vermelho*1.6 + rand(-3,3)/10;
+    // Peso do desarme na nota varia por posição: pra zagueiro/lateral/volante
+    // (ehDefensor) é o trabalho principal, pro meio-campista central é parte
+    // da função, pro restante (ataque/goleiro) não chega a acontecer — a
+    // pool de lances de cada posição (prepararPartida) já garante isso.
+    const pesoDesarme = ehDefensor ? 0.55 : ehMeio ? 0.35 : 0.2;
+    nota = 6.0 + gols*0.9 + assist*0.5 + defesaImportante*0.6 + (desarmesCertos||0)*pesoDesarme - erros*0.5 - amarelo*0.3 - vermelho*1.6 + rand(-3,3)/10;
     nota = clamp(nota, 0, 10);
     // pressaoTorcida do clube amplifica o baque de uma derrota/nota ruim e o alívio de uma vitória
     const fatorPressaoClube = clamp((GAME.clube.pressaoTorcida-50)/50, -0.5, 1);
@@ -423,9 +447,9 @@ function renderPreJogo(){
     : mandante ? `<p class="small muted">Jogo em casa.</p>` : '';
   const matchupHtml = oponente ? `
     <div style="display:flex; align-items:center; justify-content:center; gap:18px; margin:6px 0 16px">
-      <div style="text-align:center">${crestHtml(mandante?GAME.clube:oponente, 56)}<p class="small muted" style="margin-top:6px;max-width:90px">${escapeHtml((mandante?GAME.clube:oponente).nome)}</p></div>
+      <div style="text-align:center">${escudoClubeHtml(mandante?GAME.clube:oponente, 56)}<p class="small muted" style="margin-top:6px;max-width:90px">${escapeHtml((mandante?GAME.clube:oponente).nome)}</p></div>
       <div style="font-family:var(--font-display); font-weight:800; color:var(--text-faint); font-size:15px">VS</div>
-      <div style="text-align:center">${crestHtml(mandante?oponente:GAME.clube, 56)}<p class="small muted" style="margin-top:6px;max-width:90px">${escapeHtml((mandante?oponente:GAME.clube).nome)}</p></div>
+      <div style="text-align:center">${escudoClubeHtml(mandante?oponente:GAME.clube, 56)}<p class="small muted" style="margin-top:6px;max-width:90px">${escapeHtml((mandante?oponente:GAME.clube).nome)}</p></div>
     </div>` : '';
   const confrontoRival = !!(GAME.rival && oponente && oponente.id === GAME.rival.clubeId);
   const rivalHtml = confrontoRival ? `<div class="badge" style="display:block;margin-bottom:10px">⚔️ Duelo direto contra ${escapeHtml(GAME.rival.nome)}, seu rival de carreira</div>` : '';
@@ -482,7 +506,7 @@ function renderResultadoJogo(){
     ` : '';
   const outrosHtml = outros.length ? `
       <p class="small muted" style="margin:${(st||cartoesTodos.length)?'10px':'0'} 0 4px"><b>Outros resultados da rodada:</b></p>
-      ${outros.map(r=>`<p class="small">• ${escapeHtml(r)}</p>`).join('')}
+      ${outros.map(r=>`<p class="small">• <span style="display:inline-flex;align-items:center;gap:5px;vertical-align:middle">${escudoClubeHtml({nome:r.homeNome,cor1:r.homeCor1,cor2:r.homeCor2},18)}${escapeHtml(r.homeNome)} ${r.golsA}x${r.golsB} ${escudoClubeHtml({nome:r.awayNome,cor1:r.awayCor1,cor2:r.awayCor2},18)}${escapeHtml(r.awayNome)}</span></p>`).join('')}
     ` : '';
   const sumulaHtml = (st || cartoesTodos.length || outros.length) ? `
     <div class="card">

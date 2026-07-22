@@ -98,7 +98,8 @@ function criarNovoJogador(dados){
       peso: dados.peso,
       posicaoPrincipal: dados.posicaoPrincipal,
       posicaoSecundaria: dados.posicaoSecundaria || null,
-      estilo: dados.estilo
+      estilo: dados.estilo,
+      aparencia: dados.aparencia || gerarAparenciaAleatoria(Math.random, 'm')
     },
     atributos: atributos,
     status: {
@@ -151,7 +152,8 @@ function criarNovoJogador(dados){
     inventario: { roupas: [], tenis: [], relogios: [] },
     garagem: [],
     imoveisComprados: [],
-    banco: { poupanca: 0, investimentos: [], emprestimos: [] }
+    banco: { poupanca: 0, investimentos: [], emprestimos: [] },
+    rostosNpc: {}
   };
   salvarJogo();
 }
@@ -164,6 +166,13 @@ function repararEstadoEconomia(){
   if(!GAME.garagem) GAME.garagem = [];
   if(!GAME.imoveisComprados) GAME.imoveisComprados = [];
   if(!GAME.banco) GAME.banco = { poupanca: 0, investimentos: [], emprestimos: [] };
+  if(!GAME.rostosNpc) GAME.rostosNpc = {};
+  if(GAME.identidade && !GAME.identidade.aparencia) GAME.identidade.aparencia = gerarAparenciaAleatoria(Math.random, 'm');
+  if(GAME.relacionamento){
+    if(GAME.relacionamento.casado === undefined) GAME.relacionamento.casado = false;
+    if(GAME.relacionamento.semanasCasado === undefined) GAME.relacionamento.semanasCasado = 0;
+    if(!GAME.relacionamento.genero) GAME.relacionamento.genero = inferirGeneroPorNome(GAME.relacionamento.nome);
+  }
 }
 
 /* ============================== PERSISTÊNCIA (localStorage) ================ */

@@ -416,12 +416,36 @@ function calcularOverall(){
    clubes, sim, são reais. Estrutura pronta para, futuramente, ser trocada
    por uma base de dados real/editável.
    ========================================================================= */
-const NOMES_TECNICOS = ['Aldair Nogueira','Marcão Silveira','Ricardo Prata','Valdir Camargo','Elano Bittencourt','Cassiano Reis'];
+// Pool grande (40+) pelo mesmo motivo de NOMES_COMPANHEIROS: com poucos nomes,
+// trocar de clube/temporada sorteava de novo o mesmo técnico/observador de antes.
+// gerarTecnico/pickExcluindo excluem o nome anterior do sorteio pra nunca repetir
+// direto na sequência, mas o pool também precisa ser grande pra variar de verdade.
+const NOMES_TECNICOS = [
+  'Aldair Nogueira','Marcão Silveira','Ricardo Prata','Valdir Camargo','Elano Bittencourt','Cassiano Reis',
+  'Osvaldo Peixoto','Rogério Aguilar','Sandro Vilela','Nelson Quintana','Fábio Marreco','Adilson Cordeiro',
+  'Waldyr Miranda','Geraldo Nunes','Paulo César Tremonti','Jorge Alcântara','Milton Sabença','Renato Guimarães',
+  'Ademar Bittar','Celso Vargas','Domingos Pacheco','Ivo Salgueiro','Luiz Otávio Peçanha','Márcio Bezerra',
+  'Norival Assunção','Otacílio Ramos','Pedro Ivo Salema','Sérgio Utinga','Tarcísio Melo','Uderico Camões',
+  'Vicente Anhaia','Wagner Poloni','Ximenes Bittencourt','Zenon Falcato','Anselmo Trindade','Belmiro Casagrande',
+  'Constâncio Alvim','Delmiro Guedes','Evandro Pujol','Firmino Castilhos','Gutemberg Salomão','Hélio Bandeira'
+];
 // Estilo do técnico: dá personalidade real (efeito em decidirEscalacao, js/sistemas/treino.js)
 // além de ser só um nome solto em texto narrativo.
 const ESTILOS_TECNICO = ['disciplinador','paizao','retranqueiro','ofensivo','professor','resultadista','formador'];
-function gerarTecnico(){ return { nome: pick(NOMES_TECNICOS), estilo: pick(ESTILOS_TECNICO) }; }
-const NOMES_OBSERVADORES = ['Seu Osvaldo','Dona Marlene','Professor Tadeu','Zé Roberto','Coordenador Nilton'];
+function pickExcluindo(lista, anterior){
+  const opcoes = anterior ? lista.filter(n => n !== anterior) : lista;
+  return pick(opcoes.length ? opcoes : lista);
+}
+function gerarTecnico(anterior){
+  return { nome: pickExcluindo(NOMES_TECNICOS, anterior), estilo: pick(ESTILOS_TECNICO) };
+}
+const NOMES_OBSERVADORES = [
+  'Seu Osvaldo','Dona Marlene','Professor Tadeu','Zé Roberto','Coordenador Nilton',
+  'Seu Anacleto','Dona Iracema','Professor Belchior','Zé Maria','Coordenador Osmar',
+  'Seu Wagner','Dona Zuleide','Professor Norato','Seu Edimilson','Coordenadora Marisa',
+  'Dona Clarice','Seu Firmino','Professor Adalberto','Coordenador Hélio','Dona Neusa',
+  'Seu Baltazar','Professora Ivone','Coordenador Ademir','Seu Deusdete','Dona Aparecida'
+];
 const NOMES_DIRIGENTES = ['Presidente Aguinaldo','Diretor Marcelo Tavares','VP Heitor Andrade'];
 // Pool grande o bastante (40+) pra que trocar de clube realmente troque os
 // rostos do vestiário — com só 10 nomes, sortear 5 de novo a cada transferência

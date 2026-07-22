@@ -44,10 +44,11 @@ function renderVidaPessoalBody(){
 }
 
 /* ------------------------------ SHOPPING --------------------------------------
-   4 categorias em abas: roupas, tênis, relógios, carros (concessionária). */
+   3 categorias em abas: roupas, tênis, relógios. Carros (concessionária) tem
+   aba própria — Garagem — no mesmo nível de Imóveis, não dentro do Shopping. */
 let shopAbaAtiva = 'roupas';
-const SHOP_ABAS = ['roupas','tenis','relogios','carros'];
-const SHOP_LABELS = { roupas:'👕 Roupas', tenis:'👟 Tênis', relogios:'⌚ Relógios', carros:'🚗 Carros' };
+const SHOP_ABAS = ['roupas','tenis','relogios'];
+const SHOP_LABELS = { roupas:'👕 Roupas', tenis:'👟 Tênis', relogios:'⌚ Relógios' };
 const carroSelecaoTemp = {};
 
 function abrirShopping(){
@@ -98,7 +99,7 @@ function carrosGridHtml(){
       const precoFinal = sel.usado ? calcularPrecoUsado(modelo.precoNovo, sel.km) : modelo.precoNovo;
       const cores = modelo.coresDisponiveis.map(c => `<span class="color-swatch ${c===sel.cor?'sel':''}" style="background:${c}" data-corcarro="${modelo.id}" data-cor="${c}"></span>`).join('');
       return `<div class="shop-item shop-item-carro">
-        <div class="shop-item-icon">${pixelCarro(modelo.categoria, sel.cor, 60)}</div>
+        <div class="shop-item-icon">${pixelCarro(modelo, sel.cor, 60)}</div>
         <div class="shop-item-info">
           <p class="shop-item-nome">${escapeHtml(modelo.marca)} ${escapeHtml(modelo.modelo)}</p>
           <p class="small muted">${escapeHtml(modelo.categoria)} • ${escapeHtml(modelo.combustivel)} • ${escapeHtml(modelo.cambio)} • ${modelo.portas} portas</p>
@@ -118,10 +119,9 @@ function carrosGridHtml(){
 function renderShoppingBody(){
   const body = document.getElementById('shopping-body');
   if(!body) return;
-  if(shopAbaAtiva === 'roupas') body.innerHTML = shopGridHtml(ROUPAS, possuiRoupa, 'roupa');
-  else if(shopAbaAtiva === 'tenis') body.innerHTML = shopGridHtml(TENIS, possuiTenis, 'tenis');
+  if(shopAbaAtiva === 'tenis') body.innerHTML = shopGridHtml(TENIS, possuiTenis, 'tenis');
   else if(shopAbaAtiva === 'relogios') body.innerHTML = shopGridHtml(RELOGIOS, possuiRelogio, 'relogio');
-  else body.innerHTML = carrosGridHtml();
+  else body.innerHTML = shopGridHtml(ROUPAS, possuiRoupa, 'roupa');
   wireShoppingButtons();
 }
 function wireShoppingButtons(){
@@ -136,18 +136,36 @@ function wireShoppingButtons(){
   body.querySelectorAll('[data-comprar-relogio]').forEach(b => b.onclick = () => {
     if(comprarRelogio(b.dataset.comprarRelogio)){ atualizarCarteiraStatusBar(); renderShoppingBody(); } else alert('Saldo insuficiente na carteira.');
   });
+}
+
+/* ------------------------------ GARAGEM ----------------------------------------
+   Antes era a 4ª sub-aba do Shopping; ganhou aba própria, no mesmo nível de
+   Imóveis, pra dar mais destaque à concessionária de carros. */
+function abrirGaragem(){
+  criarModalCentral('garagem', '🚗 Garagem');
+  renderGaragemBody();
+}
+function renderGaragemBody(){
+  const body = document.getElementById('garagem-body');
+  if(!body) return;
+  body.innerHTML = carrosGridHtml();
+  wireGaragemButtons();
+}
+function wireGaragemButtons(){
+  const body = document.getElementById('garagem-body');
+  if(!body) return;
   body.querySelectorAll('[data-corcarro]').forEach(sw => sw.onclick = () => {
-    carroSelecaoTemp[sw.dataset.corcarro].cor = sw.dataset.cor; renderShoppingBody();
+    carroSelecaoTemp[sw.dataset.corcarro].cor = sw.dataset.cor; renderGaragemBody();
   });
   body.querySelectorAll('[data-novousado]').forEach(btn => btn.onclick = () => {
     const sel = carroSelecaoTemp[btn.dataset.novousado];
     sel.usado = btn.dataset.valor === 'usado';
-    renderShoppingBody();
+    renderGaragemBody();
   });
   body.querySelectorAll('[data-comprarcarro]').forEach(btn => btn.onclick = () => {
     const modeloId = btn.dataset.comprarcarro;
     const sel = carroSelecaoTemp[modeloId];
-    if(comprarCarro(modeloId, sel)){ delete carroSelecaoTemp[modeloId]; atualizarCarteiraStatusBar(); renderShoppingBody(); }
+    if(comprarCarro(modeloId, sel)){ delete carroSelecaoTemp[modeloId]; atualizarCarteiraStatusBar(); renderGaragemBody(); }
     else alert('Saldo insuficiente na carteira.');
   });
 }
@@ -171,7 +189,7 @@ function renderImoveisBody(){
     if(!im) return '';
     const empenhado = bemEstaEmpenhado('imovel', posse.instanceId);
     return `<div class="shop-item">
-      <div class="shop-item-icon">${pixelImovel(im.tipo, corParedePorPadrao(im.padrao), 56)}</div>
+      <div class="shop-item-icon">${pixelImovel(im, corParedePorPadrao(im.padrao), 56)}</div>
       <div class="shop-item-info">
         <p class="shop-item-nome">${escapeHtml(im.nome)}</p>
         <p class="small muted">${escapeHtml(im.cidade)} • ${im.quartos} quartos</p>
@@ -182,7 +200,7 @@ function renderImoveisBody(){
     </div>`;
   }).join('');
   const disponiveisHtml = IMOVEIS.map(im => `<div class="shop-item">
-    <div class="shop-item-icon">${pixelImovel(im.tipo, corParedePorPadrao(im.padrao), 56)}</div>
+    <div class="shop-item-icon">${pixelImovel(im, corParedePorPadrao(im.padrao), 56)}</div>
     <div class="shop-item-info">
       <p class="shop-item-nome">${escapeHtml(im.nome)}</p>
       <p class="small muted">${escapeHtml(im.cidade)} • ${im.quartos} quartos • ${labelPadraoImovel(im.padrao)}</p>

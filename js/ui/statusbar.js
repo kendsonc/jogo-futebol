@@ -3,7 +3,7 @@ function statusBarHtml(){
   const s = GAME.stats;
   return `<div id="status-bar">
     <div class="sb-club">
-      ${crestHtml(GAME.clube, 34)}
+      ${escudoClubeHtml(GAME.clube, 34)}
       <div>
         <div class="sb-club-name">${escapeHtml(GAME.clube.nome)}</div>
         ${tierBadgeHtml(GAME.clube.liga || GAME.clube.divisao)}
@@ -27,6 +27,7 @@ function statusBarHtml(){
       <button class="btn btn-small" id="btn-abrir-vidapessoal">❤️ Vida</button>
       <button class="btn btn-small" id="btn-abrir-shopping">🛍️ Shopping</button>
       <button class="btn btn-small" id="btn-abrir-imoveis">🏠 Imóveis</button>
+      <button class="btn btn-small" id="btn-abrir-garagem">🚗 Garagem</button>
       <button class="btn btn-small" id="btn-abrir-banco">🏦 Banco</button>
       <button class="btn btn-small sb-panel-btn" id="btn-abrir-painel">📊 Painel</button>
     </div>
@@ -41,6 +42,8 @@ function renderTemporada(){
   else if(ts.subFase === 'preJogo') renderPreJogo();
   else if(ts.subFase === 'lance') renderLance();
   else if(ts.subFase === 'resultadoJogo') renderResultadoJogo();
+  else if(ts.subFase === 'penaltisCopa') renderPenaltisCopa();
+  else if(ts.subFase === 'resultadoPenaltisCopa') renderResultadoPenaltisCopa();
   else renderTreino();
   const btnPainel = document.getElementById('btn-abrir-painel');
   if(btnPainel) btnPainel.onclick = abrirPainel;
@@ -50,6 +53,8 @@ function renderTemporada(){
   if(btnShopping) btnShopping.onclick = abrirShopping;
   const btnImoveis = document.getElementById('btn-abrir-imoveis');
   if(btnImoveis) btnImoveis.onclick = abrirImoveis;
+  const btnGaragem = document.getElementById('btn-abrir-garagem');
+  if(btnGaragem) btnGaragem.onclick = abrirGaragem;
   const btnBanco = document.getElementById('btn-abrir-banco');
   if(btnBanco) btnBanco.onclick = abrirBanco;
 }

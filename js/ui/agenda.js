@@ -44,7 +44,7 @@ function renderAgendaSemanal(){
   if(info.proximoJogo){
     const j = info.proximoJogo;
     const quando = j.estaSemana ? 'Esta semana' : 'Em breve';
-    itens.push(`<p>🗓️ <b>${escapeHtml(quando)}:</b> ${j.mandante ? 'em casa contra' : 'fora, visitando'} ${crestHtml(j.oponente, 22)} <b>${escapeHtml(j.oponente.nome)}</b> ${tierBadgeHtml(j.oponente.divisao)}</p>`);
+    itens.push(`<p>🗓️ <b>${escapeHtml(quando)}:</b> ${j.mandante ? 'em casa contra' : 'fora, visitando'} ${escudoClubeHtml(j.oponente, 22)} <b>${escapeHtml(j.oponente.nome)}</b> ${tierBadgeHtml(j.oponente.divisao)}</p>`);
   } else {
     itens.push(`<p class="muted small">Sem jogo marcado no calendário por enquanto.</p>`);
   }

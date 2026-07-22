@@ -692,9 +692,9 @@ const EVENTOS_EQUIPE = [
           { label:'Manter os velhos hábitos, mesmo contrariando o pedido', efeitos:{relacaoTreinador:-4, tracos:{rebelde:1}} }
         ] };
       return [
-        { label:'Se apresentar rapidamente ao novo treinador, mostrar disposição', efeitos:{relacaoTreinador:5, pressao:2, tracos:{confiante:1}}, extra:(g)=>{ g.tecnico = gerarTecnico(); }, seguimento:seguimentoNovoTecnico },
-        { label:'Esperar para ver como ele trabalha antes de se expor', efeitos:{pressao:1, atributos:{concentracao:1}}, extra:(g)=>{ g.tecnico = gerarTecnico(); }, seguimento:seguimentoNovoTecnico },
-        { label:'Comentar com os colegas que sente falta do comandante anterior', efeitos:{relacaoElenco:2, relacaoTreinador:-3, tracos:{serio:1}}, extra:(g)=>{ g.tecnico = gerarTecnico(); }, seguimento:seguimentoNovoTecnico }
+        { label:'Se apresentar rapidamente ao novo treinador, mostrar disposição', efeitos:{relacaoTreinador:5, pressao:2, tracos:{confiante:1}}, extra:(g)=>{ g.tecnico = gerarTecnico(g.tecnico && g.tecnico.nome); }, seguimento:seguimentoNovoTecnico },
+        { label:'Esperar para ver como ele trabalha antes de se expor', efeitos:{pressao:1, atributos:{concentracao:1}}, extra:(g)=>{ g.tecnico = gerarTecnico(g.tecnico && g.tecnico.nome); }, seguimento:seguimentoNovoTecnico },
+        { label:'Comentar com os colegas que sente falta do comandante anterior', efeitos:{relacaoElenco:2, relacaoTreinador:-3, tracos:{serio:1}}, extra:(g)=>{ g.tecnico = gerarTecnico(g.tecnico && g.tecnico.nome); }, seguimento:seguimentoNovoTecnico }
       ];
     })() }
 ];
@@ -909,6 +909,7 @@ const SEGREDOS_ELENCO = [
 
 const EVENTOS_AMIZADE = [
   () => { const c = pick(GAME.elenco); return {
+    retrato:()=>({nome:c.nome, papel:'elenco'}),
     id:'amizade_convite', categoria:'vestiario',
     texto:(g)=>`${c.nome} (${c.papel.toLowerCase()}) te chama depois do treino.\n\n— Bora comer alguma coisa antes de ir pra casa? Ninguém aguenta mais treino hoje.`,
     escolhas:[
@@ -916,6 +917,7 @@ const EVENTOS_AMIZADE = [
       { label:'Agradecer, mas ir direto para casa descansar', efeitos:{amigo:c.id, amigoDelta:-2, energia:4, tracos:{serio:1}} }
     ] }; },
   () => { const c = pick(GAME.elenco); return {
+    retrato:()=>({nome:c.nome, papel:'elenco'}),
     id:'amizade_rivalidade', categoria:'vestiario',
     texto:(g)=>`Nos últimos treinos, fica claro que você e ${c.nome} estão disputando a mesma vaga. O clima entre vocês esfria, mesmo sem ninguém falar nada.`,
     escolhas:[
@@ -924,6 +926,7 @@ const EVENTOS_AMIZADE = [
       { label:'Provocar levemente para testar a reação dele', efeitos:{amigo:c.id, amigoDelta:-4, tracos:{rebelde:1}} }
     ] }; },
   () => { const c = pick(GAME.elenco); return {
+    retrato:()=>({nome:c.nome, papel:'elenco'}),
     id:'amizade_apoio', categoria:'vestiario',
     texto:(g)=>`${c.nome} percebe que você anda mais quieto que o normal nos últimos dias e senta do seu lado no vestiário.\n\n— Relaxa, todo mundo passa por fase ruim aqui dentro. Quer desabafar?`,
     escolhas:[
@@ -936,6 +939,7 @@ const EVENTOS_AMIZADE = [
       { label:'Agradecer e dizer que está tudo bem', efeitos:{amigo:c.id, amigoDelta:4, tracos:{serio:1}} }
     ] }; },
   () => { const c = pick(GAME.elenco); return {
+    retrato:()=>({nome:c.nome, papel:'elenco'}),
     id:'amizade_zoeira', categoria:'vestiario',
     texto:(g)=>`${c.nome} solta uma zoeira na sua cara na frente de todo mundo no vestiário, brincando com um lance seu no treino. Todo mundo ri e espera sua reação.`,
     escolhas:[
@@ -944,6 +948,7 @@ const EVENTOS_AMIZADE = [
       { label:'Levar para o lado pessoal e responder seco', efeitos:{amigo:c.id, amigoDelta:-8, relacaoElenco:-3, tracos:{rebelde:1}} }
     ] }; },
   () => { const c = pick(GAME.elenco); return {
+    retrato:()=>({nome:c.nome, papel:'elenco'}),
     id:'amizade_conselho_veterano', categoria:'vestiario',
     texto:(g)=>`${c.nome} puxa você de lado depois do treino coletivo.\n\n— Você tem talento, mas precisa entender o jogo por dentro. Quer que eu te dê uma força fora do horário de treino?`,
     escolhas:[
@@ -951,6 +956,7 @@ const EVENTOS_AMIZADE = [
       { label:'Agradecer, mas dizer que prefere aprender sozinho', efeitos:{amigo:c.id, amigoDelta:-3, tracos:{confiante:1}} }
     ] }; },
   () => { const c = pick(GAME.elenco); return {
+    retrato:()=>({nome:c.nome, papel:'elenco'}),
     id:'amizade_emprestimo', categoria:'vestiario',
     texto:(g)=>`${c.nome} te procura no vestiário, meio sem graça, e fala baixo pra ninguém mais ouvir.\n\n— Cara, será que dá pra me emprestar uma grana? Meu fone quebrou e eu preciso resolver isso ainda hoje. Te pago assim que cair meu vale.`,
     escolhas:[
@@ -960,6 +966,7 @@ const EVENTOS_AMIZADE = [
       { label:'Não emprestar, mas oferecer o carregador/ajuda de outro jeito', efeitos:{amigo:c.id, amigoDelta:5, tracos:{descontraido:1}} }
     ] }; },
   () => { const c = pick(GAME.elenco); return {
+    retrato:()=>({nome:c.nome, papel:'elenco'}),
     id:'amizade_favor_faxina', categoria:'vestiario',
     texto:(g)=>pick([
       `É sua semana de organizar o material depois do treino, mas ${c.nome} aparece com aquela cara de pidão.\n\n— Troca comigo essa semana? Prometo que cubro a próxima e a que vem também.`,
@@ -986,6 +993,7 @@ const EVENTOS_AMIZADE = [
         extra:marcarVisto, seguimento:seguimentoSegredo }
     ] }; },
   () => { const c = pick(GAME.elenco); return {
+    retrato:()=>({nome:c.nome, papel:'elenco'}),
     id:'amizade_desafio_embaixadinhas', categoria:'vestiario',
     texto:(g)=>`Antes do treino começar, ${c.nome} joga a bola pro alto e sorri, provocando.\n\n— Duelo de embaixadinha, quem errar primeiro paga o lanche. Bora ver quem tem mais categoria.`,
     escolhas:[
@@ -1003,6 +1011,7 @@ const EVENTOS_AMIZADE = [
       { label:'Recusar, prefere guardar energia pro treino', efeitos:{amigo:c.id, amigoDelta:-3, energia:2} }
     ] }; },
   () => { const c = pick(GAME.elenco); return {
+    retrato:()=>({nome:c.nome, papel:'elenco'}),
     id:'amizade_mesma_paquera', categoria:'vestiario',
     texto:(g)=>`${c.nome} puxa assunto meio sem jeito no vestiário.\n\n— Vou ser direto contigo: percebi que você também tá de olho na mesma pessoa que eu. Não quero que isso estrague nossa amizade.`,
     escolhas:[
@@ -1011,6 +1020,7 @@ const EVENTOS_AMIZADE = [
       { label:'Propor conversar os três com transparência', efeitos:{amigo:c.id, amigoDelta:4, relacaoElenco:1} }
     ] }; },
   () => { const c = pick(GAME.elenco); return {
+    retrato:()=>({nome:c.nome, papel:'elenco'}),
     id:'amizade_cobrir_erro_treino', categoria:'vestiario',
     texto:(g)=>`No coletivo, ${c.nome} erra feio e a bola sobra pro adversário fazer o gol. ${g.tecnico.nome} para tudo, irritado, perguntando de quem foi a falha.\n\n${c.nome} te olha rápido, pedindo em silêncio pra você não entregar que foi ele.`,
     escolhas:[
@@ -1019,6 +1029,7 @@ const EVENTOS_AMIZADE = [
       { label:'Contar a verdade quando perguntado diretamente', efeitos:{amigo:c.id, amigoDelta:-9, relacaoTreinador:3, tracos:{serio:1}} }
     ] }; },
   () => { const c = pick(GAME.elenco); return {
+    retrato:()=>({nome:c.nome, papel:'elenco'}),
     id:'amizade_surpresa_aniversario', categoria:'vestiario',
     texto:(g)=>`${c.nome} te chama num canto, animado, contando um plano.\n\n— Vamos armar uma surpresa pro aniversário de outro moleque do elenco. Vou precisar que você me ajude a segurar ele lá fora até tarde sem desconfiar de nada.`,
     escolhas:[
@@ -1027,6 +1038,7 @@ const EVENTOS_AMIZADE = [
       { label:'Dizer que prefere não se envolver dessa vez', efeitos:{amigo:c.id, amigoDelta:-4} }
     ] }; },
   () => { const c = pick(GAME.elenco); return {
+    retrato:()=>({nome:c.nome, papel:'elenco'}),
     id:'amizade_reconciliacao_climao', categoria:'vestiario',
     texto:(g)=>`Depois de dias de climão por causa de uma discussão boba no treino, ${c.nome} aparece na sua frente no vestiário, sem graça, quebrando o silêncio.\n\n— Isso tá chato. Bora deixar essa bobagem pra trás?`,
     escolhas:[
@@ -1035,6 +1047,7 @@ const EVENTOS_AMIZADE = [
       { label:'Dizer que ainda precisa de um tempo', efeitos:{amigo:c.id, amigoDelta:-3} }
     ] }; },
   () => { const c = pick(GAME.elenco); return {
+    retrato:()=>({nome:c.nome, papel:'elenco'}),
     id:'amizade_ensinar_jogada', categoria:'vestiario',
     texto:(g)=>`No fim do treino, ${c.nome} fica pra trás com você no campo.\n\n— Vi um lance seu que travou hoje. Deixa eu te mostrar um jeito de sair dessa marcação, aprendi com um cara lá no meu antigo clube.`,
     escolhas:[
@@ -1042,6 +1055,7 @@ const EVENTOS_AMIZADE = [
       { label:'Agradecer, mas dizer que prefere o seu próprio estilo', efeitos:{amigo:c.id, amigoDelta:-3, tracos:{confiante:1}} }
     ] }; },
   () => { const c = pick(GAME.elenco); return {
+    retrato:()=>({nome:c.nome, papel:'elenco'}),
     id:'amizade_duvida_noturna', categoria:'geral',
     texto:(g)=>pick([
       `Já é quase meia-noite quando o celular vibra. É ${c.nome}.\n\n— Desculpa te acordar, mas não consigo dormir. E se eu não conseguir acompanhar o nível aqui? Fica difícil calar essa cabeça.`,
@@ -1053,6 +1067,7 @@ const EVENTOS_AMIZADE = [
       { label:'Responder de forma seca, já estava dormindo', efeitos:{amigo:c.id, amigoDelta:-6} }
     ] }; },
   () => { const c = pick(GAME.elenco); return {
+    retrato:()=>({nome:c.nome, papel:'elenco'}),
     id:'amizade_marco_comemorado', categoria:'vestiario',
     texto:(g)=>`${c.nome} vem correndo em sua direção assim que sai do vestiário, eufórico.\n\n— Consegui, cara! Fui relacionado pro time principal pela primeira vez! Não acredito que vai rolar!`,
     escolhas:[
@@ -1061,6 +1076,7 @@ const EVENTOS_AMIZADE = [
       { label:'Ficar feliz de forma discreta e seguir seu caminho', efeitos:{amigo:c.id, amigoDelta:1} }
     ] }; },
   () => { const c = pick(GAME.elenco); return {
+    retrato:()=>({nome:c.nome, papel:'elenco'}),
     id:'amizade_familia_dificil', categoria:'vestiario',
     texto:(g)=>`${c.nome} chega mais quieto que o normal, se arrasta pelo treino sem o mesmo brilho de sempre. No fim, acaba se abrindo com você.\n\n— Minha família tá passando por um perrengue financeiro em casa. Tá difícil focar em bola pensando nisso.`,
     escolhas:(()=>{
@@ -1075,6 +1091,7 @@ const EVENTOS_AMIZADE = [
       ];
     })() }; },
   () => { const c = pick(GAME.elenco); return {
+    retrato:()=>({nome:c.nome, papel:'elenco'}),
     id:'amizade_climao_provocacao', categoria:'vestiario',
     texto:(g)=>`${c.nome} entra no vestiário se achando depois de um treino em que se destacou mais que você.\n\n— Viu como se joga? Vai ter que correr atrás pra não ficar pra trás na briga pela vaga, hein.`,
     escolhas:[
@@ -1083,6 +1100,7 @@ const EVENTOS_AMIZADE = [
       { label:'Ignorar e deixar o jogo falar por você', efeitos:{amigo:c.id, amigoDelta:-2, tracos:{serio:1}} }
     ] }; },
   () => { const c = pick(GAME.elenco); return {
+    retrato:()=>({nome:c.nome, papel:'elenco'}),
     id:'amizade_despedida_transferencia', categoria:'vestiario',
     texto:(g)=>`${c.nome} reúne o grupo pra dar uma notícia, mas puxa você de lado antes.\n\n— Fechei com outro clube, vou embora no fim do mês. Queria que você soubesse antes de todo mundo.`,
     escolhas:(()=>{
@@ -1097,6 +1115,7 @@ const EVENTOS_AMIZADE = [
       ];
     })() }; },
   () => { const c = pick(GAME.elenco); return {
+    retrato:()=>({nome:c.nome, papel:'elenco'}),
     id:'amizade_susto_lesao', categoria:'vestiario',
     texto:(g)=>`No meio do coletivo, ${c.nome} torce o tornozelo numa dividida e cai gritando de dor. O departamento médico corre pra atender, e o clima no campo fica tenso.`,
     escolhas:[
@@ -1257,6 +1276,7 @@ const EVENTOS_LUTO = [
    ========================================================================= */
 const EVENTOS_TECNICO = [
   () => { if(GAME.tecnico.estilo !== 'disciplinador') return null; return {
+    retrato:(g)=>({nome:g.tecnico.nome, papel:'tecnico'}),
     id:'tecnico_disciplinador_cobranca', categoria:'geral',
     texto:(g)=>`${g.tecnico.nome} reúne o elenco: "Atraso ou displicência tira qualquer um do jogo, não interessa o nome."`,
     escolhas:[
@@ -1264,6 +1284,7 @@ const EVENTOS_TECNICO = [
       { label:'Reclamar abertamente do excesso de regras', efeitos:{relacaoTreinador:-5, tracos:{rebelde:1}} }
     ] }; },
   () => { if(GAME.tecnico.estilo !== 'paizao') return null; return {
+    retrato:(g)=>({nome:g.tecnico.nome, papel:'tecnico'}),
     id:'tecnico_paizao_conversa', categoria:'geral',
     texto:(g)=>`Depois de uma sequência ruim, ${g.tecnico.nome} te chama de lado, sem cobrança, só pra saber como você está.`,
     escolhas:[
@@ -1271,6 +1292,7 @@ const EVENTOS_TECNICO = [
       { label:'Dizer que está tudo bem', efeitos:{relacaoTreinador:2} }
     ] }; },
   () => { if(GAME.tecnico.estilo !== 'formador') return null; return {
+    retrato:(g)=>({nome:g.tecnico.nome, papel:'tecnico'}),
     id:'tecnico_formador_oportunidade', categoria:'geral',
     texto:(g)=>`${g.tecnico.nome} avisa: "Prefiro errar dando minutos pra quem tá começando do que travar o crescimento de vocês."`,
     escolhas:[
@@ -1278,6 +1300,7 @@ const EVENTOS_TECNICO = [
       { label:'Cobrar ainda mais minutos', efeitos:{relacaoTreinador:-2, pressao:2, tracos:{confiante:1}} }
     ] }; },
   () => { if(GAME.tecnico.estilo !== 'resultadista') return null; return {
+    retrato:(g)=>({nome:g.tecnico.nome, papel:'tecnico'}),
     id:'tecnico_resultadista_pressao', categoria:'geral',
     texto:(g)=>`${g.tecnico.nome} não disfarça a impaciência: "A gente não tem tempo pra processo longo, o resultado tem que vir agora."`,
     escolhas:[
@@ -1285,6 +1308,7 @@ const EVENTOS_TECNICO = [
       { label:'Pedir calma e defender um trabalho de médio prazo', efeitos:{relacaoTreinador:-3, saudeMental:2, tracos:{serio:1}} }
     ] }; },
   () => { if(GAME.tecnico.estilo !== 'professor') return null; return {
+    retrato:(g)=>({nome:g.tecnico.nome, papel:'tecnico'}),
     id:'tecnico_professor_analise', categoria:'geral',
     texto:(g)=>`${g.tecnico.nome} chama você pra assistir replays dos seus últimos lances, apontando detalhes que passariam despercebidos.`,
     escolhas:[
@@ -1300,6 +1324,7 @@ const EVENTOS_TECNICO = [
    ========================================================================= */
 const EVENTOS_ELENCO_PAPEL = [
   () => { const c = GAME.elenco.find(x=>x.papel==='Rival direto pela vaga'); if(!c) return null; return {
+    retrato:()=>({nome:c.nome, papel:'elenco'}),
     id:'papel_rival_disputa_vaga', categoria:'vestiario',
     texto:(g)=>`O técnico deixa claro: só um de vocês começa jogando — você ou ${c.nome}, que também briga pela sua posição.`,
     escolhas:[
@@ -1307,6 +1332,7 @@ const EVENTOS_ELENCO_PAPEL = [
       { label:'Aceitar a concorrência de forma esportiva', efeitos:{amigo:c.id, amigoDelta:6, relacaoTreinador:2, tracos:{humilde:1}} }
     ] }; },
   () => { const c = GAME.elenco.find(x=>x.papel==='Veterano do elenco'); if(!c) return null; return {
+    retrato:()=>({nome:c.nome, papel:'elenco'}),
     id:'papel_veterano_mentoria', categoria:'vestiario',
     texto:(g)=>`${c.nome}, o mais experiente do grupo, te chama pra assistir análise de vídeo junto.`,
     escolhas:[
@@ -1314,6 +1340,7 @@ const EVENTOS_ELENCO_PAPEL = [
       { label:'Ir só por educação', efeitos:{amigo:c.id, amigoDelta:-2} }
     ] }; },
   () => { const c = GAME.elenco.find(x=>x.papel==='Zoeiro do grupo'); if(!c) return null; return {
+    retrato:()=>({nome:c.nome, papel:'elenco'}),
     id:'papel_zoeiro_pegadinha', categoria:'vestiario',
     texto:(g)=>`${c.nome} aprontou uma pegadinha pesada com você na frente do elenco inteiro.`,
     escolhas:[

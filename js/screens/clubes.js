@@ -44,7 +44,7 @@ function renderSelecaoClubes(){
       ${clubes.map(c => `
         <div class="card club-card" data-id="${c.id}" style="--this-c1:${c.cor1};--this-c2:${c.cor2}">
           <div class="club-card-head">
-            ${crestHtml(c, 40)}
+            ${escudoClubeHtml(c, 40)}
             <div>
               <h3>${escapeHtml(c.nome)}</h3>
               <p class="small muted" style="margin-top:1px">${escapeHtml(c.cidade)}/${c.uf}</p>
@@ -97,8 +97,8 @@ function iniciarPeneira(clube){
     oportunidadeJovens:clube.oportunidadeJovens, financeiro:clube.financeiro,
     reputacao:clube.reputacao, exigenciaPeneira:clube.exigenciaPeneira,
     cor1:clube.cor1, cor2:clube.cor2 };
-  GAME.tecnico = gerarTecnico();
-  GAME.observador = pick(NOMES_OBSERVADORES);
+  GAME.tecnico = gerarTecnico(GAME.tecnico && GAME.tecnico.nome);
+  GAME.observador = pickExcluindo(NOMES_OBSERVADORES, GAME.observador);
   GAME.peneiraState = { faseIndex:0, chanceDestaque:0 };
   GAME.fase = 'peneira';
   pushNoticia('geral', `Você foi tentar a peneira do ${clube.nome}.`);
