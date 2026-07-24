@@ -28,11 +28,15 @@ function sincronizarTemaCompeticao(){
   else removerTemaCompeticao();
 }
 
-// Dispara uma transição suave sempre que o conteúdo principal muda de tela
+// Dispara uma transição suave sempre que o conteúdo principal muda de tela —
+// e, como só reage a troca de tela DE VERDADE (childList de #app, nunca os
+// updates internos da partida ao vivo), também é o gatilho certo pra saber
+// quando vale atualizar o anúncio do canto (ver js/core/ads.js).
 const appObserver = new MutationObserver(() => {
   app.classList.remove('fade-in');
   void app.offsetWidth; // força reflow para reiniciar a animação
   app.classList.add('fade-in');
+  if(typeof talvezAtualizarAnuncio === 'function') talvezAtualizarAnuncio();
 });
 appObserver.observe(app, { childList: true });
 
