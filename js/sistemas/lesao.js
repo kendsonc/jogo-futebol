@@ -18,10 +18,15 @@ function checarLesao(riscoMod){
   const fatorHistorico = Math.min(GAME.historicoLesoesTotal||0, 6) * 0.55;
   const cuidado = GAME.cuidadoFisico!=null ? GAME.cuidadoFisico : 50;
   const fatorCuidado = (50 - cuidado) * 0.06; // desleixado (cuidado baixo) aumenta risco, cuidadoso reduz
+  // condicaoFisica é o desgaste ACUMULADO da temporada (minutos em campo sem
+  // descanso suficiente pra compensar), diferente de energia (cansaço da
+  // semana) — corpo desgastado ao longo do campeonato quebra mais fácil.
+  const condicao = GAME.status.condicaoFisica!=null ? GAME.status.condicaoFisica : 90;
+  const fatorDesgaste = condicao < 60 ? (60-condicao)*0.07 : 0;
   const prob = clamp(
     fadiga*0.13 + riscoMod*0.35 + (100-GAME.atributos.resistencia)*0.03 - GAME.atributos.forca*0.02
-    + fatorIdade + fatorHistorico + fatorCuidado + rand(-3,3),
-    0, 13
+    + fatorIdade + fatorHistorico + fatorCuidado + fatorDesgaste + rand(-3,3),
+    0, 15
   );
   if(chance(prob)){
     let tipo, semanas;

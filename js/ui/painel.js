@@ -153,6 +153,13 @@ function painelEstatisticas(){
     ${linha('Jogos na carreira', GAME.statsCareer.jogos + s.jogos)}
     ${linha('Gols na carreira', GAME.statsCareer.gols + s.gols)}
     ${linha('Assistências na carreira', GAME.statsCareer.assistencias + s.assistencias)}
+  </div>` : '')
+  + ((GAME.statsCareer && GAME.statsCareer.selecao && GAME.statsCareer.selecao.jogos>0) ? `<div class="card">
+    <div class="card-title">🇧🇷 Seleção Brasileira</div>
+    ${linha('Jogos', GAME.statsCareer.selecao.jogos)}
+    ${linha('Gols', GAME.statsCareer.selecao.gols)}
+    ${linha('Assistências', GAME.statsCareer.selecao.assistencias)}
+    ${linha('Vitórias', `${GAME.statsCareer.selecao.vitorias} (${GAME.statsCareer.selecao.empates||0} empates, ${GAME.statsCareer.selecao.derrotas||0} derrotas)`)}
   </div>` : '');
 }
 function painelContrato(){
@@ -166,8 +173,15 @@ function painelContrato(){
     <div class="spacer"></div>
     <p><b>Carteira (acumulado):</b> R$ ${Math.round(GAME.carteira||0).toLocaleString('pt-BR')}</p>
     <p class="small muted">Guardado até você poder gastar em algo — em breve.</p>
-    ${GAME.patrocinioAtual ? `<p class="spacer"><b>Patrocínio:</b> ${GAME.patrocinioAtual.marca} — R$ ${Number(GAME.patrocinioAtual.valorMensal).toLocaleString('pt-BR')}/mês</p>` : '<p class="spacer small muted">Sem patrocínio de material esportivo no momento.</p>'}
+    <div class="spacer"></div>
+    ${GAME.patrocinioAtual ? `<p><b>Patrocínio:</b> ${GAME.patrocinioAtual.marca} — R$ ${Number(GAME.patrocinioAtual.valorMensal).toLocaleString('pt-BR')}/mês</p>` : '<p class="small muted">Sem patrocínio de material esportivo no momento.</p>'}
+    ${painelPatrociniosImagemHtml()}
   </div>`;
+}
+function painelPatrociniosImagemHtml(){
+  const pats = GAME.patrociniosImagem ? Object.values(GAME.patrociniosImagem) : [];
+  if(!pats.length) return '';
+  return pats.map(p => `<p><b>Patrocínio de ${NOMES_CATEGORIA_PATROCINIO[p.categoria]||p.categoria}:</b> ${p.marca} — R$ ${Number(p.valorMensal).toLocaleString('pt-BR')}/mês</p>`).join('');
 }
 function painelSocial(){
   const s = GAME.social || { seguidores:0, mensagens:[] };
@@ -228,22 +242,35 @@ function painelAgenda(){
 }
 function painelRival(){
   const r = GAME.rival;
-  if(!r) return `<div class="card muted">Você ainda não tem um rival de carreira definido.</div>`;
-  const meuOverall = calcularOverall();
-  const meusGols = (GAME.statsCareer ? GAME.statsCareer.gols : 0) + GAME.stats.gols;
-  const meusTitulos = GAME.statsCareer.titulos;
+  const base = !r ? `<div class="card muted">Você ainda não tem um rival de carreira definido.</div>` : (() => {
+    const meuOverall = calcularOverall();
+    const meusGols = (GAME.statsCareer ? GAME.statsCareer.gols : 0) + GAME.stats.gols;
+    const meusTitulos = GAME.statsCareer.titulos;
+    return `<div class="card">
+      <div class="card-title">${escapeHtml(r.nome)}</div>
+      <p class="small muted">${escapeHtml(r.posicao)} — atualmente no ${escapeHtml(r.clubeNome)}</p>
+      <span class="badge">Trajetória: ${escapeHtml(r.trajetoria)}</span>
+      <div class="spacer"></div>
+      <table style="width:100%;border-collapse:collapse">
+        <tr><td class="small muted">Overall</td><td class="small" style="text-align:right"><b>${meuOverall}</b> x <b>${r.overall}</b></td></tr>
+        <tr><td class="small muted">Gols na carreira</td><td class="small" style="text-align:right"><b>${meusGols}</b> x <b>${r.statsCareer.gols}</b></td></tr>
+        <tr><td class="small muted">Assistências na carreira</td><td class="small" style="text-align:right"><b>${(GAME.statsCareer?GAME.statsCareer.assistencias:0)+GAME.stats.assistencias}</b> x <b>${r.statsCareer.assistencias}</b></td></tr>
+        <tr><td class="small muted">Títulos</td><td class="small" style="text-align:right"><b>${meusTitulos}</b> x <b>${r.statsCareer.titulos}</b></td></tr>
+        <tr><td class="small muted">Temporadas</td><td class="small" style="text-align:right"><b>${GAME.numeroTemporada}</b> x <b>${r.statsCareer.temporadas}</b></td></tr>
+      </table>
+    </div>`;
+  })();
+  return base + painelExCompanheirosHtml();
+}
+function painelExCompanheirosHtml(){
+  const lista = GAME.exCompanheiros || [];
+  if(!lista.length) return '';
   return `<div class="card">
-    <div class="card-title">${escapeHtml(r.nome)}</div>
-    <p class="small muted">${escapeHtml(r.posicao)} — atualmente no ${escapeHtml(r.clubeNome)}</p>
-    <span class="badge">Trajetória: ${escapeHtml(r.trajetoria)}</span>
-    <div class="spacer"></div>
-    <table style="width:100%;border-collapse:collapse">
-      <tr><td class="small muted">Overall</td><td class="small" style="text-align:right"><b>${meuOverall}</b> x <b>${r.overall}</b></td></tr>
-      <tr><td class="small muted">Gols na carreira</td><td class="small" style="text-align:right"><b>${meusGols}</b> x <b>${r.statsCareer.gols}</b></td></tr>
-      <tr><td class="small muted">Assistências na carreira</td><td class="small" style="text-align:right"><b>${(GAME.statsCareer?GAME.statsCareer.assistencias:0)+GAME.stats.assistencias}</b> x <b>${r.statsCareer.assistencias}</b></td></tr>
-      <tr><td class="small muted">Títulos</td><td class="small" style="text-align:right"><b>${meusTitulos}</b> x <b>${r.statsCareer.titulos}</b></td></tr>
-      <tr><td class="small muted">Temporadas</td><td class="small" style="text-align:right"><b>${GAME.numeroTemporada}</b> x <b>${r.statsCareer.temporadas}</b></td></tr>
-    </table>
+    <div class="card-title">Ex-companheiros de elenco</div>
+    ${lista.map(ex => `
+      <p><b>${escapeHtml(ex.nome)}</b> — atualmente no ${escapeHtml(ex.clubeNome)} <span class="small muted">(conheceu vocês no ${escapeHtml(ex.clubeConheceuNome)})</span></p>
+      ${barraHtml('Amizade', ex.relacao)}
+    `).join('<div class="spacer"></div>')}
   </div>`;
 }
 function painelCalendario(){

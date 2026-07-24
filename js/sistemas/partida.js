@@ -18,7 +18,10 @@ function resolverNivelLance(attr, dificuldade){
 // escalado pela força do time. É só a base "do resto do time" (as outras 21
 // pessoas em campo); o que o SEU jogador faz nos lances soma em cima disso
 // (ver estatJogador em prepararPartida e aplicarEstatisticaLance).
-function gerarEstatBaseTime(forca){
+// agressividade (do estilo tático do clube, ver modsTaticosClube em
+// dados-base.js): times mais agressivos cometem mais faltas e levam mais cartão.
+function gerarEstatBaseTime(forca, agressividade){
+  agressividade = agressividade || 0;
   // Faixas próximas da média real de uma partida (por time): ~6-14 finalizações,
   // ~2-6 no alvo, ~3-7 escanteios, ~7-15 faltas, 0-3 impedimentos, ~8-16 desarmes.
   // Escala com a força do time só um pouco (evita times "monstro" com números irreais).
@@ -27,10 +30,10 @@ function gerarEstatBaseTime(forca){
   return {
     finalizacoes, finalizacoesGol,
     escanteios: rand(3,7),
-    faltas: rand(7,15),
+    faltas: clamp(rand(7,15) + Math.round(agressividade*0.6), 4, 24),
     impedimentos: rand(0,3),
     desarmes: rand(8,16),
-    cartoes: chance(55) ? rand(1,2) : 0
+    cartoes: clamp((chance(55) ? rand(1,2) : 0) + (chance(clamp(agressividade*4,0,40)) ? 1 : 0), 0, 5)
   };
 }
 
@@ -67,8 +70,12 @@ function prepararPartida(contexto){
   // peso da nota (abaixo) também devem misturar as duas coisas, em vez de
   // cair no balde de "ataque" só por não estar nas outras duas listas.
   const ehMeio = posicao === 'Meio-campista';
+  // Tática do clube (estiloJogo) reduzida a um punhado de arquétipos com efeito
+  // real na simulação (dados-base.js) — não é mais só um texto na tela de clubes.
+  const modsMeu = modsTaticosClube(GAME.clube);
+  const modsAdv = modsTaticosClube(oponente || GAME.clube);
   const forcaOponente = oponente ? oponente.reputacao : GAME.clube.reputacao;
-  const dificuldade = clamp(forcaOponente*0.6 + (mandante?-3:3) + rand(-10,15), 15, 95);
+  const dificuldade = clamp(forcaOponente*0.6 + (mandante?-3:3) + (modsAdv.defesa-modsAdv.ataque)*0.5 + rand(-10,15), 15, 95);
 
   // Viagem: jogos fora de casa cansam mais quanto mais longe fica a cidade do
   // adversário — desconta energia real antes da partida (o desgaste da estrada)
@@ -77,6 +84,7 @@ function prepararPartida(contexto){
   if(desgasteViagem > 0) GAME.status.energia = clamp(GAME.status.energia - desgasteViagem, 0, 100);
 
   const confrontoRival = !!(GAME.rival && oponente && oponente.id === GAME.rival.clubeId);
+  const classicoRegional = !!(oponente && ehClassicoRegional(GAME.clube, oponente));
   // Quantidade de lances varia partida a partida (nunca fixa): titular tem uma
   // base de 1 a 3, duelo direto contra o rival soma +1 lance decisivo, e jogar
   // a maior parte da partida (85+ minutos) também rende +1 chance de aparecer.
@@ -108,8 +116,8 @@ function prepararPartida(contexto){
   // a esse placar-base (resolverEscolhaLance), então o placar exibido a cada
   // lance é sempre exatamente o placar real até aquele minuto.
   const penalidadeViagem = mandante ? 0 : clamp((distanciaKm||300)/350, 0, 5);
-  const forcaTime = clamp(GAME.clube.nivelBase + (GAME.relacoes.elenco-50)*0.2 + (GAME.temporadaState.mediaTreinoRecente-50)*0.15 + (mandante?4:-2-penalidadeViagem) + rand(-12,12), 15, 95);
-  const forcaAdversario = clamp((oponente ? oponente.reputacao*0.6 + oponente.nivelBase*0.3 : GAME.clube.reputacao*0.6) + (mandante?-2:4) + rand(-15,20), 15, 95);
+  const forcaTime = clamp(GAME.clube.nivelBase + (GAME.relacoes.elenco-50)*0.2 + (GAME.temporadaState.mediaTreinoRecente-50)*0.15 + (mandante?4:-2-penalidadeViagem) + modsMeu.ataque - modsAdv.defesa + rand(-12,12), 15, 95);
+  const forcaAdversario = clamp((oponente ? oponente.reputacao*0.6 + oponente.nivelBase*0.3 : GAME.clube.reputacao*0.6) + (mandante?-2:4) + modsAdv.ataque - modsMeu.defesa + rand(-15,20), 15, 95);
   const golsTimeBase = golsPoisson(forcaTime); // gols do time SEM contar os seus (somados depois)
   const golsAdversarioFinal = golsPoisson(forcaAdversario); // adversário não é afetado pelos seus lances
   // id sequencial em cada gol (inclusive os que o próprio jogador fizer depois,
@@ -151,8 +159,8 @@ function prepararPartida(contexto){
   // faltas, impedimentos, desarmes, cartões) — base de fundo escalada pela
   // força de cada time; estatJogador acumula em cima disso o que o SEU
   // jogador realmente fizer nos lances (ver aplicarEstatisticaLance).
-  const estatBase = { meu: gerarEstatBaseTime(forcaTime), adv: gerarEstatBaseTime(forcaAdversario) };
-  const posseBase = clamp(Math.round(50 + (forcaTime-forcaAdversario)/4), 32, 68);
+  const estatBase = { meu: gerarEstatBaseTime(forcaTime, modsMeu.agressividade), adv: gerarEstatBaseTime(forcaAdversario, modsAdv.agressividade) };
+  const posseBase = clamp(Math.round(50 + (forcaTime-forcaAdversario)/4 + (modsMeu.posse-modsAdv.posse)/2), 28, 72);
   // Acréscimos de cada tempo — base realista (1º tempo costuma ter menos que
   // o 2º) que só CRESCE durante a partida quando uma revisão de VAR acontece
   // (iniciarRevisaoVar soma o tempo gasto na análise a este total).
@@ -161,7 +169,7 @@ function prepararPartida(contexto){
 
   GAME.temporadaState.partidaEmAndamento = {
     status, adversario, minutos, entrouBanco, titular, dificuldade, mandante,
-    oponenteId: oponente ? oponente.id : null, confrontoRival,
+    oponenteId: oponente ? oponente.id : null, confrontoRival, classicoRegional,
     distanciaKm, desgasteViagem,
     ehGoleiro, ehAtacante, ehDefensor, ehMeio,
     lances, minutosLances, indiceLance:0,
@@ -660,6 +668,9 @@ function gerarDialogoIntervalo(p, pl){
 
   const extras = [];
   if(p.confrontoRival && GAME.rival) extras.push(pick(FLAVOR_CLASSICO_INTERVALO)({ adversario:p.adversario }));
+  else if(p.classicoRegional) extras.push(pick(FLAVOR_CLASSICO_REGIONAL)({ adversario:p.adversario }));
+  const exNoAdversario = exCompanheiroNoAdversario(p.oponenteId);
+  if(exNoAdversario) extras.push(pick(FLAVOR_REENCONTRO_EX_COMPANHEIRO)(exNoAdversario));
   const flavorCopa = gerarFlavorMataMata(pl);
   if(flavorCopa) extras.push(flavorCopa);
   const hist = GAME.statsCareer.confrontosHistorico && GAME.statsCareer.confrontosHistorico[p.adversario];
@@ -1107,6 +1118,12 @@ function consolidarDesempenhoPartida(p){
   cronologiaGols.forEach(gc => { if(!gc.adversario) golPara(gc.nome); });
   const resultadoJogo = golsTime > golsAdversario ? 'vitoria' : golsTime < golsAdversario ? 'derrota' : 'empate';
   registrarConfrontoHistorico(adversario, resultadoJogo, golsTime, golsAdversario);
+  if(p.classicoRegional){
+    if(!GAME.statsCareer.classicos) GAME.statsCareer.classicos = { jogos:0, vitorias:0, empates:0, derrotas:0 };
+    const cl = GAME.statsCareer.classicos;
+    cl.jogos += 1;
+    if(resultadoJogo==='vitoria') cl.vitorias++; else if(resultadoJogo==='empate') cl.empates++; else cl.derrotas++;
+  }
 
   let nota = 0;
   if(minutos > 0){
@@ -1118,6 +1135,11 @@ function consolidarDesempenhoPartida(p){
     nota = 6.0 + gols*0.9 + assist*0.5 + defesaImportante*0.6 + (desarmesCertos||0)*pesoDesarme - erros*0.5 - amarelo*0.3 - vermelho*1.6 + rand(-3,3)/10;
     nota = clamp(nota, 0, 10);
     // pressaoTorcida do clube amplifica o baque de uma derrota/nota ruim e o alívio de uma vitória
+    // Desgaste acumulado da temporada (condicaoFisica) penaliza um pouco a nota,
+    // além de já reduzir minutos de titular em prepararPartida — corpo cansado
+    // rende menos, não só corre menos risco de lesão.
+    const condicaoAtual = GAME.status.condicaoFisica!=null ? GAME.status.condicaoFisica : 90;
+    if(condicaoAtual < 50) nota = clamp(nota - (50-condicaoAtual)*0.03, 0, 10);
     const fatorPressaoClube = clamp((GAME.clube.pressaoTorcida-50)/50, -0.5, 1);
     if(resultadoJogo==='derrota' || nota<5){
       GAME.status.pressao = clamp(GAME.status.pressao + Math.round(6*(1+fatorPressaoClube)), 0, 100);
@@ -1147,7 +1169,10 @@ function consolidarDesempenhoPartida(p){
   const deltaValor = (nota-6)*0.02 + gols*0.03 + assist*0.02;
   const fatorAmortecimento = clamp(1 - (s.valorEstimado / tetoValor), 0.08, 1);
   s.valorEstimado = clamp(Math.round(s.valorEstimado * (1 + deltaValor*fatorAmortecimento)), 2000, tetoValor);
-  s.interesseClubes = clamp(s.interesseClubes + (nota>=7.5?4:0) + gols*3 + assist*2 - (vermelho*2), 0, 100);
+  // empresário 'renomado' tem rede de contatos de verdade — joga seu nome pra
+  // clubes maiores mais rápido que os outros tipos de empresário (ou nenhum)
+  const bonusEmpresarioRenomado = GAME.empresarioAtual === 'renomado' ? 2 : 0;
+  s.interesseClubes = clamp(s.interesseClubes + (nota>=7.5?4:0) + gols*3 + assist*2 - (vermelho*2) + bonusEmpresarioRenomado, 0, 100);
 
   // Relações
   if(minutos>0){
@@ -1171,6 +1196,10 @@ function consolidarDesempenhoPartida(p){
   atualizarStatusElenco();
   verificarObjetivosContador();
   GAME.status.energia = clamp(GAME.status.energia - Math.round(minutos/6), 0, 100);
+  // Desgaste de longo prazo: uma partida inteira (90min) custa ~5 pontos de
+  // condicaoFisica, que só se recupera devagar (concluirTickSemanal) — diferente
+  // da energia, que volta rápido semana a semana.
+  if(minutos > 0) GAME.status.condicaoFisica = clamp((GAME.status.condicaoFisica!=null?GAME.status.condicaoFisica:90) - Math.round(minutos/18), 0, 100);
 
   // O resultado coletivo também pesa um pouco nas relações, além do seu desempenho individual
   GAME.relacoes.torcida = clamp(GAME.relacoes.torcida + (resultadoJogo==='vitoria'?3:resultadoJogo==='derrota'?-3:0), 0, 100);
@@ -1220,6 +1249,9 @@ function finalizarPartida(){
     pushNoticia('geral', `${GAME.clube.nome} ${placarTxt} ${adversario} — ${GAME.identidade.apelido} atuou ${minutos} minutos, nota ${nota.toFixed(1)}.`);
   }
 
+  if(mandante && resultadoJogo === 'derrota') verificarVaiaColetiva();
+  else verificarFaixaTorcida();
+
   GAME.temporadaState.jogoAtual = resultado;
   GAME.temporadaState.partidaEmAndamento = null;
   GAME.temporadaState.subFase = 'resultadoJogo';
@@ -1252,7 +1284,9 @@ function renderPreJogo(){
       <div style="text-align:center">${escudoClubeHtml(mandante?oponente:GAME.clube, 56)}<p class="small muted" style="margin-top:6px;max-width:90px">${escapeHtml((mandante?oponente:GAME.clube).nome)}</p></div>
     </div>` : '';
   const confrontoRival = !!(GAME.rival && oponente && oponente.id === GAME.rival.clubeId);
-  const rivalHtml = confrontoRival ? `<div class="badge" style="display:block;margin-bottom:10px">⚔️ Duelo direto contra ${escapeHtml(GAME.rival.nome)}, seu rival de carreira</div>` : '';
+  const classicoRegional = !!(oponente && ehClassicoRegional(GAME.clube, oponente));
+  const rivalHtml = confrontoRival ? `<div class="badge" style="display:block;margin-bottom:10px">⚔️ Duelo direto contra ${escapeHtml(GAME.rival.nome)}, seu rival de carreira</div>`
+    : classicoRegional ? `<div class="badge" style="display:block;margin-bottom:10px">🏟️ Clássico da cidade contra o ${escapeHtml(oponente.nome)}!</div>` : '';
   app.innerHTML = `
     ${statusBarHtml()}
     <div class="screen-hero">
@@ -1353,5 +1387,17 @@ function renderResultadoJogo(){
     ${sumulaHtml}
     <div class="card"><div class="choices"><button class="btn btn-primary" id="btn-continuar-jogo">Continuar temporada</button></div></div>
   `;
-  document.getElementById('btn-continuar-jogo').onclick = () => { Som.tocarAmbiente('menu'); GAME.temporadaState.jogoAtual=null; avancarSemana(); };
+  document.getElementById('btn-continuar-jogo').onclick = () => {
+    Som.tocarAmbiente('menu');
+    if(deveHaverColetiva(j)){
+      GAME.temporadaState.coletivaAtual = { perguntas: gerarColetiva(j), indice: 0 };
+      GAME.temporadaState.jogoAtual = null;
+      GAME.temporadaState.subFase = 'coletivaImprensa';
+      salvarJogo();
+      render();
+    } else {
+      GAME.temporadaState.jogoAtual = null;
+      avancarSemana();
+    }
+  };
 }

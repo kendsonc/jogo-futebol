@@ -141,3 +141,12 @@ const FLAVOR_CLASSICO_INTERVALO = [
   (c)=>`Sei que enfrentar o ${c.adversario} mexe com a torcida de um jeito diferente — não vamos deixar escapar.`,
   (c)=>`Duelo direto contra o ${c.adversario} pesa mais que os três pontos, pesa o orgulho.`
 ];
+
+// Flavor pro clássico REGIONAL (mesma cidade do adversário, ver ehClassicoRegional
+// em dados-base.js) — diferente do rival de carreira, é o clima da torcida/cidade,
+// não uma rivalidade pessoal.
+const FLAVOR_CLASSICO_REGIONAL = [
+  (c)=>`É clássico da cidade contra o ${c.adversario} — a torcida não vai esquecer o resultado de hoje tão cedo.`,
+  (c)=>`Jogo contra o ${c.adversario} tem outro clima, todo mundo na cidade vai comentar amanhã.`,
+  (c)=>`Clássico local contra o ${c.adversario}: hoje vale além dos três pontos, vale prestígio na cidade inteira.`
+];

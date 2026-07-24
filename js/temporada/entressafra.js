@@ -246,6 +246,9 @@ function renderEntressafraTransferencia(){
     btn.onclick = () => {
       if(btn.dataset.i !== 'ficar'){
         const novoClube = opcoes[parseInt(btn.dataset.i,10)];
+        const clubeAntigoNomeTransferencia = GAME.clube ? GAME.clube.nome : null;
+        const torcidaAntigaTransferencia = GAME.relacoes.torcida;
+        preservarExCompanheirosNaTransferencia(); // antes de trocar GAME.clube/elenco — precisa do clube ANTIGO
         GAME.clube = { id:novoClube.id, nome:novoClube.nome, cidade:novoClube.cidade, uf:novoClube.uf,
           pais:novoClube.pais, liga:novoClube.liga,
           divisao:novoClube.divisao, estiloJogo:novoClube.estiloJogo, nivelBase:novoClube.nivelBase,
@@ -259,6 +262,7 @@ function renderEntressafraTransferencia(){
         GAME.tecnico = gerarTecnico(GAME.tecnico && GAME.tecnico.nome);
         GAME.observador = pickExcluindo(NOMES_OBSERVADORES, GAME.observador);
         GAME.elenco = gerarElenco(); // novo clube, novos companheiros de elenco
+        despedidaDaTorcidaAntesDaTransferencia(clubeAntigoNomeTransferencia, torcidaAntigaTransferencia);
         GAME.relacoes.treinador = 50; GAME.relacoes.elenco = 50; GAME.relacoes.diretoria = 50; GAME.relacoes.torcida = 15;
         GAME.status.statusElenco = 'Novo reforço';
         pushNoticia('midia', `${GAME.identidade.apelido} é anunciado como novo reforço do ${novoClube.nome} (${novoClube.divisao})!`);
@@ -387,6 +391,7 @@ function avancarParaProximaTemporada(){
   }
 
   evoluirRival();
+  evoluirExCompanheiros();
 
   pushNoticia('geral', `Início da Temporada ${GAME.numeroTemporada} — agora com ${idadeAtual()} anos.`);
   iniciarTemporada();

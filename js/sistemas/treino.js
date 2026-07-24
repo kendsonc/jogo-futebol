@@ -64,7 +64,10 @@ function aplicarTreino(treino){
   });
   // cuidar do corpo (descanso) ou insistir treinando exausto também molda o
   // cuidadoFisico de longo prazo, que por sua vez pesa no risco de lesão
-  if(treino.id === 'descanso') GAME.cuidadoFisico = clamp((GAME.cuidadoFisico!=null?GAME.cuidadoFisico:50) + 1, 0, 100);
+  if(treino.id === 'descanso'){
+    GAME.cuidadoFisico = clamp((GAME.cuidadoFisico!=null?GAME.cuidadoFisico:50) + 1, 0, 100);
+    GAME.status.condicaoFisica = clamp((GAME.status.condicaoFisica!=null?GAME.status.condicaoFisica:90) + 3, 0, 100);
+  }
   else if(GAME.status.energia < 25) GAME.cuidadoFisico = clamp((GAME.cuidadoFisico!=null?GAME.cuidadoFisico:50) - 1, 0, 100);
   GAME.status.energia = clamp(GAME.status.energia - treino.custo, 0, 100);
   ts.mediaTreinoRecente = clamp(ts.mediaTreinoRecente*0.6 + (treino.id==='descanso'? 55 : (40+qualidade*8))*0.4, 0, 100);
@@ -104,7 +107,8 @@ function decidirEscalacao(){
   // pode ter jogo marcado — sem esse desconto, o jogador saía de uma entorse
   // direto pra titular, sem nenhuma partida de transição pra retomar ritmo.
   const penalidadeRecondicionamento = (GAME.recondicionamentoSemanas||0) > 0 ? -22 : 0;
-  const score = GAME.relacoes.treinador*0.3 + ts.mediaTreinoRecente*0.3 + GAME.status.energia*0.2 + GAME.atributos.disciplina*0.2 + bonusStatus + bonusForma + bonusTecnico + penalidadeRecondicionamento + rand(-15,15);
+  const bonusPerfil = bonusPerfilClubeEscalacao();
+  const score = GAME.relacoes.treinador*0.3 + ts.mediaTreinoRecente*0.3 + GAME.status.energia*0.2 + GAME.atributos.disciplina*0.2 + bonusStatus + bonusForma + bonusTecnico + bonusPerfil + penalidadeRecondicionamento + rand(-15,15);
   if(score >= 65) return 'titular';
   if(score >= 38) return 'reserva';
   return 'naoRelacionado';
@@ -126,4 +130,19 @@ function calcularBonusTecnico(bonusStatus, bonusForma){
     case 'formador':      return clamp(8-GAME.stats.jogos, -4, 8);
     default: return 0;
   }
+}
+
+// perfilClube (dados-base.js, derivado dos campos numéricos do clube) também
+// pesa na escalação, não só como texto no mercado de transferências: clube
+// "formador" dá chance real de minutos pra quem ainda está construindo nome no
+// elenco; "gigante em crise" é mais instável (chega a atrapalhar quem não é
+// ídolo consolidado); "organizado" dá uma estabilidade extra pra quem já é
+// titular. Teto ±6, sempre menor que o ruído rand(-15,15) já existente.
+function bonusPerfilClubeEscalacao(){
+  if(!GAME.clube) return 0;
+  const perfil = perfilClube(GAME.clube);
+  if(perfil === 'formador') return clamp(6 - Math.round(GAME.stats.jogos/6), 0, 6);
+  if(perfil === 'gigante_em_crise') return GAME.status.statusElenco === 'Ídolo' ? 3 : -4;
+  if(perfil === 'clube_organizado') return GAME.status.statusElenco === 'Titular' || GAME.status.statusElenco === 'Peça importante' ? 3 : 0;
+  return 0;
 }

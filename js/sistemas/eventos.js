@@ -46,6 +46,62 @@ function gerarEventoPatrocinio(marca){
   };
 }
 
+/* ------------------------ PATROCÍNIOS DE IMAGEM (ALÉM DO ESPORTIVO) ----------
+   Categorias fictícias além do material esportivo (que já existia): bebida
+   isotônica, celular, banco e streaming. Cada categoria só permite UM contrato
+   por vez (o próprio slot em GAME.patrociniosImagem[categoria] já impede dois
+   concorrentes da mesma categoria simultaneamente — não faz sentido ter dois
+   patrocínios de bebida ao mesmo tempo, por exemplo), mas categorias diferentes
+   coexistem entre si e com o patrocínio esportivo (GAME.patrocinioAtual).
+   ------------------------------------------------------------------------- */
+const MARCAS_IMAGEM = {
+  bebida: [
+    { nome:'Vitalix', requisitoPopularidade:20, requisitoImagemMidia:45, valorMensal:180 },
+    { nome:'Energex', requisitoPopularidade:40, requisitoImagemMidia:55, valorMensal:420 },
+    { nome:'PowerAde+', requisitoPopularidade:65, requisitoImagemMidia:65, valorMensal:900 }
+  ],
+  celular: [
+    { nome:'Xiami', requisitoPopularidade:25, requisitoImagemMidia:50, valorMensal:220 },
+    { nome:'Samsul', requisitoPopularidade:50, requisitoImagemMidia:60, valorMensal:600 },
+    { nome:'iFone', requisitoPopularidade:75, requisitoImagemMidia:72, valorMensal:1400 }
+  ],
+  banco: [
+    { nome:'Banco Vero', requisitoPopularidade:30, requisitoImagemMidia:55, valorMensal:300 },
+    { nome:'NuBanco', requisitoPopularidade:55, requisitoImagemMidia:62, valorMensal:750 },
+    { nome:'Itacred', requisitoPopularidade:78, requisitoImagemMidia:74, valorMensal:1600 }
+  ],
+  streaming: [
+    { nome:'PlayFlix', requisitoPopularidade:35, requisitoImagemMidia:52, valorMensal:260 },
+    { nome:'GloboPlay+', requisitoPopularidade:60, requisitoImagemMidia:64, valorMensal:820 },
+    { nome:'StarPass', requisitoPopularidade:82, requisitoImagemMidia:76, valorMensal:1700 }
+  ]
+};
+const NOMES_CATEGORIA_PATROCINIO = { bebida:'bebida isotônica', celular:'celular', banco:'banco', streaming:'streaming' };
+function gerarEventoPatrocinioImagem(categoria, marca){
+  const nomeCategoria = NOMES_CATEGORIA_PATROCINIO[categoria];
+  return {
+    id:'patrocinio_imagem_'+categoria, categoria:'midia',
+    texto:(g)=>`Uma marca de ${nomeCategoria} entra em contato através do seu empresário${g.empresarioAtual?'':' — ou diretamente, já que você ainda não tem um'}.\n\n— A ${marca.nome} quer associar a imagem dela à sua. Estão propondo um contrato de patrocínio de ${nomeCategoria}.`,
+    escolhas:[
+      { label:`Assinar com a ${marca.nome}`, efeitos:{imagemMidia:4, popularidade:3, carteira:marca.valorMensal*2},
+        extra:(g)=>{ if(!g.patrociniosImagem) g.patrociniosImagem = {};
+          g.patrociniosImagem[categoria] = { marca:marca.nome, valorMensal:marca.valorMensal, categoria };
+          pushNoticia('midia', `${g.identidade.apelido} fecha patrocínio de ${nomeCategoria} com a ${marca.nome}.`);
+          atualizarRedesSociais(rand(40,180), 'marca'); } },
+      { label:'Recusar por enquanto', efeitos:{} }
+    ]
+  };
+}
+function categoriaPatrocinioImagemDisponivel(){
+  if(!GAME.patrociniosImagem) GAME.patrociniosImagem = {};
+  const categorias = Object.keys(MARCAS_IMAGEM).filter(cat => !GAME.patrociniosImagem[cat]);
+  for(const cat of categorias){
+    const elegiveis = MARCAS_IMAGEM[cat].filter(m => GAME.sociais.popularidade >= m.requisitoPopularidade && GAME.sociais.imagemMidia >= m.requisitoImagemMidia);
+    if(elegiveis.length) return { categoria:cat, marca:elegiveis[elegiveis.length-1] };
+  }
+  return null;
+}
+
 function gerarEventoRumorTransferencia(){
   const veiculo = veiculoElegivel();
   return { id:'imprensa_rumor_transferencia', categoria:'midia',
@@ -143,11 +199,20 @@ function sortearEvento(){
   if(!GAME.empresarioAtual && !ts.empresarioOfertado && ts.periodoIndex >= 1 && chance(40)){
     pool.push(gerarEventoEmpresario());
   }
+  if(GAME.empresarioAtual && GAME.empresarioAtual !== 'renomado' && !ts.empresarioConcorrenteOfertado && ts.periodoIndex >= 1
+    && (GAME.stats.interesseClubes >= 50 || calcularOverall() >= 68) && chance(12)){
+    pool.push(gerarEventoEmpresarioConcorrente());
+  }
   if(!GAME.patrocinioAtual && GAME.stats.notaMedia > 0 && chance(28)){
     const elegiveis = MARCAS_ESPORTIVAS.filter(m => GAME.stats.interesseClubes >= m.requisitoInteresse && GAME.stats.notaMedia >= m.requisitoNota);
     if(elegiveis.length) pool.push(gerarEventoPatrocinio(elegiveis[elegiveis.length-1]));
   }
+  if(chance(22)){
+    const oferta = categoriaPatrocinioImagemDisponivel();
+    if(oferta) pool.push(gerarEventoPatrocinioImagem(oferta.categoria, oferta.marca));
+  }
   if(GAME.stats.interesseClubes >= 45 && chance(20)) pool.push(gerarEventoRumorTransferencia());
+  if(GAME.exCompanheiros && GAME.exCompanheiros.length && chance(14)) pool.push(gerarEventoMensagemExCompanheiro());
   { const seq = sequenciaAtual(); if(seq.tipo === 'derrota' && seq.tamanho >= 2 && chance(25)) pool.push(gerarEventoCriticaSequenciaRuim()); }
   // Lado obscuro do futebol: raro, no máximo 2 vezes por temporada
   if(ts.eventosObscurosOcorridos < 2 && ts.periodoIndex >= 1 && chance(8)){
@@ -205,6 +270,7 @@ function renderEvento(){
       if(esc.extra) esc.extra(GAME);
       pushHistorico(`Evento: ${esc.label}`);
       if(evt.id === 'empresario') ts.empresarioOfertado = true;
+      if(evt.id === 'empresario_concorrente') ts.empresarioConcorrenteOfertado = true;
       if(evt.id === 'equipe_acesso_comemoracao') ts.acessoComemoradoTemporada = true;
       ts.eventoAtual = null;
       ts.subFase = 'treino';

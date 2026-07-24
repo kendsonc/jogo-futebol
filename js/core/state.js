@@ -122,6 +122,7 @@ function criarNovoJogador(dados){
     elenco: [], tecnico: null, observador: null,
     empresarioAtual: null,
     rival: null,
+    exCompanheiros: [],
     relacionamento: null,
     potencialOculto: rand(40,90),
     noticias: [],
@@ -141,6 +142,7 @@ function criarNovoJogador(dados){
     forma: { ultimasNotas: [], media: 0, momento: 'regular' },
     carteira: 0,
     patrocinioAtual: null,
+    patrociniosImagem: {},
     numeroTemporada: 1,
     statsCareer: { jogos:0, gols:0, assistencias:0, minutos:0, titular:0, temporadas:0, premios:[],
       titulos:0, acessos:0, clubesPassados:[], notaMediaCareer:0, convocacoes:[],
@@ -169,6 +171,8 @@ function repararEstadoEconomia(){
   if(!GAME.banco) GAME.banco = { poupanca: 0, investimentos: [], emprestimos: [] };
   if(!GAME.rostosNpc) GAME.rostosNpc = {};
   if(!GAME.audioConfig) GAME.audioConfig = { mutado:false, volumeMusica:0.15, volumeEfeitos:0.7 };
+  if(!GAME.patrociniosImagem) GAME.patrociniosImagem = {};
+  if(!GAME.exCompanheiros) GAME.exCompanheiros = [];
   if(GAME.identidade && !GAME.identidade.aparencia) GAME.identidade.aparencia = gerarAparenciaAleatoria(Math.random, 'm');
   if(GAME.relacionamento){
     if(GAME.relacionamento.casado === undefined) GAME.relacionamento.casado = false;

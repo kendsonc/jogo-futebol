@@ -71,3 +71,44 @@ function venderCarro(instanceId){
   salvarJogo();
   return true;
 }
+
+/* ============================== MANUTENÇÃO E EXPOSIÇÃO NA MÍDIA ================
+   Carro não é só decoração/garantia de empréstimo: cobra manutenção mensal
+   (% do valor pago, maior em categorias mais caras — pneu/revisão/seguro de
+   um esportivo custa mais que o de um popular) e um esportivo/superesportivo
+   na garagem pode virar pauta de imprensa de vez em quando. */
+const FATOR_MANUTENCAO_MENSAL = { popular:0.010, sedan:0.011, suv:0.013, esportivo:0.018, superesportivo:0.026 };
+function manutencaoMensalCarro(carro){
+  const modelo = CARROS_MODELOS.find(c => c.id === carro.modeloId);
+  if(!modelo) return 0;
+  const fator = FATOR_MANUTENCAO_MENSAL[modelo.categoria] || 0.01;
+  return Math.round(carro.valorPago * fator);
+}
+function custoSemanalManutencaoCarros(){
+  return GAME.garagem.reduce((soma, carro) => soma + manutencaoMensalCarro(carro)/4, 0);
+}
+function descontarManutencaoCarrosSemanal(){
+  if(!GAME.garagem.length) return;
+  const custo = Math.round(custoSemanalManutencaoCarros());
+  if(custo <= 0) return;
+  const saldoAntes = GAME.carteira||0;
+  GAME.carteira = Math.round(saldoAntes - custo);
+  if(saldoAntes >= 0 && GAME.carteira < 0){
+    pushNoticia('geral', `Seu saldo ficou negativo depois de pagar a manutenção dos carros da garagem (R$ ${custo.toLocaleString('pt-BR')}/semana).`);
+  }
+}
+// Chance pequena e por semana: só entra em pauta quem tem carro chamativo
+// (esportivo/superesportivo) — reforça popularidade, mas também exposição
+// (pressão psicológica sobe um pouco, é vida de gente que aparece).
+function checarEventoImprensaCarro(){
+  const chamativos = GAME.garagem.filter(c => {
+    const modelo = CARROS_MODELOS.find(m => m.id === c.modeloId);
+    return modelo && (modelo.categoria === 'esportivo' || modelo.categoria === 'superesportivo');
+  });
+  if(!chamativos.length || !chance(6)) return;
+  const carro = pick(chamativos);
+  const modelo = CARROS_MODELOS.find(m => m.id === carro.modeloId);
+  pushNoticiaImprensa('midia', `Flagrante: ${GAME.identidade.apelido} foi visto chegando ao CT em seu ${modelo.marca} ${modelo.modelo} — imagem viralizou nas redes.`);
+  atualizarRedesSociais(rand(15,45), 'elogio');
+  GAME.sociais.pressaoPsicologica = clamp(GAME.sociais.pressaoPsicologica + rand(1,3), 0, 100);
+}

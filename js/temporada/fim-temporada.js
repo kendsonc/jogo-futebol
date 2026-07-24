@@ -270,6 +270,12 @@ const LEGADOS = {
   andarilho_bola: { titulo:'O Andarilho da Bola',
     texto:(g)=>`${g.statsCareer.clubesPassados.length} clubes, ${g.statsCareer.temporadas} temporadas — uma carreira de mala pronta, sempre em busca do próximo desafio.`,
     criterio:(g)=> g.statsCareer.clubesPassados.length >= 5 },
+  idolo_multiplos_clubes: { titulo:'Ídolo Onde Quer Que Jogasse',
+    texto:(g)=>`Não foi só em um lugar: a torcida do ${(g.statsCareer.clubesIdolo||[]).join(', ')} fez questão de dizer adeus com festa — um carinho raro de se repetir em clube após clube.`,
+    criterio:(g)=> (g.statsCareer.clubesIdolo||[]).length >= 2 },
+  rei_do_classico: { titulo:'O Rei dos Clássicos',
+    texto:(g)=>{ const cl = g.statsCareer.classicos; return `Em clássico da cidade, ${g.identidade.apelido} sempre entregava: ${cl.vitorias} vitória(s) em ${cl.jogos} clássicos disputados — o tipo de número que a torcida rival nunca esquece.`; },
+    criterio:(g)=>{ const cl = g.statsCareer.classicos; return !!(cl && cl.jogos >= 12 && (cl.vitorias/cl.jogos) >= 0.55); } },
   carreira_interrompida: { titulo:'Carreira Marcada por Lesões',
     texto:(g)=>`O talento sempre esteve lá, mas o corpo cobrou seu preço: ${g.historicoLesoesTotal||0} lesões ao longo do caminho tiraram meses — e quem sabe temporadas inteiras — do auge de ${g.identidade.apelido}.`,
     criterio:(g)=> (g.historicoLesoesTotal||0) >= 8 },
@@ -281,7 +287,7 @@ const LEGADOS = {
     criterio:(g)=> true }
 };
 function calcularLegadoFinal(){
-  const ordem = ['icone_mundial','lenda_absoluta','capitao_geracao','artilheiro_historico','construtor_acessos','andarilho_bola','carreira_interrompida','carreira_solida','trajetoria_discreta'];
+  const ordem = ['icone_mundial','lenda_absoluta','capitao_geracao','artilheiro_historico','construtor_acessos','andarilho_bola','idolo_multiplos_clubes','rei_do_classico','carreira_interrompida','carreira_solida','trajetoria_discreta'];
   return ordem.find(id => LEGADOS[id].criterio(GAME));
 }
 

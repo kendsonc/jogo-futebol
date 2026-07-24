@@ -76,8 +76,8 @@ function montarLigaTemporada(){
   // cor1/cor2 vão junto (além de servirem pra tematizar a interface, são a
   // base do fallback procedural de escudo — js/core/escudos.js — pra clubes
   // que ainda não têm uma spec fiel cadastrada em ESCUDOS_CLUBES)
-  const rivais = pool.slice(0,19).map(c => ({ id:c.id, nome:c.nome, nivelBase:c.nivelBase, reputacao:c.reputacao, divisao:c.divisao, cidade:c.cidade, uf:c.uf, cor1:c.cor1, cor2:c.cor2 }));
-  const clubes = [{ id:GAME.clube.id, nome:GAME.clube.nome, nivelBase:GAME.clube.nivelBase, reputacao:GAME.clube.reputacao, divisao:GAME.clube.divisao, cidade:GAME.clube.cidade, uf:GAME.clube.uf, cor1:GAME.clube.cor1, cor2:GAME.clube.cor2 }, ...rivais];
+  const rivais = pool.slice(0,19).map(c => ({ id:c.id, nome:c.nome, nivelBase:c.nivelBase, reputacao:c.reputacao, divisao:c.divisao, cidade:c.cidade, uf:c.uf, cor1:c.cor1, cor2:c.cor2, estiloJogo:c.estiloJogo }));
+  const clubes = [{ id:GAME.clube.id, nome:GAME.clube.nome, nivelBase:GAME.clube.nivelBase, reputacao:GAME.clube.reputacao, divisao:GAME.clube.divisao, cidade:GAME.clube.cidade, uf:GAME.clube.uf, cor1:GAME.clube.cor1, cor2:GAME.clube.cor2, estiloJogo:GAME.clube.estiloJogo }, ...rivais];
   const tabela = {};
   clubes.forEach(c => { tabela[c.id] = { pj:0, v:0, e:0, d:0, gp:0, gc:0, sg:0, pts:0 }; });
   return { clubes, tabela, divisao: meuTier, calendario: gerarCalendarioRoundRobin(clubes.map(c=>c.id)), rodadaAtual:0, historico:[] };
@@ -105,8 +105,8 @@ function montarLigaInternacional(){
     const preenchimento = ordenarPorProximidade(CLUBES.filter(c => c.divisao === 'Série A' && !usados.has(c.id)));
     pool = pool.concat(preenchimento);
   }
-  const rivais = pool.slice(0,19).map(c => ({ id:c.id, nome:c.nome, nivelBase:c.nivelBase, reputacao:c.reputacao, divisao:c.divisao, cidade:c.cidade, uf:c.uf||null, cor1:c.cor1, cor2:c.cor2 }));
-  const clubes = [{ id:GAME.clube.id, nome:GAME.clube.nome, nivelBase:GAME.clube.nivelBase, reputacao:GAME.clube.reputacao, divisao:GAME.clube.divisao, cidade:GAME.clube.cidade, uf:GAME.clube.uf||null, cor1:GAME.clube.cor1, cor2:GAME.clube.cor2 }, ...rivais];
+  const rivais = pool.slice(0,19).map(c => ({ id:c.id, nome:c.nome, nivelBase:c.nivelBase, reputacao:c.reputacao, divisao:c.divisao, cidade:c.cidade, uf:c.uf||null, cor1:c.cor1, cor2:c.cor2, estiloJogo:c.estiloJogo }));
+  const clubes = [{ id:GAME.clube.id, nome:GAME.clube.nome, nivelBase:GAME.clube.nivelBase, reputacao:GAME.clube.reputacao, divisao:GAME.clube.divisao, cidade:GAME.clube.cidade, uf:GAME.clube.uf||null, cor1:GAME.clube.cor1, cor2:GAME.clube.cor2, estiloJogo:GAME.clube.estiloJogo }, ...rivais];
   const tabela = {};
   clubes.forEach(c => { tabela[c.id] = { pj:0, v:0, e:0, d:0, gp:0, gc:0, sg:0, pts:0 }; });
   return { clubes, tabela, divisao:'Internacional', calendario: gerarCalendarioRoundRobin(clubes.map(c=>c.id)), rodadaAtual:0, historico:[] };
@@ -207,7 +207,7 @@ function iniciarTemporada(){
   if(GAME.clube && !GAME.rival) GAME.rival = gerarRival();
   GAME.temporadaState = {
     periodoIndex:0, semanaNoPeriodo:0, subFase:'agenda',
-    eventoAtual:null, jogoAtual:null, mediaTreinoRecente:50, empresarioOfertado:false, seguimentoEvento:null,
+    eventoAtual:null, jogoAtual:null, mediaTreinoRecente:50, empresarioOfertado:false, empresarioConcorrenteOfertado:false, seguimentoEvento:null,
     eventosObscurosOcorridos:0, lutoOcorrido:false, liga: montarLigaTemporada()
   };
   montarCopasTemporada();
@@ -232,6 +232,10 @@ function decidirInicioDeSemana(){
   if(consequencia){
     ts.eventoAtual = consequencia;
     ts.subFase = 'evento';
+    return;
+  }
+  if(elegivelParaAmistosoSelecao()){
+    ts.subFase = 'preJogoSelecao';
     return;
   }
   if(chance(45)){
@@ -280,11 +284,16 @@ function concluirTickSemanal(){
   GAME.status.semanaGlobal += 1;
   // recuperação natural leve de energia entre semanas
   GAME.status.energia = clamp(GAME.status.energia + 6, 0, 100);
+  // condicaoFisica (desgaste acumulado da temporada) recupera bem mais devagar
+  // que energia — é o "conteúdo físico" que só volta de verdade na pré-temporada
+  // ou numa sequência de semanas sem jogo, não numa noite de sono.
+  GAME.status.condicaoFisica = clamp((GAME.status.condicaoFisica!=null?GAME.status.condicaoFisica:90) + 2, 0, 100);
   // fase de recondicionamento pós-lesão: evolução de atributos mais lenta por um tempo
   if(GAME.recondicionamentoSemanas > 0) GAME.recondicionamentoSemanas -= 1;
   // bolsa/salário e eventual patrocínio caem na conta toda semana (valor mensal / 4),
   // descontada a comissão do empresário, se houver
-  const ganhoSemanal = (GAME.contrato.bolsa||0)/4 + (GAME.patrocinioAtual ? GAME.patrocinioAtual.valorMensal/4 : 0);
+  const rendaPatrociniosImagem = GAME.patrociniosImagem ? Object.values(GAME.patrociniosImagem).reduce((soma,p) => soma + p.valorMensal/4, 0) : 0;
+  const ganhoSemanal = (GAME.contrato.bolsa||0)/4 + (GAME.patrocinioAtual ? GAME.patrocinioAtual.valorMensal/4 : 0) + rendaPatrociniosImagem;
   const comissao = GAME.empresarioAtual ? (GAME.empresarioComissao||10)/100 : 0;
   GAME.carteira = Math.round((GAME.carteira||0) + ganhoSemanal * (1 - comissao));
   // Central de Carreira: juros da poupança, parcelas de empréstimo e
@@ -292,11 +301,28 @@ function concluirTickSemanal(){
   processarJurosPoupancaSemanal();
   processarEmprestimosSemanal();
   descontarCustosImoveisSemanal();
+  descontarManutencaoCarrosSemanal();
+  checarEventoImprensaCarro();
   aplicarReputacaoEmpresario();
   aplicarDesgasteVinculosSemanal();
+  aplicarClimaPerfilClubeSemanal();
   ts.subFase = 'agenda';
   salvarJogo();
   render();
+}
+
+// Clima ambiente do clube (perfilClube, dados-base.js) — efeito discreto e
+// contínuo, não só o blurb textual do mercado de transferências: um "gigante em
+// crise" (torcida grande, estrutura que não acompanha) gera pressão psicológica
+// extra mesmo sem jogo nenhuma semana; um "clube organizado" alivia um pouco.
+function aplicarClimaPerfilClubeSemanal(){
+  if(!GAME.clube) return;
+  const perfil = perfilClube(GAME.clube);
+  if(perfil === 'gigante_em_crise' && chance(35)){
+    GAME.sociais.pressaoPsicologica = clamp(GAME.sociais.pressaoPsicologica + 2, 0, 100);
+  } else if(perfil === 'clube_organizado' && chance(35)){
+    GAME.sociais.pressaoPsicologica = clamp(GAME.sociais.pressaoPsicologica - 1, 0, 100);
+  }
 }
 
 // Efeitos periódicos e discretos do tipo de empresário na carreira — o vínculo
@@ -318,10 +344,10 @@ function aplicarReputacaoEmpresario(){
 
 /* ------------------------------ EVENTOS ALEATÓRIOS ------------------------- */
 // Comissão cobrada por cada tipo de empresário sobre bolsa/patrocínio (%)
-const COMISSAO_EMPRESARIO = { experiente:10, oportunista:20, amigoFamilia:8, desconhecido:28 };
+const COMISSAO_EMPRESARIO = { experiente:10, oportunista:20, amigoFamilia:8, desconhecido:28, renomado:15 };
 
 function gerarEventoEmpresario(){
-  const tipo = pick(Object.keys(NOMES_EMPRESARIOS));
+  const tipo = pick(Object.keys(NOMES_EMPRESARIOS).filter(k => k !== 'renomado'));
   const descricaoCompleta = NOMES_EMPRESARIOS[tipo];
   const nomeCurto = descricaoCompleta.split(',')[0];
   const comissao = COMISSAO_EMPRESARIO[tipo];
@@ -343,6 +369,36 @@ function gerarEventoEmpresario(){
       { label:'Recusar por enquanto', efeitos:{confianca:2, tracos:{serio:1}} },
       { label:'Pedir tempo e consultar a família', efeitos:{relacaoFamilia:4, tracos:{humilde:1}} },
       { label:'Consultar a diretoria do clube antes', efeitos:{relacaoTreinador:3, tracos:{serio:1}}, extra:(g)=>{ g.relacoes.diretoria=clamp(g.relacoes.diretoria+4,0,100); } }
+    ]
+  };
+}
+
+// Concorrência de verdade: um agente de peso tenta roubar você do seu
+// empresário atual (mais fraco) quando seu nome já vale alguma coisa —
+// diferente de gerarEventoEmpresario (só reage à primeira proposta que
+// aparece), aqui existe uma escolha ativa entre ficar ou trocar de lado,
+// com custo de rescisão pra sair do contrato atual.
+const CUSTO_RESCISAO_PERCENTUAL = 0.12; // % da carteira atual, pago ao empresário que está sendo trocado
+function gerarEventoEmpresarioConcorrente(){
+  const nomeRenomado = NOMES_EMPRESARIOS.renomado.split(',')[0];
+  const comissaoAtual = GAME.empresarioComissao || 10;
+  return {
+    id:'empresario_concorrente', categoria:'empresario',
+    retrato:()=>({ nome:nomeRenomado, papel:'empresario' }),
+    texto:(g)=>`${nomeRenomado} liga direto pro seu celular, sem passar pelo seu empresário atual.\n\n— Seu nome já circula entre gente grande. Comigo, sua carreira anda mais rápido — trabalho com comissão de ${COMISSAO_EMPRESARIO.renomado}%, contra os ${comissaoAtual}% que você paga hoje. Só que quebrar contrato com quem te representa agora tem um custo.`,
+    escolhas:[
+      { label:`Trocar para ${nomeRenomado} (paga multa de rescisão)`,
+        efeitos:{ relacaoDiretoria:3 },
+        extra:(g)=>{
+          const multa = Math.round((g.carteira||0) * CUSTO_RESCISAO_PERCENTUAL);
+          g.carteira = Math.max(0, Math.round((g.carteira||0) - multa));
+          const antigo = NOMES_EMPRESARIOS[g.empresarioAtual] ? NOMES_EMPRESARIOS[g.empresarioAtual].split(',')[0] : 'seu empresário anterior';
+          g.empresarioAtual = 'renomado';
+          g.empresarioComissao = COMISSAO_EMPRESARIO.renomado;
+          pushNoticia('midia', `${g.identidade.apelido} rompe com ${antigo} e agora é representado por ${nomeRenomado}, pagando R$ ${multa.toLocaleString('pt-BR')} de multa de rescisão.`);
+        } },
+      { label:'Ficar fiel ao seu empresário atual', efeitos:{relacaoElenco:2, tracos:{humilde:1}},
+        extra:(g)=>{ pushNoticia('geral', `Você optou por seguir com seu empresário atual, mesmo com a proposta de ${nomeRenomado} na mesa.`); } }
     ]
   };
 }

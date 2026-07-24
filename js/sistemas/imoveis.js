@@ -28,20 +28,51 @@ function venderImovel(instanceId){
   return true;
 }
 
-/* Custo semanal total de condomínio+IPTU de todos os imóveis (valores mensais/4) */
+/* Custo semanal total de condomínio+IPTU de todos os imóveis que você MORA/mantém
+   vazios (valores mensais/4). Imóveis alugados (posse.alugado) não entram aqui —
+   eles têm seu próprio saldo em rendaSemanalImoveis (aluguel recebido - IPTU, já
+   que o condomínio de um imóvel alugado é responsabilidade do inquilino). */
 function custoSemanalImoveis(){
   return GAME.imoveisComprados.reduce((soma, posse) => {
+    if(posse.alugado) return soma;
     const im = IMOVEIS.find(i => i.id === posse.imovelId);
     if(!im) return soma;
     return soma + (im.condominioMensal + im.iptuMensal)/4;
   }, 0);
 }
+/* Rende ~0.6%/mês do valor pago (aproxima o yield real de aluguel no Brasil),
+   descontada a IPTU (que continua sendo do proprietário mesmo alugado). */
+function aluguelMensalImovel(im){ return Math.round(im.valor * 0.006); }
+function rendaSemanalImoveis(){
+  return GAME.imoveisComprados.reduce((soma, posse) => {
+    if(!posse.alugado) return soma;
+    const im = IMOVEIS.find(i => i.id === posse.imovelId);
+    if(!im) return soma;
+    return soma + aluguelMensalImovel(im)/4 - im.iptuMensal/4;
+  }, 0);
+}
+function alugarImovel(instanceId){
+  const posse = GAME.imoveisComprados.find(i => i.instanceId === instanceId);
+  if(!posse || posse.alugado) return false;
+  posse.alugado = true;
+  pushHistorico(`Colocou um imóvel para alugar.`);
+  salvarJogo();
+  return true;
+}
+function pararDeAlugarImovel(instanceId){
+  const posse = GAME.imoveisComprados.find(i => i.instanceId === instanceId);
+  if(!posse || !posse.alugado) return false;
+  posse.alugado = false;
+  pushHistorico(`Retirou um imóvel do aluguel.`);
+  salvarJogo();
+  return true;
+}
 function descontarCustosImoveisSemanal(){
   if(!GAME.imoveisComprados.length) return;
   const custo = Math.round(custoSemanalImoveis());
-  if(custo <= 0) return;
+  const renda = Math.round(rendaSemanalImoveis());
   const saldoAntes = GAME.carteira||0;
-  GAME.carteira = Math.round(saldoAntes - custo);
+  GAME.carteira = Math.round(saldoAntes - custo + renda);
   if(saldoAntes >= 0 && GAME.carteira < 0){
     pushNoticia('geral', `Seu saldo ficou negativo depois de pagar condomínio/IPTU dos seus imóveis (R$ ${custo.toLocaleString('pt-BR')}/semana). Considere um empréstimo no Banco ou vender algo.`);
   }

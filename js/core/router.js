@@ -66,6 +66,7 @@ function render(){
     if(!GAME.statsCareer.titulosCopas) GAME.statsCareer.titulosCopas = { copaBrasil:0, libertadores:0, championsLeague:0, mundialClubes:0, copaDoMundo:0, bolaDeOuro:0 };
     if(!GAME.statsCareer.copasDoMundo) GAME.statsCareer.copasDoMundo = [];
     if(!GAME.statsCareer.confrontosHistorico) GAME.statsCareer.confrontosHistorico = {};
+    if(!GAME.statsCareer.clubesIdolo) GAME.statsCareer.clubesIdolo = [];
   }
   if(GAME.qualificacoesProximaTemporada === undefined) GAME.qualificacoesProximaTemporada = null;
   if(GAME.temporadaState && !GAME.temporadaState.copas) GAME.temporadaState.copas = {};

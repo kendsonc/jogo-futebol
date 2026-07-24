@@ -42,6 +42,10 @@ function renderTemporada(){
   else if(ts.subFase === 'preJogo') renderPreJogo();
   else if(ts.subFase === 'partidaAoVivo') renderPartidaAoVivo();
   else if(ts.subFase === 'resultadoJogo') renderResultadoJogo();
+  else if(ts.subFase === 'coletivaImprensa') renderColetivaImprensa();
+  else if(ts.subFase === 'preJogoSelecao') renderPreJogoSelecao();
+  else if(ts.subFase === 'amistosoSelecaoLance') renderAmistosoSelecaoLance();
+  else if(ts.subFase === 'resultadoAmistosoSelecao') renderResultadoAmistosoSelecao();
   else if(ts.subFase === 'preJogoCopa') renderPreJogoCopa();
   else if(ts.subFase === 'resultadoConfrontoCopa') renderResultadoConfrontoCopa();
   else if(ts.subFase === 'penaltisCopa') renderPenaltisCopa();

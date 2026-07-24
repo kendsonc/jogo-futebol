@@ -90,9 +90,31 @@ function getSelecaoCarro(modelo){
   if(!carroSelecaoTemp[modelo.id]) carroSelecaoTemp[modelo.id] = { usado:false, cor: modelo.coresDisponiveis[0], km: rand(8000,95000) };
   return carroSelecaoTemp[modelo.id];
 }
+function meusCarrosHtml(){
+  if(!GAME.garagem.length) return '';
+  const linhas = GAME.garagem.map(carro => {
+    const modelo = CARROS_MODELOS.find(m => m.id === carro.modeloId);
+    if(!modelo) return '';
+    const empenhado = bemEstaEmpenhado('carro', carro.instanceId);
+    const manutencao = Math.round(manutencaoMensalCarro(carro)/4);
+    return `<div class="shop-item shop-item-carro">
+      <div class="shop-item-icon">${pixelCarro(modelo, carro.cor, 60)}</div>
+      <div class="shop-item-info">
+        <p class="shop-item-nome">${escapeHtml(modelo.marca)} ${escapeHtml(modelo.modelo)}</p>
+        <p class="small muted">${carro.usado ? `Usado, ${carro.km.toLocaleString('pt-BR')} km` : '0km'}</p>
+        <p class="small muted">Manutenção: R$ ${manutencao.toLocaleString('pt-BR')}/semana</p>
+        ${empenhado ? `<span class="badge">Em garantia de empréstimo</span>` : ''}
+      </div>
+      ${empenhado ? '' : `<button class="btn btn-small btn-danger" data-vender-carro="${carro.instanceId}">Vender</button>`}
+    </div>`;
+  }).join('');
+  return `<div class="card-title">Seus carros</div><div class="shop-grid" style="margin-bottom:18px">${linhas}</div>`;
+}
 function carrosGridHtml(){
   const ordenados = [...CARROS_MODELOS].sort((a,b) => a.precoNovo - b.precoNovo);
   return `<p class="small muted" style="margin-bottom:10px">Carteira: <b>R$ ${Math.round(GAME.carteira||0).toLocaleString('pt-BR')}</b></p>
+  ${meusCarrosHtml()}
+  <div class="card-title">Concessionária</div>
   <div class="shop-grid">
     ${ordenados.map(modelo => {
       const sel = getSelecaoCarro(modelo);
@@ -168,6 +190,10 @@ function wireGaragemButtons(){
     if(comprarCarro(modeloId, sel)){ delete carroSelecaoTemp[modeloId]; atualizarCarteiraStatusBar(); renderGaragemBody(); }
     else alert('Saldo insuficiente na carteira.');
   });
+  body.querySelectorAll('[data-vender-carro]').forEach(btn => btn.onclick = () => {
+    if(bemEstaEmpenhado('carro', btn.dataset.venderCarro)){ alert('Esse carro está dado como garantia de um empréstimo — quite o empréstimo antes de vender.'); return; }
+    if(confirm('Vender este carro por 80% do valor pago?')){ venderCarro(btn.dataset.venderCarro); atualizarCarteiraStatusBar(); renderGaragemBody(); }
+  });
 }
 
 /* ------------------------------ IMÓVEIS ---------------------------------------- */
@@ -188,15 +214,24 @@ function renderImoveisBody(){
     const im = IMOVEIS.find(i => i.id === posse.imovelId);
     if(!im) return '';
     const empenhado = bemEstaEmpenhado('imovel', posse.instanceId);
+    const alugado = !!posse.alugado;
+    const rendaLiquida = Math.round(aluguelMensalImovel(im)/4 - im.iptuMensal/4);
     return `<div class="shop-item">
       <div class="shop-item-icon">${pixelImovel(im, corParedePorPadrao(im.padrao), 56)}</div>
       <div class="shop-item-info">
         <p class="shop-item-nome">${escapeHtml(im.nome)}</p>
         <p class="small muted">${escapeHtml(im.cidade)} • ${im.quartos} quartos</p>
-        <p class="small muted">Condomínio R$ ${im.condominioMensal.toLocaleString('pt-BR')}/mês${im.iptuMensal?` + IPTU R$ ${im.iptuMensal.toLocaleString('pt-BR')}/mês`:''}</p>
+        ${alugado
+          ? `<p class="small muted">Alugado — renda líquida de R$ ${rendaLiquida.toLocaleString('pt-BR')}/semana (aluguel menos IPTU)</p>`
+          : `<p class="small muted">Condomínio R$ ${im.condominioMensal.toLocaleString('pt-BR')}/mês${im.iptuMensal?` + IPTU R$ ${im.iptuMensal.toLocaleString('pt-BR')}/mês`:''}</p>`}
         ${empenhado ? `<span class="badge">Em garantia de empréstimo</span>` : ''}
       </div>
-      ${empenhado ? '' : `<button class="btn btn-small btn-danger" data-vender-imovel="${posse.instanceId}">Vender</button>`}
+      <div class="row" style="gap:6px;flex-wrap:wrap;justify-content:flex-end">
+        ${alugado
+          ? `<button class="btn btn-small" data-parar-alugar-imovel="${posse.instanceId}">Tirar do aluguel</button>`
+          : `<button class="btn btn-small" data-alugar-imovel="${posse.instanceId}">Colocar para alugar</button>`}
+        ${empenhado ? '' : `<button class="btn btn-small btn-danger" data-vender-imovel="${posse.instanceId}">Vender</button>`}
+      </div>
     </div>`;
   }).join('');
   const disponiveisHtml = IMOVEIS.map(im => `<div class="shop-item">
@@ -221,6 +256,12 @@ function renderImoveisBody(){
   body.querySelectorAll('[data-vender-imovel]').forEach(b => b.onclick = () => {
     if(bemEstaEmpenhado('imovel', b.dataset.venderImovel)){ alert('Esse imóvel está dado como garantia de um empréstimo — quite o empréstimo antes de vender.'); return; }
     if(confirm('Vender este imóvel por 92% do valor pago?')){ venderImovel(b.dataset.venderImovel); atualizarCarteiraStatusBar(); renderImoveisBody(); }
+  });
+  body.querySelectorAll('[data-alugar-imovel]').forEach(b => b.onclick = () => {
+    alugarImovel(b.dataset.alugarImovel); renderImoveisBody();
+  });
+  body.querySelectorAll('[data-parar-alugar-imovel]').forEach(b => b.onclick = () => {
+    pararDeAlugarImovel(b.dataset.pararAlugarImovel); renderImoveisBody();
   });
 }
 

@@ -325,6 +325,55 @@ const PERFIL_CLUBE_BLURB = {
   equilibrado: 'Perfil equilibrado, sem grandes excessos nem grandes carências.'
 };
 
+/* ============================== TÁTICA DO CLUBE (estiloJogo) =================
+   Reduz o texto livre de estiloJogo (93+ clubes, dezenas de rótulos diferentes)
+   a um punhado de arquétipos táticos com efeito REAL na simulação de partida
+   (js/sistemas/partida.js: prepararPartida usa ataque/defesa/posse/agressividade
+   pra pesar força de ataque, posse de bola e faltas/cartões de cada time).
+   ========================================================================= */
+const CATEGORIA_TATICA_POR_ESTILO = {
+  'Ofensivo':'ofensivo', 'Ofensivo e técnico':'ofensivo', 'Moderno e propositivo':'ofensivo',
+  'Posse de bola':'posse',
+  'Contra-ataque':'contraAtaque',
+  'Físico':'fisico', 'Físico e direto':'fisico', 'Físico e pressão':'fisico', 'Intenso e pressão':'fisico',
+  'Pressão intensa':'fisico', 'Raçudo':'fisico', 'Raça e marcação':'fisico', 'Tradicional e físico':'fisico',
+  'Organizado':'organizado', 'Organizado taticamente':'organizado', 'Tradicional':'organizado',
+  'Tradicional e passional':'organizado', 'Pragmático':'organizado', 'Técnico':'organizado',
+  'Retranqueiro':'retranqueiro',
+  'Base forte':'equilibrado', 'Equilibrado':'equilibrado'
+};
+// ataque/defesa: pontos somados/subtraídos na força ofensiva do próprio time e
+// na do adversário (ver forcaTime/forcaAdversario em prepararPartida). posse:
+// desvio na posse de bola-base. agressividade: soma em faltas/cartões de fundo
+// (gerarEstatBaseTime) e um pequeno acréscimo na dificuldade dos SEUS lances
+// (pressão a mais em cima de quem ataca contra um time agressivo).
+const MODS_TATICOS = {
+  ofensivo:     { ataque:6,  defesa:-4, posse:6,  agressividade:0 },
+  posse:        { ataque:3,  defesa:-2, posse:10, agressividade:-2 },
+  contraAtaque: { ataque:4,  defesa:2,  posse:-8, agressividade:2 },
+  fisico:       { ataque:1,  defesa:3,  posse:-3, agressividade:8 },
+  organizado:   { ataque:-1, defesa:6,  posse:2,  agressividade:-2 },
+  retranqueiro: { ataque:-6, defesa:8,  posse:-6, agressividade:1 },
+  equilibrado:  { ataque:0,  defesa:0,  posse:0,  agressividade:0 }
+};
+function modsTaticosClube(clube){
+  const cat = (clube && CATEGORIA_TATICA_POR_ESTILO[clube.estiloJogo]) || 'equilibrado';
+  return MODS_TATICOS[cat];
+}
+
+/* ============================== CLÁSSICOS REGIONAIS ==========================
+   Em vez de catalogar manualmente cada par de rivais (93+ clubes nacionais +
+   dezenas internacionais), um clássico é detectado pela mesma "cidade" —
+   heurística simples que já cobre os clássicos reais mais óbvios (Rio, SP
+   capital, BH, Porto Alegre, Recife, Belém, Salvador, Fortaleza, Curitiba,
+   Campinas, Goiânia, e também os clássicos internacionais tipo Manchester,
+   Milão e Madri, já que CLUBES_INTERNACIONAIS também tem campo `cidade`).
+   ========================================================================= */
+function ehClassicoRegional(clubeA, clubeB){
+  if(!clubeA || !clubeB || clubeA.id === clubeB.id) return false;
+  return !!clubeA.cidade && clubeA.cidade === clubeB.cidade;
+}
+
 /* ============================== DATA: ESTILOS ==============================
    Perfis de formação escolhidos na criação do jogador. "mods" soma-se aos
    atributos-base aleatórios (35-65) na hora de gerar o jogador.
@@ -462,7 +511,11 @@ const NOMES_EMPRESARIOS = {
   experiente: 'Aurélio Bastos, empresário experiente com décadas de carreira',
   oportunista: 'Diego Marins, agente novo e ambicioso',
   amigoFamilia: 'Tio Nelson, amigo antigo da família que virou empresário',
-  desconhecido: 'Rafael Quintão, representante de uma agência pouco conhecida com promessas grandes'
+  desconhecido: 'Rafael Quintão, representante de uma agência pouco conhecida com promessas grandes',
+  // Não entra no sorteio do PRIMEIRO empresário (gerarEventoEmpresario, liga.js)
+  // — só aparece "roubando" o jogador de um empresário mais fraco quando o
+  // nome dele já vale alguma coisa no mercado (ver gerarEventoEmpresarioConcorrente).
+  renomado: 'Marcelo Andrade Jr., um dos agentes mais respeitados do país'
 };
 
 /* ============================== HISTÓRIA DE FUNDO ============================
