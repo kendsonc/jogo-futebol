@@ -11,11 +11,12 @@
    pra decidir quando vale um novo anúncio — sem precisar listar manualmente
    quais subFases "contam".
 
-   ANTES DE PUBLICAR: troque AD_CLIENT_ID e AD_SLOT_ID pelos dados reais da
-   sua conta do Google AdSense (depois de aprovada) — sem isso, o bloco fica
+   AD_SLOT_ID ainda está com valor de exemplo: falta criar um bloco de
+   anúncios em Google AdSense > Anúncios > Por bloco de anúncios (depois que
+   o site for aprovado) e colar o ID real aqui — sem isso, o bloco fica
    vazio (nenhum erro, só não aparece nada).
    ========================================================================= */
-const AD_CLIENT_ID = 'ca-pub-0000000000000000'; // TODO: seu Publisher ID (Google AdSense > Conta > Informações da conta)
+const AD_CLIENT_ID = 'ca-pub-1959719427487568'; // Publisher ID real da conta
 const AD_SLOT_ID = '0000000000'; // TODO: o ID do bloco de anúncios (Google AdSense > Anúncios > Por bloco de anúncios)
 
 // Google não permite ficar recarregando o mesmo espaço com frequência alta
