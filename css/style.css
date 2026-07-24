@@ -43,7 +43,10 @@
       var(--bg-base);
     background-attachment: fixed;
   }
-  #app { flex: 1; display: flex; flex-direction: column; max-width: 920px; margin: 0 auto; width: 100%; padding: 18px 16px 8px; }
+  /* padding-bottom reserva espaço real pro .ad-corner (fixed, ~90px+offset) —
+     sem isso, em telas onde o conteúdo enche a altura da viewport, o anúncio
+     do canto acaba sobrepondo o final do conteúdo (placar/feed/botões). */
+  #app { flex: 1; display: flex; flex-direction: column; max-width: 920px; margin: 0 auto; width: 100%; padding: 18px 16px 108px; }
   #app.fade-in { animation: telaEntrada .45s cubic-bezier(.22,.75,.35,1); }
   @keyframes telaEntrada {
     from { opacity: 0; transform: translateY(12px); }
@@ -224,8 +227,10 @@
 
   /* ===================== ANÚNCIO (CANTO, DISCRETO) =====================
      Fica FORA de #app (ver index.html) — nunca é destruído pelas trocas de
-     tela do jogo (render() só remonta #app). position:fixed pra não empurrar
-     nenhum layout, num canto que não sobrepõe botões de ação (ver ads.js). */
+     tela do jogo (render() só remonta #app). position:fixed, então flutua
+     sempre no mesmo canto da JANELA (não do documento) — quem garante que
+     ele não tampe o conteúdo é a reserva de espaço real em #app
+     (padding-bottom, ver a regra de #app acima) do tamanho do bloco (ver ads.js). */
   .ad-corner {
     position: fixed; right: 12px; bottom: 12px; z-index: 40;
     background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
@@ -237,7 +242,7 @@
     .ad-corner { left: 8px; right: 8px; bottom: 8px; max-width: none; display: flex; justify-content: center; }
   }
 
-  /* ===================== ANÚNCIOS LATERAIS (SÓ TELA LARGA) =====================
+  /* ===================== ANÚNCIOS LATERAIS (SÓ TELA LARGA E ALTA) =====================
      #app tem max-width:920px centralizado — em tela larga sobra bastante
      margem vazia dos dois lados, espaço perfeito pra um anúncio vertical sem
      nunca encostar no jogo. Escondidos por padrão (display:none) e só
@@ -245,19 +250,23 @@
      pros dois lados (920px do jogo + ~180px de cada lado). Abaixo disso
      (tablet/celular), o anúncio do canto (.ad-corner, acima) já continua
      aparecendo normalmente — ninguém perde anúncio, só ganha mais em tela
-     grande. IMPORTANTE: ads.js só deve pedir um novo anúncio pra esses slots
-     quando eles estiverem realmente visíveis (display!=='none') — carregar
-     anúncio num slot escondido conta como tráfego inválido pro Google. */
+     grande. Ancorado no topo (não mais centralizado verticalmente) com uma
+     altura mínima de tela exigida (min-height:820px) — assim o bloco de
+     600px de altura sempre termina bem acima do .ad-corner (que fica nos
+     últimos ~100px da tela), sem um anúncio tampando o outro. IMPORTANTE:
+     ads.js só deve pedir um novo anúncio pra esses slots quando eles
+     estiverem realmente visíveis (display!=='none') — carregar anúncio num
+     slot escondido conta como tráfego inválido pro Google. */
   .ad-side {
-    display: none; position: fixed; top: 50%; transform: translateY(-50%);
-    z-index: 40; width: 160px; height: 600px; max-height: 80vh; overflow: hidden;
+    display: none; position: fixed; top: 90px;
+    z-index: 40; width: 160px; height: 600px; max-height: 70vh; overflow: hidden;
     background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
     box-shadow: 0 10px 26px -10px rgba(0,0,0,.5);
   }
   .ad-side:empty { box-shadow: none; border-color: transparent; } /* antes do anúncio carregar, não fica uma caixa vazia chamativa */
   #ad-left { left: 12px; }
   #ad-right { right: 12px; }
-  @media (min-width: 1280px) {
+  @media (min-width: 1280px) and (min-height: 820px) {
     .ad-side { display: block; }
   }
 
@@ -574,7 +583,12 @@
     background-attachment: fixed;
   }
 
-  /* ===================== PARTIDA AO VIVO ===================== */
+  /* ===================== PARTIDA AO VIVO =====================
+     Compacto de propósito: placar, estatísticas e lance/feed precisam caber
+     juntos na tela sem rolar (ver .live-match-feed abaixo, que é a única
+     parte com altura ilimitada — por isso vira a única coisa com scroll
+     próprio, em vez de esticar a página inteira a cada evento novo). */
+  .live-match-card, .live-match-stats-card, .live-match-lance { padding: 12px 16px; margin-bottom: 8px; }
   .live-match-card { text-align: center; }
   .live-match-top { display: flex; align-items: center; justify-content: center; gap: 22px; }
   .live-match-team { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1 1 120px; min-width: 0; }
@@ -606,11 +620,13 @@
     55% { transform: scale(1.15); opacity: 1; }
     100% { transform: scale(1); opacity: 1; }
   }
-  .live-match-feed { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
+  .live-match-feed {
+    display: flex; flex-direction: column; gap: 2px; margin-top: 4px;
+    max-height: 118px; overflow-y: auto; padding-right: 6px;
+  }
   .live-match-feed p { color: var(--text-dim); }
-  .live-match-lance { margin-top: 10px; }
-  .live-match-stats-card { padding-top: 14px; padding-bottom: 8px; }
-  .lm-stat-row { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--border-soft); }
+  .live-match-lance { margin-top: 8px; }
+  .lm-stat-row { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; gap: 8px; padding: 3px 0; border-bottom: 1px solid var(--border-soft); }
   .lm-stat-row:last-child { border-bottom: none; }
   .lm-stat-val { font-family: var(--font-display); font-weight: 700; font-size: 13.5px; text-align: center; }
   /* Painel do VAR reaproveita o overlay de celebração (mesmo elemento), com
@@ -640,3 +656,33 @@
   .lm-pen-dot.piscando { animation: penaltiPisca .5s ease-in-out infinite alternate; border-color: #e0c43c; }
   @keyframes penaltiPisca { from { background: var(--surface-2); opacity: .5; } to { background: #e0c43c; opacity: 1; } }
   .lm-stat-label { font-size: 12px; color: var(--text-dim); text-align: center; }
+
+  /* Telas baixas (notebook) — placar + estatísticas + feed precisam caber
+     juntos sem rolar, incluindo o espaço reservado pro .ad-corner (#app
+     padding-bottom). Aperta paddings/gaps só da partida ao vivo e do header. */
+  @media (max-height: 760px) {
+    #app { padding-top: 10px; }
+    #status-bar { padding: 8px 14px; margin-bottom: 10px; }
+    .live-match-card, .live-match-stats-card, .live-match-lance { padding: 8px 14px; margin-bottom: 6px; }
+    .live-match-top { gap: 14px; }
+    .live-match-placar { font-size: 24px; }
+    .lm-stat-row { padding: 2px 0; }
+    .live-match-feed { max-height: 84px; }
+    /* 8 estatísticas em 2 colunas de 4 (em vez de 1 coluna de 8) — mesma
+       informação, quase metade da altura. É o maior bloco da tela, então é
+       o que mais sobra de espaço quando precisa caber tudo sem rolar. */
+    #lm-estatisticas { display: grid; grid-template-columns: 1fr 1fr; grid-auto-flow: column; grid-template-rows: repeat(4, auto); column-gap: 20px; }
+    .live-match-lance { margin-top: 4px; padding: 6px 14px; }
+    .live-match-lance .choices { gap: 4px; margin-top: 6px; }
+    .live-match-lance .btn { padding: 7px 14px; }
+    /* Feed de eventos some enquanto uma decisão de lance está na tela — junto
+       com as estatísticas escondidas acima, garante que o cartão de decisão
+       (o que importa nesse instante) nunca fique embaixo do .ad-corner.
+       Volta a aparecer normalmente assim que a decisão é resolvida. */
+    #lm-lance-slot:has(.live-match-lance) ~ .live-match-feed { max-height: 0; margin-top: 0; overflow: hidden; }
+    /* Enquanto uma decisão está na tela, as estatísticas somem — o foco é a
+       escolha, não o placar comparativo, e é o maior bloco de altura sobrando
+       pra caber tudo sem rolar numa tela baixa. Some só aqui (viewport curto);
+       em monitor normal (fora deste @media) as estatísticas continuam sempre visíveis. */
+    .live-match-stats-card:has(+ #lm-lance-slot .live-match-lance) { display: none; }
+  }
