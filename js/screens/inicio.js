@@ -46,7 +46,7 @@ function renderStart(){
       <span class="feature-pill">👑 Bola de Ouro</span>
     </div>
 
-    <footer>Modo Carreira: A Jornada</footer>
+    <footer>Modo Carreira: A Jornada · <a href="privacidade.html" class="footer-link">Política de Privacidade</a></footer>
   `;
   document.getElementById('btn-nova').onclick = () => renderCriacaoPersonagem();
   const bc = document.getElementById('btn-continuar');

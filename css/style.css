@@ -237,6 +237,30 @@
     .ad-corner { left: 8px; right: 8px; bottom: 8px; max-width: none; display: flex; justify-content: center; }
   }
 
+  /* ===================== ANÚNCIOS LATERAIS (SÓ TELA LARGA) =====================
+     #app tem max-width:920px centralizado — em tela larga sobra bastante
+     margem vazia dos dois lados, espaço perfeito pra um anúncio vertical sem
+     nunca encostar no jogo. Escondidos por padrão (display:none) e só
+     aparecem a partir de 1280px de largura, quando sobra margem confortável
+     pros dois lados (920px do jogo + ~180px de cada lado). Abaixo disso
+     (tablet/celular), o anúncio do canto (.ad-corner, acima) já continua
+     aparecendo normalmente — ninguém perde anúncio, só ganha mais em tela
+     grande. IMPORTANTE: ads.js só deve pedir um novo anúncio pra esses slots
+     quando eles estiverem realmente visíveis (display!=='none') — carregar
+     anúncio num slot escondido conta como tráfego inválido pro Google. */
+  .ad-side {
+    display: none; position: fixed; top: 50%; transform: translateY(-50%);
+    z-index: 40; width: 160px; height: 600px; max-height: 80vh; overflow: hidden;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    box-shadow: 0 10px 26px -10px rgba(0,0,0,.5);
+  }
+  .ad-side:empty { box-shadow: none; border-color: transparent; } /* antes do anúncio carregar, não fica uma caixa vazia chamativa */
+  #ad-left { left: 12px; }
+  #ad-right { right: 12px; }
+  @media (min-width: 1280px) {
+    .ad-side { display: block; }
+  }
+
   /* ===================== HEADER / STATUS BAR ===================== */
   #status-bar {
     display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center;
@@ -336,6 +360,8 @@
   .trace-tag { display:inline-block; font-size:11px; color:var(--text-dim); background:var(--surface-2); border:1px solid var(--border); border-radius:999px; padding:2px 9px; margin-bottom:10px; }
 
   footer { text-align: center; color: var(--text-faint); font-size: 11.5px; padding: 20px 0 10px; }
+  footer .footer-link { color: var(--text-faint); text-decoration: underline; }
+  footer .footer-link:hover { color: var(--text-dim); }
 
   /* club cards grid */
   .club-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
