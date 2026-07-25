@@ -33,6 +33,65 @@ function verificarVaiaColetiva(){
   }
 }
 
+/* ============================== TEMPORADA DO ÍDOLO =============================
+   Antes, relacoes.torcida (mesmo específico do clube atual) só disparava 3
+   textos de limiar (faixa/vaia/despedida) — puramente reativo, nunca algo
+   que o jogador administra de verdade. Quando a relação cruza um patamar de
+   ídolo (LIMIAR_ARCO_IDOLO), a torcida organizada passa a ter "voz": pede
+   posicionamento numa pauta do bairro, pede apoio numa causa, e — se vier
+   uma crise de resultados depois de você já ser ídolo — pode ameaçar
+   boicote. Cada evento só dispara 1x por passagem no clube atual (flags em
+   GAME.clube, que é substituído inteiro a cada transferência — reseta sozinho).
+   ========================================================================= */
+const LIMIAR_ARCO_IDOLO = 85;
+function arcoIdoloDisponivel(chave){
+  if(!GAME.clube) return false;
+  if(!GAME.clube.arcoIdoloEventos) GAME.clube.arcoIdoloEventos = {};
+  return GAME.relacoes.torcida >= LIMIAR_ARCO_IDOLO && !GAME.clube.arcoIdoloEventos[chave];
+}
+function gerarEventoManifestoOrganizada(){
+  return {
+    id:'idolo_manifesto_organizada', categoria:'torcida',
+    texto:(g)=>`A torcida organizada do ${g.clube.nome} publica uma carta aberta te chamando de "ídolo do povo" e pedindo que você se posicione publicamente sobre uma pauta social importante pro bairro do estádio.`,
+    escolhas:[
+      { label:'Se posicionar publicamente ao lado da torcida', efeitos:{relacaoTorcida:8, popularidade:5, relacaoDiretoria:-4, tracos:{confiante:1}},
+        extra:(g)=>{ g.clube.arcoIdoloEventos.manifesto = true; pushNoticiaImprensa('midia', `${g.identidade.apelido} se posiciona publicamente ao lado da torcida organizada do ${g.clube.nome} — repercussão imediata.`); } },
+      { label:'Fazer um aceno neutro, sem entrar de cabeça no tema', efeitos:{relacaoTorcida:2, tracos:{serio:1}},
+        extra:(g)=>{ g.clube.arcoIdoloEventos.manifesto = true; } },
+      { label:'Manter distância e não se envolver', efeitos:{relacaoTorcida:-6, relacaoDiretoria:3, tracos:{serio:1}},
+        extra:(g)=>{ g.clube.arcoIdoloEventos.manifesto = true; pushNoticia('torcida', `Parte da torcida organizada do ${g.clube.nome} cobra ${g.identidade.apelido} por ter ficado em cima do muro.`); } }
+    ]
+  };
+}
+function gerarEventoVideoApoioTorcida(){
+  return {
+    id:'idolo_video_apoio', categoria:'torcida',
+    texto:(g)=>`Uma associação de bairro perto do estádio do ${g.clube.nome} pede que você grave um vídeo curto de apoio a uma campanha comunitária — a organizada já espalhou o pedido pelas redes.`,
+    escolhas:[
+      { label:'Gravar um vídeo sincero e visitar a comunidade pessoalmente', efeitos:{relacaoTorcida:10, imagemMidia:6, moral:3, tracos:{humilde:1}},
+        extra:(g)=>{ g.clube.arcoIdoloEventos.videoApoio = true; registrarMarco('Ídolo da comunidade', `Visitou pessoalmente a comunidade do entorno do ${g.clube.nome} para apoiar uma campanha local.`, 'media'); } },
+      { label:'Gravar um vídeo rápido e genérico', efeitos:{relacaoTorcida:3, imagemMidia:1},
+        extra:(g)=>{ g.clube.arcoIdoloEventos.videoApoio = true; } },
+      { label:'Recusar, alegando falta de agenda', efeitos:{relacaoTorcida:-4},
+        extra:(g)=>{ g.clube.arcoIdoloEventos.videoApoio = true; } }
+    ]
+  };
+}
+function gerarEventoBoicoteTorcida(){
+  return {
+    id:'idolo_ameaca_boicote', categoria:'torcida',
+    texto:(g)=>`A sequência ruim de resultados do ${g.clube.nome} irritou a torcida organizada, que colocou faixas ameaçando um boicote ao próximo jogo em casa — mesmo depois de tudo que você já construiu ali.`,
+    escolhas:[
+      { label:'Gravar um pedido público de paciência e confiança', efeitos:{relacaoTorcida:6, pressaoPsicologica:4, tracos:{humilde:1}},
+        extra:(g)=>{ g.clube.arcoIdoloEventos.boicote = true; } },
+      { label:'Prometer publicamente uma virada de chave', efeitos:{relacaoTorcida:3, relacaoTreinador:-2, pressaoPsicologica:6, tracos:{confiante:1}},
+        extra:(g)=>{ g.clube.arcoIdoloEventos.boicote = true; } },
+      { label:'Ignorar a ameaça e deixar o campo responder', efeitos:{relacaoTorcida:-8, imagemMidia:-3, tracos:{serio:1}},
+        extra:(g)=>{ g.clube.arcoIdoloEventos.boicote = true; } }
+    ]
+  };
+}
+
 // Chamada ANTES de trocar de clube (entressafra.js, no fluxo de transferência)
 // — precisa do nome do clube ANTIGO e do valor de relacoes.torcida de ANTES
 // do reset pra 15, senão a despedida nunca teria contexto pra avaliar.

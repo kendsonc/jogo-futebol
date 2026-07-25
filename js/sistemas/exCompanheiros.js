@@ -76,6 +76,31 @@ function exCompanheiroNoAdversario(oponenteId){
   return GAME.exCompanheiros.find(ex => ex.clubeId === oponenteId) || null;
 }
 
+/* ============================== PACTO DE CARREIRA ==============================
+   Antes, um vínculo forte com o elenco atual (GAME.elenco, relacao) só rendia
+   flavor text de reencontro se o companheiro fosse preservado como
+   ex-companheiro na transferência — nenhuma consequência mecânica real.
+   Acima de um vínculo ainda mais raro (90+), o companheiro propõe um pacto:
+   tentar ser negociados JUNTOS na próxima janela. Resolvido em
+   renderEntressafraTransferencia (entressafra.js), que precisa tirar esse
+   companheiro do sweep genérico de preservarExCompanheirosNaTransferencia
+   ANTES de chamá-la (senão ele vira ex-companheiro de destino aleatório,
+   sem chance de cumprir o pacto de verdade).
+   ========================================================================= */
+function gerarEventoPactoCarreira(c){
+  return {
+    id:'pacto_carreira_'+c.id, categoria:'elenco',
+    retrato:()=>({ nome:c.nome, papel:c.papel }),
+    texto:(g)=>`Depois de um treino, ${c.nome} puxa você pro canto, sério.\n\n— Cara, a gente joga junto há um tempo e nossa parceria em campo só cresce. Andei pensando: e se a gente combinasse de tentar ser negociados juntos na próxima janela, pro mesmo clube? Eu banco você, você me banca.`,
+    escolhas:[
+      { label:'Topar o pacto de carreira', efeitos:{relacaoElenco:6, moral:4, tracos:{humilde:1}},
+        extra:(g)=>{ c.pactoCarreira = true; pushHistorico(`Você e ${c.nome} fecharam um pacto de carreira — tentar seguir juntos na próxima transferência.`); } },
+      { label:'Dizer que prefere decidir seu futuro sozinho', efeitos:{tracos:{serio:1}},
+        extra:(g)=>{ c.pactoCarreira = false; } }
+    ]
+  };
+}
+
 // Evento leve e recorrente: mensagem nostálgica de um ex-companheiro —
 // responder mantém o vínculo vivo, ignorar deixa a amizade esfriar mais rápido.
 function gerarEventoMensagemExCompanheiro(){

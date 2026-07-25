@@ -60,6 +60,9 @@ function renderStart(){
 // criação (não é o GAME ainda); repintado a cada mudança de swatch/seta sem
 // precisar re-renderizar o formulário inteiro (preservaria os outros campos).
 let criacaoAparencia = null;
+// Seleção do Hall da Fama (js/core/state.js) — vive só durante a criação,
+// null = "começar do zero" (comportamento de sempre).
+let heredeiroSelecionado = null;
 function atualizarPreviewAparencia(){
   const el = document.getElementById('preview-rosto');
   if(el) el.innerHTML = pixelRostoSvg(criacaoAparencia, 140);
@@ -78,17 +81,45 @@ function atualizarPreviewAparencia(){
 function swatchesHtml(grupo, paleta, corAtual){
   return paleta.map(c => `<span class="color-swatch ${c===corAtual?'sel':''}" style="background:${c}" data-swatch-grupo="${grupo}" data-cor="${c}"></span>`).join('');
 }
+// Tela do Hall da Fama (js/core/state.js) — só existe se alguma carreira
+// anterior já se aposentou. Escolher um legado dá bônus de atributos ligado
+// ao traço dominante daquele jogador (aplicarBonusHeranca, state.js) e mais
+// popularidade inicial, em troca de mais pressão psicológica desde o início.
+function legadoSelecaoHtml(hallDaFama){
+  if(!hallDaFama.length) return '';
+  return `<div class="card">
+    <div class="card-title">🏆 Hall da Fama</div>
+    <p class="small muted" style="margin-bottom:10px">Comece como herdeiro(a) de uma lenda aposentada — o sobrenome já pesa (mais popularidade inicial, bônus de atributos ligado ao jeito dela jogar), mas vem com mais pressão desde o primeiro dia. Ou comece do zero, sem nenhum peso.</p>
+    <div class="menu-tiles">
+      <button type="button" class="menu-tile legado-tile sel" data-legado="">
+        <span class="menu-tile-icon">🌱</span>
+        <span class="menu-tile-body"><span class="menu-tile-title">Começar do zero</span><span class="menu-tile-sub">Sem legado, sem pressão extra</span></span>
+      </button>
+      ${hallDaFama.slice().reverse().map(l => `
+      <button type="button" class="menu-tile legado-tile" data-legado="${escapeHtml(l.id)}">
+        <span class="menu-tile-icon">⭐</span>
+        <span class="menu-tile-body">
+          <span class="menu-tile-title">Filho(a) de ${escapeHtml(l.apelido)}</span>
+          <span class="menu-tile-sub">${escapeHtml(l.posicaoPrincipal)} • ${l.temporadas} temporada(s) • ${l.gols} gols • ${l.titulos} título(s)</span>
+        </span>
+      </button>`).join('')}
+    </div>
+  </div>`;
+}
 function renderCriacaoPersonagem(){
   const posOpts = POSICOES.map(p=>`<option value="${p}">${p}</option>`).join('');
   const estOpts = Object.keys(ESTILOS).map(k=>`<option value="${k}">${ESTILOS[k].nome} — ${ESTILOS[k].desc}</option>`).join('');
   const ufOpts = UF_LIST.map(uf=>`<option value="${uf}">${uf} (${REGIOES[uf]})</option>`).join('');
   criacaoAparencia = gerarAparenciaAleatoria(Math.random, 'm');
+  heredeiroSelecionado = null;
+  const hallDaFama = obterHallDaFama();
   app.innerHTML = `
     <div class="screen-hero">
       <div class="screen-hero-kicker">Criação de Jogador</div>
       <h1>Quem é você?</h1>
       <p class="screen-hero-sub">Preencha os dados do seu jogador de 16 anos — cada detalhe aqui vira parte da história que você vai construir.</p>
     </div>
+    ${legadoSelecaoHtml(hallDaFama)}
     <div class="card">
       <form id="form-criacao">
         <fieldset>
@@ -166,6 +197,14 @@ function renderCriacaoPersonagem(){
     </div>
   `;
   atualizarPreviewAparencia();
+  document.querySelectorAll('.legado-tile').forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll('.legado-tile').forEach(b => b.classList.remove('sel'));
+      btn.classList.add('sel');
+      const id = btn.dataset.legado;
+      heredeiroSelecionado = id ? hallDaFama.find(l => l.id === id) : null;
+    };
+  });
   document.getElementById('btn-genero-m').onclick = () => {
     criacaoAparencia.genero = 'm';
     document.getElementById('btn-genero-m').classList.add('btn-primary');
@@ -218,7 +257,8 @@ function renderCriacaoPersonagem(){
       posicaoPrincipal: document.getElementById('f-posPrincipal').value,
       posicaoSecundaria: document.getElementById('f-posSecundaria').value,
       estilo: document.getElementById('f-estilo').value,
-      aparencia: criacaoAparencia
+      aparencia: criacaoAparencia,
+      heredeiroDe: heredeiroSelecionado
     };
     if(!dados.nomeCompleto || !dados.apelido || !dados.cidade){ alert('Preencha todos os campos obrigatórios.'); return; }
     criarNovoJogador(dados);
@@ -234,6 +274,7 @@ function renderHistoriaPassado(){
       <h1>${escapeHtml(GAME.identidade.apelido)}</h1>
       <p class="screen-hero-sub">${escapeHtml(GAME.identidade.cidadeNatal)}/${GAME.identidade.uf} — 16 anos, um sonho, e uma história até aqui.</p>
     </div>
+    ${GAME.heredeiroDe ? `<div class="card" style="border-color:#c98a2a"><p class="small">⭐ Antes mesmo da primeira peneira, seu nome já carrega peso: filho(a) de <b>${escapeHtml(GAME.heredeiroDe.apelido)}</b>, ${escapeHtml(GAME.heredeiroDe.posicaoPrincipal).toLowerCase()} que marcou época. A comparação vai te seguir — resta saber se você escreve sua própria história ou vive à sombra da dele(a).</p></div>` : ''}
     <div class="card">
       <div id="scene-text">${escapeHtml(GAME.historiaPassado).replace(/\n/g,'<br>')}</div>
       <div class="choices"><button class="btn btn-primary" id="btn-continuar-historia">Seguir para a peneira</button></div>

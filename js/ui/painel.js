@@ -176,7 +176,8 @@ function painelContrato(){
     <div class="spacer"></div>
     <p><b>Carteira (acumulado):</b> R$ ${Math.round(GAME.carteira||0).toLocaleString('pt-BR')}</p>
     <div class="spacer"></div>
-    ${GAME.patrocinioAtual ? `<p><b>Patrocínio:</b> ${GAME.patrocinioAtual.marca} — R$ ${Number(GAME.patrocinioAtual.valorMensal).toLocaleString('pt-BR')}/mês</p>` : '<p class="small muted">Sem patrocínio de material esportivo no momento.</p>'}
+    ${GAME.patrocinioAtual ? `<p><b>Patrocínio:</b> ${GAME.patrocinioAtual.marca} — R$ ${Number(GAME.patrocinioAtual.valorMensal).toLocaleString('pt-BR')}/mês</p>
+    ${GAME.patrocinioAtual.clausula ? `<p class="small muted">Cláusula de desempenho: ${(GAME.stats.gols||0)+(GAME.stats.assistencias||0)}/${GAME.patrocinioAtual.clausula.meta} gols+assistências na temporada (bate a meta = bônus na renovação; não bate = valor cai).</p>` : ''}` : '<p class="small muted">Sem patrocínio de material esportivo no momento.</p>'}
     ${painelPatrociniosImagemHtml()}
   </div>`;
 }

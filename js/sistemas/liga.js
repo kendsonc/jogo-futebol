@@ -227,7 +227,8 @@ function iniciarTemporada(){
   if(GAME.clube && !GAME.rival) GAME.rival = gerarRival();
   GAME.temporadaState = {
     periodoIndex:0, semanaNoPeriodo:0, subFase:'agenda',
-    eventoAtual:null, jogoAtual:null, mediaTreinoRecente:50, empresarioOfertado:false, empresarioConcorrenteOfertado:false, seguimentoEvento:null,
+    eventoAtual:null, jogoAtual:null, mediaTreinoRecente:50, empresarioOfertado:false, empresarioConcorrenteOfertado:false,
+    empresarioComissaoOfertada:false, empresarioSuspeitaOfertada:false, ativacoesPatrocinioTemporada:0, seguimentoEvento:null,
     eventosObscurosOcorridos:0, lutoOcorrido:false, liga: montarLigaTemporada()
   };
   montarCopasTemporada();
@@ -418,10 +419,54 @@ function gerarEventoEmpresarioConcorrente(){
           const antigo = NOMES_EMPRESARIOS[g.empresarioAtual] ? NOMES_EMPRESARIOS[g.empresarioAtual].split(',')[0] : 'seu empresário anterior';
           g.empresarioAtual = 'renomado';
           g.empresarioComissao = COMISSAO_EMPRESARIO.renomado;
+          g.statsCareer.trocasEmpresario = (g.statsCareer.trocasEmpresario||0) + 1;
           pushNoticia('midia', `${g.identidade.apelido} rompe com ${antigo} e agora é representado por ${nomeRenomado}, pagando R$ ${multa.toLocaleString('pt-BR')} de multa de rescisão.`);
         } },
       { label:'Ficar fiel ao seu empresário atual', efeitos:{relacaoElenco:2, tracos:{humilde:1}},
         extra:(g)=>{ pushNoticia('geral', `Você optou por seguir com seu empresário atual, mesmo com a proposta de ${nomeRenomado} na mesa.`); } }
+    ]
+  };
+}
+
+// Antes, o empresário só reaparecia como efeito passivo e silencioso
+// (aplicarReputacaoEmpresario acima) ou como a concorrência de um agente
+// maior (gerarEventoEmpresarioConcorrente) — sem nenhum evento interativo
+// PRÓPRIO ao longo da relação. Estes dois dão a ele o mesmo tratamento
+// narrativo recorrente que rival/ex-companheiros já tinham.
+function gerarEventoEmpresarioComissaoMaior(){
+  const nomeCurto = NOMES_EMPRESARIOS[GAME.empresarioAtual].split(',')[0];
+  const comissaoAtual = GAME.empresarioComissao || 10;
+  const novaComissao = Math.min(35, comissaoAtual + 5);
+  return {
+    id:'empresario_pede_comissao', categoria:'empresario',
+    retrato:()=>({ nome:nomeCurto, papel:'empresario' }),
+    texto:(g)=>`${nomeCurto} liga pedindo uma reunião.\n\n— ${g.identidade.apelido}, seu nome cresceu muito desde que a gente começou a trabalhar junto. Acho justo revisarmos minha comissão, de ${comissaoAtual}% pra ${novaComissao}%.`,
+    escolhas:[
+      { label:'Aceitar o aumento de comissão', efeitos:{},
+        extra:(g)=>{ g.empresarioComissao = novaComissao; pushNoticia('geral', `Você aceitou aumentar a comissão de ${nomeCurto} para ${novaComissao}%.`); } },
+      { label:'Negociar um meio-termo', efeitos:{pressaoPsicologica:2},
+        extra:(g)=>{ if(chance(50)){ g.empresarioComissao = Math.min(35, comissaoAtual+2); pushNoticia('geral', `Vocês chegaram a um meio-termo: comissão de ${g.empresarioComissao}%.`); }
+          else pushNoticia('geral', `${nomeCurto} manteve o pedido em aberto, mas por ora a comissão segue igual.`); } },
+      { label:'Recusar o aumento', efeitos:{tracos:{serio:1}},
+        extra:(g)=>{ pushNoticia('geral', `Você recusou o pedido de aumento de comissão de ${nomeCurto}.`); } }
+    ]
+  };
+}
+function gerarEventoEmpresarioPropostaSuspeita(){
+  const nomeCurto = NOMES_EMPRESARIOS[GAME.empresarioAtual].split(',')[0];
+  return {
+    id:'empresario_proposta_suspeita', categoria:'empresario',
+    retrato:()=>({ nome:nomeCurto, papel:'empresario' }),
+    texto:(g)=>`${nomeCurto} te procura com uma proposta fora do comum.\n\n— Tenho um patrocínio de bastidor que paga muito bem, mas prefiro não perguntar demais sobre a origem do dinheiro. Você toparia, sem fazer muita pergunta?`,
+    escolhas:[
+      { label:'Aceitar o dinheiro sem questionar', efeitos:{pressaoPsicologica:6},
+        extra:(g)=>{ g.carteira = Math.round((g.carteira||0) + rand(3000,8000));
+          if(chance(35)){ g.sociais.imagemMidia = clamp(g.sociais.imagemMidia-10,0,100); pushNoticiaImprensa('midia', `Rumores de uma proposta obscura envolvendo ${g.identidade.apelido} e seu empresário ganham as manchetes.`); }
+          else pushNoticia('geral', `Você aceitou o dinheiro extra oferecido por ${nomeCurto}, sem fazer muitas perguntas.`); } },
+      { label:'Recusar e cobrar mais transparência do empresário', efeitos:{tracos:{serio:1}, relacaoDiretoria:2},
+        extra:(g)=>{ pushNoticia('geral', `Você recusou a proposta suspeita e cobrou mais transparência de ${nomeCurto}.`); } },
+      { label:'Aceitar, mas exigir tudo documentado', efeitos:{pressaoPsicologica:2},
+        extra:(g)=>{ g.carteira = Math.round((g.carteira||0) + rand(1500,4000)); pushNoticia('geral', `Você aceitou parte da proposta de ${nomeCurto}, mas exigiu contrato formal por escrito.`); } }
     ]
   };
 }

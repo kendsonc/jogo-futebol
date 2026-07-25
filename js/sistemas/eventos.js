@@ -42,14 +42,49 @@ function gerarEventoPatrocinio(marca){
       : `Um representante da ${marca.nome} entra em contato através do seu empresário${g.empresarioAtual?'':' — ou diretamente, já que você ainda não tem um'}.\n\n— A gente vem acompanhando seu desempenho. Queremos te propor um contrato de patrocínio de material esportivo.`,
     escolhas:[
       { label: marcaAnterior ? `Trocar para a ${marca.nome}` : `Assinar com a ${marca.nome}`, efeitos:{imagemMidia:6, popularidade:5, carteira:marca.valorMensal*2},
-        extra:(g)=>{ g.patrocinioAtual = { marca:marca.nome, valorMensal:marca.valorMensal, tier:marca.tier };
+        extra:(g)=>{ g.patrocinioAtual = { marca:marca.nome, valorMensal:marca.valorMensal, tier:marca.tier, clausula:{ meta: 6+marca.tier*4 }, ativacoesIgnoradas:0 };
           pushNoticia('midia', marcaAnterior ? `${g.identidade.apelido} rompe com a ${marcaAnterior} e assina patrocínio maior com a ${marca.nome}.` : `${g.identidade.apelido} fecha patrocínio de material esportivo com a ${marca.nome}.`);
           atualizarRedesSociais(rand(80,300), 'marca'); } },
       { label:'Negociar um valor melhor antes de assinar', efeitos:{pressaoPsicologica:3},
-        extra:(g)=>{ if(chance(50)){ g.patrocinioAtual = { marca:marca.nome, valorMensal:Math.round(marca.valorMensal*1.15), tier:marca.tier };
+        extra:(g)=>{ if(chance(50)){ g.patrocinioAtual = { marca:marca.nome, valorMensal:Math.round(marca.valorMensal*1.15), tier:marca.tier, clausula:{ meta: 6+marca.tier*4 }, ativacoesIgnoradas:0 };
             pushNoticia('midia', `${g.identidade.apelido} negocia e fecha com a ${marca.nome} por um valor melhor.`); }
           else { pushNoticia('geral', `A negociação com a ${marca.nome} esfriou depois que você pediu mais.`); } } },
       { label: marcaAnterior ? `Permanecer com a ${marcaAnterior}` : 'Recusar por enquanto', efeitos:{} }
+    ]
+  };
+}
+
+/* ============================== ATIVAÇÃO DE PATROCÍNIO ==========================
+   Antes, patrocínio era 100% passivo: assinar e receber o valor mensal, sem
+   nenhuma exigência de volta. Agora, com uma marca patrocinada ativa, a marca
+   pode pedir ativação (conteúdo/aparição) até 2x por temporada — ignorar
+   repetidamente pode romper o contrato de vez (GAME.patrocinioAtual.ativacoesIgnoradas).
+   Cláusula de performance (processarClausulaPatrocinioTemporada, fim-temporada.js)
+   também dá consequência de fim de temporada: bate a meta, ganha bônus; não
+   bate, o valor mensal cai na renovação.
+   ========================================================================= */
+function gerarEventoAtivacaoPatrocinio(){
+  const marca = GAME.patrocinioAtual.marca;
+  return {
+    id:'patrocinio_ativacao', categoria:'midia',
+    texto:(g)=>`Um e-mail do departamento de marketing da ${marca} chega até você: eles querem uma ação de divulgação — um post, um vídeo curto, uma aparição rápida — pra ativar a parceria de verdade, não só o nome estampado no material.`,
+    escolhas:[
+      { label:'Topar e gravar um conteúdo animado e espontâneo', efeitos:{popularidade:5, imagemMidia:3, tracos:{descontraido:1}},
+        extra:(g)=>{ g.patrocinioAtual.ativacoesIgnoradas = 0; pushNoticia('midia', `${g.identidade.apelido} gravou um conteúdo divertido pra ${marca}, que viralizou nas redes.`); } },
+      { label:'Cumprir com profissionalismo, sem se estender', efeitos:{imagemMidia:2, tracos:{serio:1}},
+        extra:(g)=>{ g.patrocinioAtual.ativacoesIgnoradas = 0; pushNoticia('geral', `${g.identidade.apelido} cumpriu a ativação pedida pela ${marca} com profissionalismo.`); } },
+      { label:'Dizer que não tem tempo agora', efeitos:{pressaoPsicologica:-1, tracos:{serio:1}},
+        extra:(g)=>{
+          g.patrocinioAtual.ativacoesIgnoradas = (g.patrocinioAtual.ativacoesIgnoradas||0) + 1;
+          if(g.patrocinioAtual.ativacoesIgnoradas >= 2){
+            const marcaAntiga = g.patrocinioAtual.marca;
+            pushNoticiaImprensa('midia', `Fim de parceria: a ${marcaAntiga} rompe o contrato com ${g.identidade.apelido} depois de ativações ignoradas repetidamente.`);
+            g.sociais.imagemMidia = clamp(g.sociais.imagemMidia-5, 0, 100);
+            g.patrocinioAtual = null;
+          } else {
+            pushNoticia('geral', `Você disse pra ${marca} que não tinha tempo pra ativação agora — eles entenderam, mas não vão esperar pra sempre.`);
+          }
+        } }
     ]
   };
 }
@@ -225,6 +260,12 @@ function sortearEvento(){
     && (GAME.stats.interesseClubes >= 50 || calcularOverall() >= 68) && chance(12)){
     pool.push(gerarEventoEmpresarioConcorrente());
   }
+  if(GAME.empresarioAtual && !ts.empresarioComissaoOfertada && ts.periodoIndex >= 1 && chance(10)){
+    pool.push(gerarEventoEmpresarioComissaoMaior());
+  }
+  if(GAME.empresarioAtual && GAME.empresarioAtual !== 'amigoFamilia' && !ts.empresarioSuspeitaOfertada && ts.periodoIndex >= 1 && chance(8)){
+    pool.push(gerarEventoEmpresarioPropostaSuspeita());
+  }
   {
     const elegiveisPatrocinio = MARCAS_ESPORTIVAS.filter(m => GAME.stats.interesseClubes >= m.requisitoInteresse && GAME.stats.notaMedia >= m.requisitoNota);
     if(elegiveisPatrocinio.length && GAME.stats.notaMedia > 0){
@@ -241,9 +282,21 @@ function sortearEvento(){
     const oferta = categoriaPatrocinioImagemDisponivel();
     if(oferta) pool.push(gerarEventoPatrocinioImagem(oferta.categoria, oferta.marca));
   }
+  if(GAME.patrocinioAtual && (ts.ativacoesPatrocinioTemporada||0) < 2 && chance(15)){
+    pool.push(gerarEventoAtivacaoPatrocinio());
+  }
   if(GAME.stats.interesseClubes >= 45 && chance(20)) pool.push(gerarEventoRumorTransferencia());
   if(GAME.exCompanheiros && GAME.exCompanheiros.length && chance(14)) pool.push(gerarEventoMensagemExCompanheiro());
+  if(GAME.elenco && GAME.elenco.length){
+    const candidatoPacto = GAME.elenco.find(c => c.relacao >= 90 && c.pactoCarreira === undefined);
+    if(candidatoPacto && chance(15)) pool.push(gerarEventoPactoCarreira(candidatoPacto));
+  }
   { const seq = sequenciaAtual(); if(seq.tipo === 'derrota' && seq.tamanho >= 2 && chance(25)) pool.push(gerarEventoCriticaSequenciaRuim()); }
+  // Temporada do Ídolo: torcida organizada só ganha voz própria quando a
+  // relação já está no patamar de ídolo (arcoIdoloDisponivel, torcida.js)
+  if(arcoIdoloDisponivel('manifesto') && chance(12)) pool.push(gerarEventoManifestoOrganizada());
+  if(arcoIdoloDisponivel('videoApoio') && chance(12)) pool.push(gerarEventoVideoApoioTorcida());
+  { const seq = sequenciaAtual(); if(arcoIdoloDisponivel('boicote') && seq.tipo === 'derrota' && seq.tamanho >= 2 && chance(20)) pool.push(gerarEventoBoicoteTorcida()); }
   // Lado obscuro do futebol: raro, no máximo 2 vezes por temporada
   if(ts.eventosObscurosOcorridos < 2 && ts.periodoIndex >= 1 && chance(8)){
     pool.push(pick(EVENTOS_LADO_OBSCURO));
@@ -301,6 +354,9 @@ function renderEvento(){
       pushHistorico(`Evento: ${esc.label}`);
       if(evt.id === 'empresario') ts.empresarioOfertado = true;
       if(evt.id === 'empresario_concorrente') ts.empresarioConcorrenteOfertado = true;
+      if(evt.id === 'empresario_pede_comissao') ts.empresarioComissaoOfertada = true;
+      if(evt.id === 'empresario_proposta_suspeita') ts.empresarioSuspeitaOfertada = true;
+      if(evt.id === 'patrocinio_ativacao') ts.ativacoesPatrocinioTemporada = (ts.ativacoesPatrocinioTemporada||0) + 1;
       if(evt.id === 'equipe_acesso_comemoracao') ts.acessoComemoradoTemporada = true;
       ts.eventoAtual = null;
       ts.subFase = 'treino';

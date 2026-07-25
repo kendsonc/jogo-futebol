@@ -147,7 +147,12 @@ const EVENTOS_RIVAL = [
 // fixa de 35% — agora depende da força real do clube dele na tabela e de como
 // ele está na comparação de overall com você, então um rival num clube fraco
 // e por baixo na comparação brilha bem menos do que um em ascensão.
-function gerarConfrontoRival(){
+//
+// nota/golsJogador (seu desempenho REAL nesta partida específica) alimentam
+// um "duelo direto" — antes o confronto só media se o rival brilhou ou não,
+// sem nunca declarar um vencedor nomeado do duelo pessoal; agora vira
+// manchete própria, comparando o seu jogo de hoje com o dele.
+function gerarConfrontoRival(nota, golsJogador){
   const r = GAME.rival;
   if(!r) return null;
   const clubeRival = CLUBES.find(c => c.id === r.clubeId) || (typeof CLUBES_INTERNACIONAIS !== 'undefined' && CLUBES_INTERNACIONAIS.find(c => c.id === r.clubeId));
@@ -159,5 +164,11 @@ function gerarConfrontoRival(){
     r.statsCareer.gols += rand(0, 2);
     pushNoticiaImprensa('midia', `${r.nome} também brilhou na rodada, marcando pelo ${r.clubeNome}.`);
   }
-  return { rivalBrilhou };
+  const meuScoreDuelo = (nota!=null?nota:6)*2 + (golsJogador||0)*3 + rand(-3,3);
+  const scoreRival = (rivalBrilhou ? 13 : 7) + rand(-3,3);
+  const venceuDuelo = meuScoreDuelo >= scoreRival;
+  pushNoticiaImprensa('midia', venceuDuelo
+    ? `Duelo direto: ${GAME.identidade.apelido} levou a melhor sobre ${r.nome} no confronto de hoje.`
+    : `Duelo direto: ${r.nome} se saiu melhor que ${GAME.identidade.apelido} no confronto de hoje.`);
+  return { rivalBrilhou, venceuDuelo };
 }

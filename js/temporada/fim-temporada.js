@@ -92,6 +92,25 @@ function posicaoFinalLiga(){
   return posicao > 0 ? { posicao, total: linhas.length } : null;
 }
 
+// Antes, o valor mensal de um patrocínio esportivo era fixo do jeito que foi
+// assinado — sem nenhuma cláusula de desempenho, patrocínio virava um número
+// passivo que só mudava se você trocasse de marca. Chamada 1x por fim de
+// temporada, com GAME.stats ainda com os totais da temporada que terminou
+// (o reset só acontece depois, em avancarParaProximaTemporada).
+function processarClausulaPatrocinioTemporada(){
+  if(!GAME.patrocinioAtual || !GAME.patrocinioAtual.clausula) return;
+  const producao = (GAME.stats.gols||0) + (GAME.stats.assistencias||0);
+  const meta = GAME.patrocinioAtual.clausula.meta;
+  if(producao >= meta){
+    const bonus = Math.round(GAME.patrocinioAtual.valorMensal * 2);
+    GAME.carteira = Math.round((GAME.carteira||0) + bonus);
+    pushNoticiaImprensa('midia', `${GAME.identidade.apelido} bateu a meta de desempenho combinada com a ${GAME.patrocinioAtual.marca} (${producao} participações em gols) e recebe um bônus de R$ ${bonus.toLocaleString('pt-BR')}.`);
+  } else {
+    GAME.patrocinioAtual.valorMensal = Math.round(GAME.patrocinioAtual.valorMensal * 0.85);
+    pushNoticia('geral', `${GAME.identidade.apelido} não bateu a meta de desempenho combinada com a ${GAME.patrocinioAtual.marca} — o valor mensal do patrocínio caiu para R$ ${GAME.patrocinioAtual.valorMensal.toLocaleString('pt-BR')}.`);
+  }
+}
+
 function finalizarTemporada(){
   GAME.fase = 'fim';
   GAME.finalTipo = calcularFinalTemporada();
@@ -123,6 +142,7 @@ function finalizarTemporada(){
   // — intercepta o fluxo de render() (router.js) antes do relatório comum.
   GAME.galaBolaDeOuroPendente = !!(GAME.bolaDeOuroResultado && GAME.bolaDeOuroResultado.venci);
   calcularQualificacoesProximaTemporada();
+  processarClausulaPatrocinioTemporada();
   GAME.statsCareer.premios.push(...GAME.premiacoesTemporada.map(t => `${t} (Temporada ${GAME.numeroTemporada})`));
   salvarJogo();
   render();

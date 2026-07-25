@@ -247,7 +247,14 @@ function renderEntressafraTransferencia(){
       if(btn.dataset.i !== 'ficar'){
         const novoClube = opcoes[parseInt(btn.dataset.i,10)];
         const clubeAntigoNomeTransferencia = GAME.clube ? GAME.clube.nome : null;
+        const clubeAntigoIdTransferencia = GAME.clube ? GAME.clube.id : null;
         const torcidaAntigaTransferencia = GAME.relacoes.torcida;
+        // Companheiro com pacto de carreira (gerarEventoPactoCarreira,
+        // exCompanheiros.js) sai do elenco ANTES do sweep genérico abaixo —
+        // senão preservarExCompanheirosNaTransferencia já o levaria pra um
+        // clube aleatório, sem chance nenhuma de cumprir o pacto de verdade.
+        const amigoPacto = GAME.elenco ? GAME.elenco.find(c => c.pactoCarreira === true) : null;
+        if(amigoPacto) GAME.elenco = GAME.elenco.filter(c => c !== amigoPacto);
         preservarExCompanheirosNaTransferencia(); // antes de trocar GAME.clube/elenco — precisa do clube ANTIGO
         GAME.clube = { id:novoClube.id, nome:novoClube.nome, cidade:novoClube.cidade, uf:novoClube.uf,
           pais:novoClube.pais, liga:novoClube.liga,
@@ -262,6 +269,26 @@ function renderEntressafraTransferencia(){
         GAME.tecnico = gerarTecnico(GAME.tecnico && GAME.tecnico.nome);
         GAME.observador = pickExcluindo(NOMES_OBSERVADORES, GAME.observador);
         GAME.elenco = gerarElenco(); // novo clube, novos companheiros de elenco
+        if(amigoPacto){
+          if(chance(55)){
+            GAME.elenco.push({ ...amigoPacto, id:'comp_pacto_'+GAME.status.semanaGlobal, pactoCarreira:undefined });
+            pushNoticiaImprensa('midia', `Pacto cumprido: ${amigoPacto.nome} também assina com o ${novoClube.nome}, reunindo a dupla no mesmo elenco.`);
+            registrarMarco('Pacto de carreira cumprido', `${GAME.identidade.apelido} e ${amigoPacto.nome} conseguiram ser negociados juntos para o ${novoClube.nome}.`, 'media');
+          } else {
+            if(!GAME.exCompanheiros) GAME.exCompanheiros = [];
+            const clubeConsolo = pick(CLUBES.filter(cl => cl.id !== novoClube.id));
+            if(clubeConsolo){
+              GAME.exCompanheiros.push({
+                id:'ex_pacto_'+Date.now()+'_'+rand(1000,9999), nomeOriginal:amigoPacto.nome, nome:amigoPacto.nome,
+                relacao: clamp(amigoPacto.relacao-40, 0, 100),
+                clubeConheceuId: clubeAntigoIdTransferencia, clubeConheceuNome: clubeAntigoNomeTransferencia,
+                clubeId: clubeConsolo.id, clubeNome: clubeConsolo.nome,
+                overall: clamp(calcularOverall() + rand(-10,10), 30, 90)
+              });
+            }
+            pushNoticia('geral', `Pacto quebrado: o ${novoClube.nome} não quis contar com ${amigoPacto.nome}, que segue a carreira em outro lugar — a amizade esfriou depois disso.`);
+          }
+        }
         despedidaDaTorcidaAntesDaTransferencia(clubeAntigoNomeTransferencia, torcidaAntigaTransferencia);
         GAME.relacoes.treinador = 50; GAME.relacoes.elenco = 50; GAME.relacoes.diretoria = 50; GAME.relacoes.torcida = 15;
         GAME.status.statusElenco = 'Novo reforço';
@@ -321,6 +348,13 @@ function renderEntressafraFinal(){
 function iniciarAposentadoria(){
   GAME.legadoFinal = calcularLegadoFinal();
   registrarMarco('Aposentadoria', `Encerrou a carreira aos ${idadeAtual()} anos, defendendo o ${GAME.clube.nome}.`, 'alta');
+  // Lealdade ao empresário também vira parte do legado — antes disso, trocar
+  // (ou nunca trocar) de empresário não tinha nenhum eco na aposentadoria.
+  if(GAME.empresarioAtual && !(GAME.statsCareer.trocasEmpresario||0)){
+    const nomeCurto = NOMES_EMPRESARIOS[GAME.empresarioAtual].split(',')[0];
+    registrarMarco('Lealdade rara', `${GAME.identidade.apelido} encerrou a carreira sem nunca trocar de empresário — ${nomeCurto} esteve ao seu lado do início ao fim.`, 'media');
+  }
+  registrarNoHallDaFama();
   GAME.fase = 'aposentadoria';
   documentarioCapitulo = 0;
   salvarJogo();

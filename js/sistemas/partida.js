@@ -1226,7 +1226,7 @@ function finalizarPartida(){
     ? processarRodadaLiga({ rodada: liga.calendario[liga.rodadaAtual], mandante, oponenteId: p.oponenteId }, golsTime, golsAdversario)
     : [];
   const sumulaTime = gerarSumulaTime(minutos);
-  const confrontoRival = p.confrontoRival ? gerarConfrontoRival() : null;
+  const confrontoRival = p.confrontoRival ? gerarConfrontoRival(nota, gols) : null;
   const reacaoElenco = reacaoElencoPosJogo(nota, resultadoJogo, vermelho>0 || amarelo>=2);
 
   const resultado = {
@@ -1357,9 +1357,10 @@ function renderResultadoJogo(){
   const rivalHtml = j.confrontoRival ? `
     <div class="card">
       <div class="card-title">⚔️ Duelo de rivais</div>
+      <span class="badge ${j.confrontoRival.venceuDuelo?'good':'bad'}" style="display:inline-block;margin-bottom:6px">${j.confrontoRival.venceuDuelo ? `Duelo direto vencido!` : `Duelo direto perdido`}</span>
       <p class="small">${j.confrontoRival.rivalBrilhou
-        ? `${escapeHtml(GAME.rival.nome)} também balançou as redes pelo ${escapeHtml(GAME.rival.clubeNome)} nesta rodada — o duelo indireto continua aceso.`
-        : `${escapeHtml(GAME.rival.nome)} não teve uma boa rodada pelo ${escapeHtml(GAME.rival.clubeNome)} — dessa vez, o duelo indireto ficou com você.`}</p>
+        ? `${escapeHtml(GAME.rival.nome)} também balançou as redes pelo ${escapeHtml(GAME.rival.clubeNome)} nesta rodada.`
+        : `${escapeHtml(GAME.rival.nome)} não teve uma boa rodada pelo ${escapeHtml(GAME.rival.clubeNome)}.`}</p>
     </div>` : '';
   const reacaoHtml = j.reacaoElenco ? `<p class="small muted" style="margin-top:10px">💬 ${escapeHtml(j.reacaoElenco.texto)}</p>` : '';
   const estatisticasHtml = j.estatisticasFinais ? `

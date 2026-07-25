@@ -5,6 +5,40 @@
 const SAVE_KEY = 'modoCarreira_save_v1';
 let GAME = null; // populado por novaCarreira() ou carregarJogo()
 
+/* ============================== HALL DA FAMA (CROSS-SAVE) ====================
+   Chave própria de localStorage, INDEPENDENTE do save da carreira atual —
+   sobrevive mesmo depois de apagar o save (apagarSave só limpa SAVE_KEY).
+   Cada carreira aposentada guarda um resumo leve aqui (registrarNoHallDaFama,
+   chamado em iniciarAposentadoria, entressafra.js); a criação de personagem
+   (renderCriacaoPersonagem, js/screens/inicio.js) lê isso pra oferecer
+   "continuar o legado de" um jogador anterior, com pequenos bônus herdados.
+   ========================================================================= */
+const HALL_DA_FAMA_KEY = 'modoCarreira_hallDaFama_v1';
+function obterHallDaFama(){
+  try{
+    const raw = localStorage.getItem(HALL_DA_FAMA_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch(e){ return []; }
+}
+function registrarNoHallDaFama(){
+  try{
+    const hall = obterHallDaFama();
+    const s = GAME.statsCareer;
+    hall.push({
+      id: 'legado_' + Date.now() + '_' + rand(1000,9999),
+      nomeCompleto: GAME.identidade.nomeCompleto,
+      apelido: GAME.identidade.apelido,
+      sobrenome: GAME.identidade.nomeCompleto.trim().split(/\s+/).slice(-1)[0] || GAME.identidade.apelido,
+      posicaoPrincipal: GAME.identidade.posicaoPrincipal,
+      temporadas: s.temporadas, gols: s.gols, assistencias: s.assistencias, titulos: s.titulos,
+      legadoFinal: GAME.legadoFinal, tracoDominante: tracoDominante(),
+      clubesPassados: (s.clubesPassados||[]).map(c => c.nome)
+    });
+    if(hall.length > 12) hall.splice(0, hall.length-12);
+    localStorage.setItem(HALL_DA_FAMA_KEY, JSON.stringify(hall));
+  } catch(e){ console.warn('Falha ao salvar Hall da Fama:', e); }
+}
+
 function novoObjetivo(cfg){
   return { id:cfg.id, titulo:cfg.titulo, descricao:cfg.descricao||'', tipo:cfg.tipo||'evento',
     campo:cfg.campo||null, meta:cfg.meta||null, recompensa:cfg.recompensa||null, concluido:!!cfg.concluido };
@@ -79,9 +113,21 @@ function calcularNascimento(dia, mes){
   return new Date(ano, mes-1, dia);
 }
 
+// Mapa de traço dominante do legado -> categoria de atributo que ganha o
+// bônus herdado (ATRIBUTOS_DEF, dados-base.js) — não é um bônus genérico
+// solto, reflete o "jeito" que o pai/mãe construiu a carreira.
+const CATEGORIA_BONUS_POR_TRACO = {
+  confiante:'mentais', serio:'mentais', humilde:'mentais', descontraido:'fisicos', rebelde:'fisicos'
+};
+function aplicarBonusHeranca(atributos, legado){
+  const categoria = CATEGORIA_BONUS_POR_TRACO[legado.tracoDominante] || 'tecnicos';
+  ATRIBUTOS_DEF[categoria].forEach(([k]) => { atributos[k] = clamp(atributos[k] + rand(3,7), 25, 90); });
+}
+
 /* Cria um novo jogador + estado completo de carreira a partir dos dados do formulário */
 function criarNovoJogador(dados){
   const atributos = gerarAtributosIniciais(dados.estilo);
+  if(dados.heredeiroDe) aplicarBonusHeranca(atributos, dados.heredeiroDe);
   const nascimento = calcularNascimento(dados.dia, dados.mes);
   const objetivosIniciais = gerarObjetivosTemporada(dados.posicaoPrincipal, 1);
   GAME = {
@@ -108,7 +154,11 @@ function criarNovoJogador(dados){
       semanaGlobal: 0, periodoAtual: 0, semanaNoPeriodo: 0,
       saudeMental: 68
     },
-    sociais: { moral:60, confianca:55, popularidade:20, reputacaoLocal:15, imagemMidia:50, pressaoPsicologica:25 },
+    // Herdeiro de uma carreira do Hall da Fama entra com mais popularidade
+    // (o sobrenome já pesa) mas também mais pressão psicológica desde o
+    // início — expectativa alta tem preço, mesmo aos 16 anos.
+    sociais: { moral:60, confianca:55, popularidade: dados.heredeiroDe ? 42 : 20, reputacaoLocal:15, imagemMidia:50, pressaoPsicologica: dados.heredeiroDe ? 38 : 25 },
+    heredeiroDe: dados.heredeiroDe ? { apelido:dados.heredeiroDe.apelido, sobrenome:dados.heredeiroDe.sobrenome, legadoFinal:dados.heredeiroDe.legadoFinal, posicaoPrincipal:dados.heredeiroDe.posicaoPrincipal } : null,
     relacoes: { treinador:50, elenco:50, familia:70, empresario:0, diretoria:50, torcida:20, midia:30 },
     contrato: { tipo:'Sem contrato', bolsa:0, duracao:0, expectativa:'Nenhuma', confiancaDiretoria:40 },
     stats: {
@@ -173,6 +223,7 @@ function repararEstadoEconomia(){
   if(!GAME.audioConfig) GAME.audioConfig = { mutado:false, volumeMusica:0.15, volumeEfeitos:0.7 };
   if(!GAME.patrociniosImagem) GAME.patrociniosImagem = {};
   if(!GAME.exCompanheiros) GAME.exCompanheiros = [];
+  if(GAME.heredeiroDe === undefined) GAME.heredeiroDe = null;
   if(GAME.identidade && !GAME.identidade.aparencia) GAME.identidade.aparencia = gerarAparenciaAleatoria(Math.random, 'm');
   if(GAME.relacionamento){
     if(GAME.relacionamento.casado === undefined) GAME.relacionamento.casado = false;
