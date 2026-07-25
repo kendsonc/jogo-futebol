@@ -122,6 +122,14 @@ function finalizarRodadaCopa(copa, vencedores, confrontosRodada){
   const meuConfronto = confrontosRodada.find(c => c.envolveJogador);
   copa.rodadaAtual += 1;
 
+  // Marca a fase REAL em que o jogador caiu (se caiu) — precisa ficar
+  // guardado no objeto da copa porque "ela teve um campeão" não diz nada
+  // sobre até onde VOCÊ foi: seu clube pode ser eliminado nas quartas e a
+  // copa seguir rodando sem você até ter campeão. Sem isso, o relatório de
+  // fim de temporada (blocoCopasTemporadaHtml) não tinha como distinguir
+  // "vice-campeão" (perdeu a FINAL) de "eliminado" em qualquer fase anterior.
+  if(meuConfronto && !meuConfronto.jogadorVenceu) copa.faseEliminacaoJogador = nomeRodada;
+
   if(vencedores.length === 1){
     copa.campeao = vencedores[0];
     copa.chaveAtual = null;
@@ -277,12 +285,18 @@ function finalizarPartidaCopaJogavel(){
 }
 function renderResultadoConfrontoCopa(){
   const r = GAME.temporadaState.resultadoConfrontoCopa;
+  // Na Final, "não venceu" é vice-campeão, não "eliminado" — e vencer aqui é
+  // ser campeão, não só "classificado" pra próxima fase (não existe próxima).
+  const ehFinal = r.nomeRodada === 'Final';
+  const ehTitulo = ehFinal && r.jogadorVenceu;
+  const labelResultado = ehFinal ? (r.jogadorVenceu ? 'Campeão!' : 'Vice-campeão') : (r.jogadorVenceu ? 'Classificado!' : 'Eliminado');
   app.innerHTML = `
     ${statusBarHtml()}
-    <div class="screen-hero">
+    <div class="screen-hero ${ehTitulo ? 'hero-marco' : ''}">
+      ${ehTitulo ? '<span class="hero-marco-selo">⭐ Marco</span>' : ''}
       <div class="screen-hero-kicker">${escapeHtml(r.nomeRodada)} — ${escapeHtml(r.copaNome)}</div>
       <h1>${escapeHtml(r.aNome)} ${r.golsA} x ${r.golsB} ${escapeHtml(r.bNome)} <span class="small muted">(agregado)</span></h1>
-      <span class="result-badge-big ${r.jogadorVenceu?'good':'bad'}">${r.jogadorVenceu?'Classificado!':'Eliminado'}</span>
+      <span class="result-badge-big ${r.jogadorVenceu?'good':'bad'}">${labelResultado}</span>
       <p class="screen-hero-sub">Ida ${r.ida.golsA}x${r.ida.golsB} — Volta ${r.volta.golsA}x${r.volta.golsB}</p>
     </div>
     <div class="card"><div class="choices"><button class="btn btn-primary" id="btn-continuar-confronto-copa">Continuar</button></div></div>
@@ -503,12 +517,16 @@ function renderPenaltisCopa(){
 }
 function renderResultadoPenaltisCopa(){
   const r = GAME.temporadaState.resultadoPenaltisCopa;
+  const ehFinal = r.nomeRodada === 'Final';
+  const ehTitulo = ehFinal && r.jogadorVenceu;
+  const labelResultado = ehFinal ? (r.jogadorVenceu ? 'Campeão nos pênaltis!' : 'Vice-campeão nos pênaltis') : (r.jogadorVenceu ? 'Classificado nos pênaltis!' : 'Eliminado nos pênaltis');
   app.innerHTML = `
     ${statusBarHtml()}
-    <div class="screen-hero">
+    <div class="screen-hero ${ehTitulo ? 'hero-marco' : ''}">
+      ${ehTitulo ? '<span class="hero-marco-selo">⭐ Marco</span>' : ''}
       <div class="screen-hero-kicker">${escapeHtml(r.nomeRodada)} — ${escapeHtml(r.copaNome)}</div>
       <h1>${escapeHtml(r.aNome)} ${r.placarPenA} x ${r.placarPenB} ${escapeHtml(r.bNome)} <span class="small muted">(pênaltis)</span></h1>
-      <span class="result-badge-big ${r.jogadorVenceu?'good':'bad'}">${r.jogadorVenceu?'Classificado nos pênaltis!':'Eliminado nos pênaltis'}</span>
+      <span class="result-badge-big ${r.jogadorVenceu?'good':'bad'}">${labelResultado}</span>
       <p class="screen-hero-sub">Tempo normal: ${r.golsA}x${r.golsB}</p>
     </div>
     <div class="card"><div class="choices"><button class="btn btn-primary" id="btn-continuar-penaltis">Continuar</button></div></div>

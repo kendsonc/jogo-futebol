@@ -24,11 +24,18 @@ function gerarRival(){
 }
 
 // Chamada 1x por virada de temporada — nunca joga partidas próprias, só recebe
-// um empurrão numérico abstrato + narrativa, no mesmo espírito de statsCareer
+// um empurrão numérico abstrato + narrativa, no mesmo espírito de statsCareer.
+// Antes, esse empurrão era RNG puro (rand(-3,6)): o rival nunca reagia a como
+// VOCÊ jogou. Agora desempenhoRelativo pondera isso pela sua nota média da
+// temporada — uma temporada boa sua freia o crescimento dele (ele sente a
+// pressão da comparação direta), uma temporada fraca sua dá mais espaço pra
+// ele crescer — ainda com ruído, só que com um viés causal de verdade.
 function evoluirRival(){
   const r = GAME.rival;
   if(!r) return;
-  r.overall = clamp(r.overall + rand(-3, 6), 30, 95);
+  const notaMedia = GAME.stats.notaMedia || 6;
+  const desempenhoRelativo = clamp((6 - notaMedia) * 1.5, -4, 4);
+  r.overall = clamp(r.overall + rand(-3, 6) + desempenhoRelativo, 30, 95);
   const ehAtacante = POSICOES_ATACANTE.includes(r.posicao);
   r.statsCareer.temporadas += 1;
   r.statsCareer.gols += ehAtacante ? rand(4, 18) : rand(0, 6);
@@ -93,11 +100,18 @@ const EVENTOS_RIVAL = [
 
 // Confronto direto: quando o clube adversário da rodada é o clube do rival,
 // um booleano abstrato ("ele brilhou ou não nesse jogo") narra o outro lado
-// da moeda sem simular uma partida própria para o rival
+// da moeda sem simular uma partida própria para o rival. Antes era uma moeda
+// fixa de 35% — agora depende da força real do clube dele na tabela e de como
+// ele está na comparação de overall com você, então um rival num clube fraco
+// e por baixo na comparação brilha bem menos do que um em ascensão.
 function gerarConfrontoRival(){
   const r = GAME.rival;
   if(!r) return null;
-  const rivalBrilhou = chance(35);
+  const clubeRival = CLUBES.find(c => c.id === r.clubeId) || (typeof CLUBES_INTERNACIONAIS !== 'undefined' && CLUBES_INTERNACIONAIS.find(c => c.id === r.clubeId));
+  const forcaRivalClube = clubeRival ? (clubeRival.reputacao||50) : 50;
+  const meuOverall = calcularOverall();
+  const chanceBrilho = clamp(20 + (forcaRivalClube-50)*0.3 + (r.overall-meuOverall)*0.6, 8, 65);
+  const rivalBrilhou = chance(chanceBrilho);
   if(rivalBrilhou){
     r.statsCareer.gols += rand(0, 2);
     pushNoticiaImprensa('midia', `${r.nome} também brilhou na rodada, marcando pelo ${r.clubeNome}.`);

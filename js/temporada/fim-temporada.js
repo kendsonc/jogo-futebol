@@ -133,7 +133,15 @@ function blocoCopasTemporadaHtml(){
   const partes = [];
   const copas = (GAME.temporadaState && GAME.temporadaState.copas) || {};
   Object.values(copas).forEach(c => {
-    const fase = c.campeao ? (c.campeao.souEu ? 'Campeão!' : `Vice-campeão (perdeu a final)`) : `Eliminado (chegou até ${c.nomesRodadas[Math.max(0,c.rodadaAtual-1)]||'fase inicial'})`;
+    // Ter campeão (c.campeao) só diz quem venceu a copa inteira, não até onde
+    // VOCÊ chegou — seu clube pode ter caído nas quartas e a copa seguiu sem
+    // você até ter campeão. c.faseEliminacaoJogador (copas.js/finalizarRodadaCopa)
+    // é a fase real em que você foi eliminado, só ausente se você foi campeão.
+    let fase;
+    if(c.campeao && c.campeao.souEu) fase = 'Campeão!';
+    else if(c.faseEliminacaoJogador === 'Final') fase = 'Vice-campeão (perdeu a final)';
+    else if(c.faseEliminacaoJogador) fase = `Eliminado na fase: ${c.faseEliminacaoJogador}`;
+    else fase = `Eliminado (chegou até ${c.nomesRodadas[Math.max(0,c.rodadaAtual-1)]||'fase inicial'})`;
     partes.push(`<p><b>${escapeHtml(c.nome)}:</b> ${escapeHtml(fase)}</p>`);
   });
   const m = GAME.mundialDeClubesUltimoResultado;
@@ -173,8 +181,13 @@ function renderFimDeTemporada(){
     .sort((a,b) => (b.depois-b.antes) - (a.depois-a.antes))
     .slice(0,8);
 
+  // Marco de verdade (título, acesso decisivo, convocação, copa etc.) se
+  // registrarMarco() já rodou pra ESTA temporada em algum ponto de
+  // finalizarTemporada() — mesmo destaque visual usado na aposentadoria.
+  const temMarcoNaTemporada = (GAME.memorial||[]).some(m => m.temporada === GAME.numeroTemporada);
   app.innerHTML = `
-    <div class="screen-hero">
+    <div class="screen-hero ${temMarcoNaTemporada ? 'hero-marco' : ''}">
+      ${temMarcoNaTemporada ? '<span class="hero-marco-selo">⭐ Marco</span>' : ''}
       <div class="screen-hero-kicker">Relatório de Fim de Temporada ${GAME.numeroTemporada}</div>
       <h1>${escapeHtml(GAME.clube.nome)}</h1>
       <span class="result-badge-big good">${escapeHtml(finalObj.titulo)}</span>

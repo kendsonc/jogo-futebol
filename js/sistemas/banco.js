@@ -111,6 +111,7 @@ function bensDisponiveisGarantia(){
   return [...carros, ...imoveis];
 }
 function pedirEmprestimo(opcaoId, valor, parcelas, garantiaRef){
+  if(GAME.banco.restricaoCredito) return false; // nome sujo (processarInadimplenciaSemanal) — sem novo crédito até regularizar
   const opcao = EMPRESTIMO_OPCOES.find(o => o.id === opcaoId);
   valor = Math.round(valor);
   if(!opcao) return false;
@@ -148,4 +149,44 @@ function processarEmprestimosSemanal(){
       pushNoticia('geral', `Empréstimo quitado! Você terminou de pagar as ${emp.parcelas} parcelas.`);
     }
   });
+}
+
+/* ------------------------------ INADIMPLÊNCIA ---------------------------------
+   Antes, saldo negativo só existia como número vermelho — sem nenhuma
+   consequência real (o próprio processarEmprestimosSemanal descontava a
+   parcela mesmo com o saldo já negativo). Agora, semanas seguidas no vermelho
+   cortam crédito novo (pedirEmprestimo acima) e, se persistir, o banco
+   executa a garantia de um empréstimo ativo — o mesmo bem que já ficava
+   bloqueado pra venda enquanto empenhado (bemEstaEmpenhado). Chamada 1x por
+   semana em concluirTickSemanal (js/sistemas/liga.js), depois de todos os
+   descontos/créditos da semana já aplicados. */
+const SEMANAS_PARA_RESTRICAO_CREDITO = 3;
+const SEMANAS_PARA_PENHORA = 6;
+function processarInadimplenciaSemanal(){
+  if(GAME.banco.semanasNegativo == null) GAME.banco.semanasNegativo = 0;
+  if((GAME.carteira||0) >= 0){
+    if(GAME.banco.restricaoCredito) pushNoticia('geral', `Seu nome voltou a ficar limpo — crédito liberado novamente no banco.`);
+    GAME.banco.semanasNegativo = 0;
+    GAME.banco.restricaoCredito = false;
+    return;
+  }
+  GAME.banco.semanasNegativo += 1;
+  if(GAME.banco.semanasNegativo === SEMANAS_PARA_RESTRICAO_CREDITO && !GAME.banco.restricaoCredito){
+    GAME.banco.restricaoCredito = true;
+    pushNoticiaImprensa('midia', `Nome sujo: ${GAME.identidade.apelido} está com o saldo negativo há semanas e perdeu acesso a crédito novo no banco.`);
+    GAME.sociais.pressaoPsicologica = clamp(GAME.sociais.pressaoPsicologica + 8, 0, 100);
+  }
+  if(GAME.banco.semanasNegativo >= SEMANAS_PARA_PENHORA){
+    const empComGarantia = GAME.banco.emprestimos.find(e => !e.quitado && e.garantia);
+    if(empComGarantia){
+      const g = empComGarantia.garantia;
+      if(g.tipo === 'carro') GAME.garagem = GAME.garagem.filter(c => c.instanceId !== g.instanceId);
+      else GAME.imoveisComprados = GAME.imoveisComprados.filter(i => i.instanceId !== g.instanceId);
+      empComGarantia.quitado = true;
+      empComGarantia.saldoDevedor = 0;
+      pushNoticiaImprensa('midia', `Penhora! O banco tomou ${g.descricao}, dado como garantia, para quitar um empréstimo que ficou tempo demais em atraso.`);
+      GAME.banco.semanasNegativo = 0;
+      GAME.sociais.imagemMidia = clamp(GAME.sociais.imagemMidia - 6, 0, 100);
+    }
+  }
 }

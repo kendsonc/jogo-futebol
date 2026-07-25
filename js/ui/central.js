@@ -347,6 +347,7 @@ function renderBancoBody(){
 
   body.innerHTML = `
     <p class="small muted" style="margin-bottom:10px">Carteira: <b>R$ ${Math.round(GAME.carteira||0).toLocaleString('pt-BR')}</b></p>
+    ${GAME.banco.restricaoCredito ? `<p class="badge bad" style="display:block;margin-bottom:10px">🚫 Crédito restrito: saldo negativo por tempo demais. Regularize a carteira para voltar a pegar empréstimos.</p>` : ''}
     <div class="card">
       <div class="card-title">Poupança (rende ${TAXA_POUPANCA_MENSAL}% ao mês)</div>
       <p style="font-size:22px"><b>R$ ${poupanca.toLocaleString('pt-BR')}</b></p>

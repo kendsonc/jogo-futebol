@@ -189,6 +189,20 @@
   .bar-fill.info { background: linear-gradient(90deg,#2a6bc9,#3f9be0); box-shadow: 0 0 8px -1px rgba(63,155,224,.7); }
   .attr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 18px; }
   @media (max-width: 560px) { .attr-grid { grid-template-columns: 1fr; } }
+
+  /* ===================== STAT TILES (Painel: Dados/Contrato/Estatísticas) =====================
+     Antes essas abas eram só <p><b>Label:</b> valor</p> em sequência, texto
+     corrido sem nenhuma hierarquia visual — mesmo padrão pra idade, gols ou
+     cartões. stat-tile reaproveita o espírito de .attr-grid (ícone + valor
+     grande + rótulo pequeno), ver statTileHtml em js/core/utils.js. */
+  .stat-tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(126px,1fr)); gap: 10px; margin: 6px 0 4px; }
+  .stat-tile {
+    display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 12px;
+    background: var(--surface-2); border: 1px solid var(--border);
+  }
+  .stat-tile-icon { font-size: 16px; line-height: 1; opacity: .85; }
+  .stat-tile-valor { font-family: var(--font-display); font-weight: 800; font-size: 18px; line-height: 1.2; word-break: break-word; }
+  .stat-tile-label { font-size: 10.5px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .4px; }
   .badge {
     display: inline-block;
     background: var(--surface-2);
@@ -413,6 +427,29 @@
   .screen-hero-kicker::after { background: linear-gradient(90deg, var(--club-c1), transparent); }
   .screen-hero h1, .screen-hero h2 { font-family: var(--font-display); font-weight: 800; font-size: clamp(21px,4.2vw,28px); margin-bottom: 4px; letter-spacing: -.3px; position: relative; z-index: 1; }
   .screen-hero-sub { color: var(--text-dim); font-size: 13.5px; max-width: 460px; margin: 6px auto 0; position: relative; z-index: 1; }
+
+  /* ===================== VARIANTE "MARCO" (eventos do GAME.memorial) =====================
+     Antes, título de temporada, aposentadoria e conquista de copa usavam o
+     mesmo .screen-hero de qualquer relatório comum — sem nenhum destaque
+     visual condizente com o peso do momento. Aplicada condicionalmente (ver
+     fim-temporada.js/entressafra.js/copas.js) sempre que a tela representa
+     um evento que também vira registrarMarco() no memorial. */
+  .screen-hero.hero-marco {
+    border-color: #c98a2a;
+    box-shadow: 0 10px 32px -6px rgba(224,171,63,.35), inset 0 1px 0 var(--border-soft), 0 0 0 1px rgba(224,171,63,.25);
+    animation: marcoBrilho 2.8s ease-in-out infinite;
+  }
+  .screen-hero.hero-marco::before { background: linear-gradient(90deg, transparent, #e0ab3f, transparent); opacity: 1; }
+  .screen-hero.hero-marco .screen-hero-kicker { color: #e0ab3f; }
+  .hero-marco-selo {
+    display: inline-flex; align-items: center; gap: 6px; position: absolute; top: 12px; right: 14px;
+    font-family: var(--font-display); font-size: 9.5px; font-weight: 800; letter-spacing: 1.6px; text-transform: uppercase;
+    color: #e0ab3f; opacity: .9; z-index: 1;
+  }
+  @keyframes marcoBrilho {
+    0%, 100% { box-shadow: 0 10px 32px -6px rgba(224,171,63,.35), inset 0 1px 0 var(--border-soft), 0 0 0 1px rgba(224,171,63,.25); }
+    50% { box-shadow: 0 10px 36px -4px rgba(224,171,63,.55), inset 0 1px 0 var(--border-soft), 0 0 0 1px rgba(224,171,63,.4); }
+  }
 
   /* ===================== SELO DE VEREDITO (aprovado/vitória/campeão...) ===================== */
   .result-badge-big {

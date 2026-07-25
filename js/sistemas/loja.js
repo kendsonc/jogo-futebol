@@ -112,3 +112,36 @@ function checarEventoImprensaCarro(){
   atualizarRedesSociais(rand(15,45), 'elogio');
   GAME.sociais.pressaoPsicologica = clamp(GAME.sociais.pressaoPsicologica + rand(1,3), 0, 100);
 }
+
+/* ============================== ÍNDICE DE IMAGEM ================================
+   Antes, só o carro (checarEventoImprensaCarro acima) gerava algum efeito de
+   imagem — roupas/tênis/relógios de marca e imóveis de alto padrão ficavam
+   puramente decorativos, sem nenhum sistema ler esse consumo. calcularIndiceEstilo
+   unifica os quatro (loja + carros + imóveis, js/sistemas/imoveis.js) numa
+   escala 0-100; aplicarIndiceEstiloSemanal usa isso pra puxar imagemMidia/
+   popularidade suavemente pra cima (nunca pra baixo — vender tudo não pune,
+   só deixa de empurrar), no mesmo tick semanal do clima de perfil de clube
+   (aplicarClimaPerfilClubeSemanal, js/sistemas/liga.js).
+   ========================================================================= */
+const PESO_PADRAO_IMOVEL_IMAGEM = { popular:0, medio:1, altoPadrao:3, luxo:6 };
+function calcularIndiceEstilo(){
+  const valorRoupas = GAME.inventario.roupas.reduce((s,id) => { const it = ROUPAS.find(r=>r.id===id); return s + (it?it.preco:0); }, 0);
+  const valorTenis = GAME.inventario.tenis.reduce((s,id) => { const it = TENIS.find(r=>r.id===id); return s + (it?it.preco:0); }, 0);
+  const valorRelogios = GAME.inventario.relogios.reduce((s,id) => { const it = RELOGIOS.find(r=>r.id===id); return s + (it?it.preco:0); }, 0);
+  const valorCarros = GAME.garagem.reduce((s,c) => s + (c.valorPago||0), 0);
+  const valorImoveis = GAME.imoveisComprados.reduce((s,posse) => {
+    const im = IMOVEIS.find(i => i.id === posse.imovelId);
+    return s + (im ? (PESO_PADRAO_IMOVEL_IMAGEM[im.padrao]||0) * 60000 : 0);
+  }, 0);
+  const valorTotal = valorRoupas + valorTenis + valorRelogios + valorCarros*0.6 + valorImoveis;
+  if(valorTotal <= 0) return 0;
+  // escala log (mesmo truque de calcularOfertaContrato, entressafra.js) — sem
+  // isso, qualquer coleção mediana já bateria o teto de 100.
+  return clamp(Math.round((Math.log10(valorTotal) - 3.5) * 22), 0, 100);
+}
+function aplicarIndiceEstiloSemanal(){
+  const indice = calcularIndiceEstilo();
+  if(indice <= 0) return;
+  if(GAME.sociais.imagemMidia < indice && chance(30)) GAME.sociais.imagemMidia = clamp(GAME.sociais.imagemMidia + 1, 0, 100);
+  if(GAME.sociais.popularidade < indice*0.6 && chance(20)) GAME.sociais.popularidade = clamp(GAME.sociais.popularidade + 1, 0, 100);
+}

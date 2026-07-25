@@ -77,3 +77,20 @@ function descontarCustosImoveisSemanal(){
     pushNoticia('geral', `Seu saldo ficou negativo depois de pagar condomínio/IPTU dos seus imóveis (R$ ${custo.toLocaleString('pt-BR')}/semana). Considere um empréstimo no Banco ou vender algo.`);
   }
 }
+
+// Espelha checarEventoImprensaCarro (js/sistemas/loja.js): só imóvel de alto
+// padrão/luxo vira pauta, chance pequena por semana, mesmo efeito de imagem
+// (popularidade sobe, pressão psicológica sobe um pouco junto).
+function checarEventoImprensaImovel(){
+  const luxuosos = GAME.imoveisComprados.filter(posse => {
+    const im = IMOVEIS.find(i => i.id === posse.imovelId);
+    return im && (im.padrao === 'altoPadrao' || im.padrao === 'luxo');
+  });
+  if(!luxuosos.length || !chance(5)) return;
+  const posse = pick(luxuosos);
+  const im = IMOVEIS.find(i => i.id === posse.imovelId);
+  const tipoTexto = im.padrao === 'luxo' ? 'a mansão' : 'o imóvel de alto padrão';
+  pushNoticiaImprensa('midia', `Revista de arquitetura mostra por dentro ${tipoTexto} de ${GAME.identidade.apelido} em ${im.cidade} — repercussão imediata nas redes.`);
+  atualizarRedesSociais(rand(10,35), 'elogio');
+  GAME.sociais.pressaoPsicologica = clamp(GAME.sociais.pressaoPsicologica + rand(1,3), 0, 100);
+}

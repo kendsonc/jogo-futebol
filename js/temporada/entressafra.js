@@ -276,19 +276,34 @@ function renderEntressafraTransferencia(){
   });
 }
 
+// Média dos atributos físicos (velocidade/aceleração/força/resistência/
+// agilidade/impulsão) — usada tanto pra decidir aposentadoria forçada quanto
+// pra mostrar o desgaste real na tela de virada de temporada.
+function mediaFisicaAtual(){
+  const chaves = ATRIBUTOS_DEF.fisicos.map(([k]) => k);
+  return chaves.reduce((s,k) => s + GAME.atributos[k], 0) / chaves.length;
+}
 function renderEntressafraFinal(){
   // Nesse ponto idadeAtual() ainda reflete a temporada que ACABOU de terminar —
   // o envelhecimento só ocorre dentro de avancarParaProximaTemporada().
   const idade = idadeAtual();
+  const mediaFisica = mediaFisicaAtual();
   const podeAposentar = idade >= 30;
-  const forcarAposentadoria = idade >= 38;
+  // Antes, aposentadoria forçada era um corte binário aos 38 anos — agora o
+  // declínio físico gradual pós-30 (aplicarDeclinioFisicoPorIdade, chamado em
+  // avancarParaProximaTemporada) pode antecipar isso: um jogador que não
+  // cuidou do corpo pode ser forçado a parar mais cedo, e um que cuidou bem
+  // pode aguentar até os 38 com uma média física melhor.
+  const forcarAposentadoria = idade >= 38 || (idade >= 33 && mediaFisica <= 32);
   app.innerHTML = `
     <div class="screen-hero">
       <div class="screen-hero-kicker">Pronto para a Temporada ${GAME.numeroTemporada+1}</div>
       <h1>${forcarAposentadoria ? 'Fim de uma era' : 'Um novo ano começa'}</h1>
       <p class="screen-hero-sub">${forcarAposentadoria
-        ? `O corpo já avisou: aos ${idade} anos, é hora de pendurar as chuteiras e fechar essa história.`
-        : `Mais um ano, mais uma chance de provar seu valor no ${GAME.clube.nome}. A pré-temporada está prestes a começar.`}</p>
+        ? (idade >= 38
+            ? `O corpo já avisou: aos ${idade} anos, é hora de pendurar as chuteiras e fechar essa história.`
+            : `O desgaste físico acumulado ao longo dos anos cobrou o preço: aos ${idade} anos, o corpo não aguenta mais o ritmo do futebol de alto nível.`)
+        : `Mais um ano, mais uma chance de provar seu valor no ${GAME.clube.nome}. A pré-temporada está prestes a começar.${idade >= 31 ? ` Aos ${idade} anos, o desgaste físico já pesa um pouco mais a cada temporada.` : ''}`}</p>
     </div>
     <div class="card">
       <div class="choices">
@@ -315,7 +330,8 @@ function renderAposentadoria(){
   const legado = LEGADOS[GAME.legadoFinal];
   const s = GAME.statsCareer;
   app.innerHTML = `
-    <div class="screen-hero">
+    <div class="screen-hero hero-marco">
+      <span class="hero-marco-selo">⭐ Marco</span>
       <div class="screen-hero-kicker">Documentário da Carreira</div>
       <h1>${escapeHtml(GAME.identidade.apelido)}</h1>
       <span class="result-badge-big good">🏅 ${escapeHtml(legado.titulo)}</span>
@@ -343,10 +359,37 @@ function renderAposentadoria(){
   document.getElementById('btn-nova-carreira-aposentadoria').onclick = () => { apagarSave(); renderCriacaoPersonagem(); };
 }
 
+// Antes, o único sinal de idade no corpo era o corte binário de aposentadoria
+// forçada aos 38 — nada acontecia com os atributos entre os 30 e os 38, então
+// a "curva de carreira" simplesmente não existia. Chamada 1x por virada de
+// temporada, DEPOIS de envelhecer o jogador (avancarParaProximaTemporada),
+// só afeta atributos FÍSICOS (a experiência não some, só o corpo cansa) e a
+// chance/gravidade cresce com os anos além dos 30 — quem chega aos 33-35
+// sentindo pouco desgaste teve sorte (ou cuidou bem do corpo); quem levou
+// muita lesão ao longo da carreira já chega mais desgastado (cuidadoFisico).
+function aplicarDeclinioFisicoPorIdade(){
+  const idade = idadeAtual();
+  if(idade < 31) return;
+  const anosPosPico = idade - 30;
+  const fatorCuidado = clamp(1.4 - (GAME.cuidadoFisico||50)/100, 0.6, 1.3);
+  let perdaTotal = 0;
+  ATRIBUTOS_DEF.fisicos.forEach(([chave]) => {
+    const chancePerda = clamp(anosPosPico*7*fatorCuidado, 10, 88);
+    if(!chance(chancePerda)) return;
+    const perda = rand(1, Math.min(5, 1+Math.floor(anosPosPico/3)));
+    GAME.atributos[chave] = clamp(GAME.atributos[chave] - perda, 15, 99);
+    perdaTotal += perda;
+  });
+  if(perdaTotal > 0){
+    pushNoticia('geral', `O corpo cobra seu preço: aos ${idade} anos, você sente o desgaste físico da idade (${perdaTotal} ponto(s) físico(s) perdido(s) nesta virada de temporada).`);
+  }
+}
+
 function avancarParaProximaTemporada(){
   // Envelhece o jogador em 1 ano (ajustando a data de nascimento guardada)
   const nasc = new Date(GAME.identidade.nascimento);
   GAME.identidade.nascimento = new Date(nasc.getFullYear()-1, nasc.getMonth(), nasc.getDate()).toISOString();
+  aplicarDeclinioFisicoPorIdade();
 
   // Arquiva as estatísticas da temporada que terminou no histórico de carreira
   // notaMediaCareer é média ponderada por jogos (não média simples de médias) —

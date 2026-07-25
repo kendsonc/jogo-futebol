@@ -28,6 +28,20 @@ function sincronizarTemaCompeticao(){
   else removerTemaCompeticao();
 }
 
+// Antes, a trilha sonora só tocava na tela inicial (screens/inicio.js) e
+// durante a partida ao vivo (Som.tocarAmbiente(p.competicao), partida.js) —
+// tudo o mais (treino, agenda, shopping, painel, entressafra, fim de
+// temporada) rodava mudo, porque nada chamava tocarAmbiente de novo depois
+// que a partida acabava e devolvia pro loop de menu só nas telas de
+// resultado. Chamado a cada render(), garante o loop de menu tocando em
+// QUALQUER tela fora de uma partida ao vivo, seja qual for o caminho até
+// ela — tocarAmbiente já é no-op se o mesmo loop já estiver tocando.
+function sincronizarAmbienteSonoro(){
+  const ts = GAME && GAME.temporadaState;
+  const emPartida = !!(ts && ts.subFase === 'partidaAoVivo' && ts.partidaEmAndamento);
+  if(!emPartida) Som.tocarAmbiente('menu');
+}
+
 // Dispara uma transição suave sempre que o conteúdo principal muda de tela —
 // e, como só reage a troca de tela DE VERDADE (childList de #app, nunca os
 // updates internos da partida ao vivo), também é o gatilho certo pra saber
@@ -44,6 +58,7 @@ function render(){
   sincronizarTemaClube();
   sincronizarTemaCompeticao();
   Som.sincronizarComGame();
+  sincronizarAmbienteSonoro();
   if(!GAME){ return renderStart(); }
   // Reparo de saves antigos (de antes da liga/tabela existir): sem isso, o
   // painel de classificação ficaria vazio e as partidas cairiam no adversário

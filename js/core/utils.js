@@ -41,6 +41,12 @@ function barraHtml(label, valor, tipo){
   <div class="bar-track"><div class="bar-fill ${cls}" style="width:${valor}%"></div></div></div>`;
 }
 
+/* Card compacto (ícone + valor grande + rótulo) usado nas abas do Painel que
+   antes eram só listas de <p><b>Label:</b> valor</p> (Dados/Contrato/Estatísticas) */
+function statTileHtml(icone, valor, label){
+  return `<div class="stat-tile"><span class="stat-tile-icon">${icone}</span><span class="stat-tile-valor">${escapeHtml(String(valor))}</span><span class="stat-tile-label">${escapeHtml(label)}</span></div>`;
+}
+
 /* ============================== IDENTIDADE VISUAL DO CLUBE ==================
    Escudo gerado só com CSS/SVG a partir das cores reais do clube (cor1/cor2)
    e das iniciais do nome — atualiza sozinho sempre que o jogador troca de

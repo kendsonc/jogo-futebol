@@ -79,7 +79,7 @@ function montarLigaTemporada(){
   const rivais = pool.slice(0,19).map(c => ({ id:c.id, nome:c.nome, nivelBase:c.nivelBase, reputacao:c.reputacao, divisao:c.divisao, cidade:c.cidade, uf:c.uf, cor1:c.cor1, cor2:c.cor2, estiloJogo:c.estiloJogo }));
   const clubes = [{ id:GAME.clube.id, nome:GAME.clube.nome, nivelBase:GAME.clube.nivelBase, reputacao:GAME.clube.reputacao, divisao:GAME.clube.divisao, cidade:GAME.clube.cidade, uf:GAME.clube.uf, cor1:GAME.clube.cor1, cor2:GAME.clube.cor2, estiloJogo:GAME.clube.estiloJogo }, ...rivais];
   const tabela = {};
-  clubes.forEach(c => { tabela[c.id] = { pj:0, v:0, e:0, d:0, gp:0, gc:0, sg:0, pts:0 }; });
+  clubes.forEach(c => { tabela[c.id] = { pj:0, v:0, e:0, d:0, gp:0, gc:0, sg:0, pts:0, momento:0 }; });
   return { clubes, tabela, divisao: meuTier, calendario: gerarCalendarioRoundRobin(clubes.map(c=>c.id)), rodadaAtual:0, historico:[] };
 }
 // Liga do clube internacional: branch isolado, NÃO usa tierDoClube/TIERS_ORDEM
@@ -108,7 +108,7 @@ function montarLigaInternacional(){
   const rivais = pool.slice(0,19).map(c => ({ id:c.id, nome:c.nome, nivelBase:c.nivelBase, reputacao:c.reputacao, divisao:c.divisao, cidade:c.cidade, uf:c.uf||null, cor1:c.cor1, cor2:c.cor2, estiloJogo:c.estiloJogo }));
   const clubes = [{ id:GAME.clube.id, nome:GAME.clube.nome, nivelBase:GAME.clube.nivelBase, reputacao:GAME.clube.reputacao, divisao:GAME.clube.divisao, cidade:GAME.clube.cidade, uf:GAME.clube.uf||null, cor1:GAME.clube.cor1, cor2:GAME.clube.cor2, estiloJogo:GAME.clube.estiloJogo }, ...rivais];
   const tabela = {};
-  clubes.forEach(c => { tabela[c.id] = { pj:0, v:0, e:0, d:0, gp:0, gc:0, sg:0, pts:0 }; });
+  clubes.forEach(c => { tabela[c.id] = { pj:0, v:0, e:0, d:0, gp:0, gc:0, sg:0, pts:0, momento:0 }; });
   return { clubes, tabela, divisao:'Internacional', calendario: gerarCalendarioRoundRobin(clubes.map(c=>c.id)), rodadaAtual:0, historico:[] };
 }
 // Acesso e rebaixamento: com base na posição final do SEU clube na tabela,
@@ -154,11 +154,25 @@ function atualizarLinhaTabela(tabela, idMandante, idVisitante, golsMandante, gol
   else { m.e++; v.e++; m.pts++; v.pts++; }
 }
 // Simula (sem lances interativos) o confronto entre dois clubes que não envolve o jogador,
-// só para manter o resto da tabela da liga viva rodada a rodada
-function simularPartidaGenerica(clubeA, clubeB){
-  const forcaA = clamp((clubeA.nivelBase||50)*0.6 + (clubeA.reputacao||50)*0.25 + 4 + rand(-10,14), 10, 98);
-  const forcaB = clamp((clubeB.nivelBase||50)*0.6 + (clubeB.reputacao||50)*0.25 - 2 + rand(-10,14), 10, 98);
+// só para manter o resto da tabela da liga viva rodada a rodada. momentoA/momentoB
+// (ver atualizarMomentoClube) fazem a força do clube variar com os resultados
+// recentes dele, em vez de ficar fixa em nivelBase/reputacao a temporada inteira.
+function simularPartidaGenerica(clubeA, clubeB, momentoA, momentoB){
+  const forcaA = clamp((clubeA.nivelBase||50)*0.6 + (clubeA.reputacao||50)*0.25 + 4 + (momentoA||0) + rand(-10,14), 10, 98);
+  const forcaB = clamp((clubeB.nivelBase||50)*0.6 + (clubeB.reputacao||50)*0.25 - 2 + (momentoB||0) + rand(-10,14), 10, 98);
   return { golsA: golsPoisson(forcaA), golsB: golsPoisson(forcaB) };
+}
+// "Momento" (forma recente) de um clube na tabela: média móvel exponencial que
+// puxa pra +8 numa vitória, -8 numa derrota, 0 num empate — sem guardar
+// histórico de jogo a jogo, já aproxima bem uma sequência de vitórias/derrotas
+// virando vantagem/crise real na força do clube (zebra de verdade, não só
+// Poisson estático o ano inteiro).
+function atualizarMomentoClube(tabela, id, resultado){
+  const linha = tabela[id];
+  if(!linha) return;
+  if(linha.momento == null) linha.momento = 0;
+  const alvo = resultado === 'vitoria' ? 8 : resultado === 'derrota' ? -8 : 0;
+  linha.momento = clamp(Math.round(linha.momento*0.5 + alvo*0.5), -10, 10);
 }
 // Descobre, na rodada atual do calendário da liga, quem é o adversário do clube do jogador
 function obterConfrontoAtual(){
@@ -184,6 +198,8 @@ function processarRodadaLiga(confronto, golsJogador, golsAdversario){
   const golsMandante = mandante ? golsJogador : golsAdversario;
   const golsVisitante = mandante ? golsAdversario : golsJogador;
   atualizarLinhaTabela(liga.tabela, idMandante, idVisitante, golsMandante, golsVisitante);
+  atualizarMomentoClube(liga.tabela, idMandante, golsMandante>golsVisitante?'vitoria':golsMandante<golsVisitante?'derrota':'empate');
+  atualizarMomentoClube(liga.tabela, idVisitante, golsVisitante>golsMandante?'vitoria':golsVisitante<golsMandante?'derrota':'empate');
   const oponenteClube = liga.clubes.find(c => c.id === oponenteId);
   liga.historico.push({ rodada: liga.rodadaAtual, oponenteId, oponenteNome: oponenteClube ? oponenteClube.nome : '?', mandante, golsMeu: golsJogador, golsAdversario });
   const outros = [];
@@ -191,8 +207,12 @@ function processarRodadaLiga(confronto, golsJogador, golsAdversario){
     if(homeId === GAME.clube.id || awayId === GAME.clube.id) return;
     const home = liga.clubes.find(c=>c.id===homeId), away = liga.clubes.find(c=>c.id===awayId);
     if(!home || !away) return;
-    const sim = simularPartidaGenerica(home, away);
+    const momentoHome = (liga.tabela[home.id]||{}).momento || 0;
+    const momentoAway = (liga.tabela[away.id]||{}).momento || 0;
+    const sim = simularPartidaGenerica(home, away, momentoHome, momentoAway);
     atualizarLinhaTabela(liga.tabela, home.id, away.id, sim.golsA, sim.golsB);
+    atualizarMomentoClube(liga.tabela, home.id, sim.golsA>sim.golsB?'vitoria':sim.golsA<sim.golsB?'derrota':'empate');
+    atualizarMomentoClube(liga.tabela, away.id, sim.golsB>sim.golsA?'vitoria':sim.golsB<sim.golsA?'derrota':'empate');
     // objeto estruturado (não string pronta) pra permitir mostrar o escudo dos
     // dois lados em outrosHtml (js/sistemas/partida.js), não só o nome em texto
     outros.push({ homeNome:home.nome, awayNome:away.nome, golsA:sim.golsA, golsB:sim.golsB, homeCor1:home.cor1, homeCor2:home.cor2, awayCor1:away.cor1, awayCor2:away.cor2 });
@@ -302,7 +322,10 @@ function concluirTickSemanal(){
   processarEmprestimosSemanal();
   descontarCustosImoveisSemanal();
   descontarManutencaoCarrosSemanal();
+  processarInadimplenciaSemanal();
   checarEventoImprensaCarro();
+  checarEventoImprensaImovel();
+  aplicarIndiceEstiloSemanal();
   aplicarReputacaoEmpresario();
   aplicarDesgasteVinculosSemanal();
   aplicarClimaPerfilClubeSemanal();

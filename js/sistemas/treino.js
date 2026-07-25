@@ -108,26 +108,31 @@ function decidirEscalacao(){
   // direto pra titular, sem nenhuma partida de transição pra retomar ritmo.
   const penalidadeRecondicionamento = (GAME.recondicionamentoSemanas||0) > 0 ? -22 : 0;
   const bonusPerfil = bonusPerfilClubeEscalacao();
-  const score = GAME.relacoes.treinador*0.3 + ts.mediaTreinoRecente*0.3 + GAME.status.energia*0.2 + GAME.atributos.disciplina*0.2 + bonusStatus + bonusForma + bonusTecnico + bonusPerfil + penalidadeRecondicionamento + rand(-15,15);
+  // Ruído reduzido de ±15 pra ±9: com ±15, o acaso sozinho já superava
+  // qualquer bônus de estilo de técnico ou perfil de clube, deixando essas
+  // "personalidades" quase invisíveis no resultado final (ver calcularBonusTecnico,
+  // cujo teto subiu de ±8 pra ±12 na mesma mudança, pra pesar de verdade).
+  const score = GAME.relacoes.treinador*0.3 + ts.mediaTreinoRecente*0.3 + GAME.status.energia*0.2 + GAME.atributos.disciplina*0.2 + bonusStatus + bonusForma + bonusTecnico + bonusPerfil + penalidadeRecondicionamento + rand(-9,9);
   if(score >= 65) return 'titular';
   if(score >= 38) return 'reserva';
   return 'naoRelacionado';
 }
 
-// Personalidade do técnico pesa na escalação — teto ±8, igual ao bonusForma,
-// sempre menor que o ruído rand(-15,15) já existente acima.
+// Personalidade do técnico pesa na escalação — teto subiu de ±8 pra ±12
+// (junto com o corte do ruído de ±15 pra ±9 em decidirEscalacao) pra que o
+// estilo do técnico realmente mude quem joga, não só figure como flavor text.
 function calcularBonusTecnico(bonusStatus, bonusForma){
   const tec = GAME.tecnico;
   if(!tec || !tec.estilo) return 0;
   const grupo = grupoOverallDaPosicao(GAME.identidade.posicaoPrincipal);
   switch(tec.estilo){
-    case 'disciplinador': return clamp((GAME.atributos.disciplina-50)*0.16, -8, 8);
-    case 'paizao':        return clamp((bonusForma<0?-bonusForma*0.5:0) + (bonusStatus<0?-bonusStatus*0.4:0), 0, 8);
-    case 'retranqueiro':  return (grupo==='defensor'||grupo==='Goleiro') ? 6 : (grupo==='atacante' ? -4 : 0);
-    case 'ofensivo':      return grupo==='atacante' ? 6 : (grupo==='defensor' ? -4 : 0);
-    case 'professor':     return clamp((GAME.temporadaState.mediaTreinoRecente-50)*0.12, -6, 6);
-    case 'resultadista':  return clamp(bonusForma*0.6, -8, 8);
-    case 'formador':      return clamp(8-GAME.stats.jogos, -4, 8);
+    case 'disciplinador': return clamp((GAME.atributos.disciplina-50)*0.24, -12, 12);
+    case 'paizao':        return clamp((bonusForma<0?-bonusForma*0.75:0) + (bonusStatus<0?-bonusStatus*0.6:0), 0, 12);
+    case 'retranqueiro':  return (grupo==='defensor'||grupo==='Goleiro') ? 9 : (grupo==='atacante' ? -6 : 0);
+    case 'ofensivo':      return grupo==='atacante' ? 9 : (grupo==='defensor' ? -6 : 0);
+    case 'professor':     return clamp((GAME.temporadaState.mediaTreinoRecente-50)*0.18, -9, 9);
+    case 'resultadista':  return clamp(bonusForma*0.9, -12, 12);
+    case 'formador':      return clamp(12-GAME.stats.jogos, -6, 12);
     default: return 0;
   }
 }

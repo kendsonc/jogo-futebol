@@ -67,16 +67,17 @@ function painelDados(){
       </div>
       ${g.clube ? `<div style="margin-left:auto; text-align:right">${tierBadgeHtml(g.clube.divisao)}</div>` : ''}
     </div>
-    <p><b>Nome completo:</b> ${escapeHtml(g.identidade.nomeCompleto)}</p>
-    <p><b>Chamado de:</b> ${escapeHtml(g.identidade.apelido)}</p>
-    <p><b>Idade:</b> ${idadeAtual()} anos (nascido em ${fmtData(new Date(g.identidade.nascimento))})</p>
-    <p><b>Naturalidade:</b> ${escapeHtml(g.identidade.cidadeNatal)}/${g.identidade.uf}</p>
-    <p><b>Clube atual:</b> ${g.clube ? g.clube.nome : '—'}</p>
-    <p><b>Posição:</b> ${g.identidade.posicaoPrincipal}${g.identidade.posicaoSecundaria ? ' / '+g.identidade.posicaoSecundaria : ''}</p>
-    <p><b>Pé dominante:</b> ${g.identidade.pe}</p>
-    <p><b>Altura/Peso:</b> ${g.identidade.altura}cm / ${g.identidade.peso}kg</p>
-    <p><b>Estilo:</b> ${ESTILOS[g.identidade.estilo].nome}</p>
-    <p><b>Personalidade em construção:</b> ${labelTracoDominante()}</p>
+    <p><b>${escapeHtml(g.identidade.nomeCompleto)}</b> <span class="small muted">— chamado de ${escapeHtml(g.identidade.apelido)}</span></p>
+    <p class="small muted">${g.clube ? escapeHtml(g.clube.nome) : 'Sem clube'} • Personalidade em construção: ${labelTracoDominante()}</p>
+    <div class="stat-tile-grid">
+      ${statTileHtml('🎂', `${idadeAtual()} anos`, `Nasceu em ${fmtData(new Date(g.identidade.nascimento))}`)}
+      ${statTileHtml('📍', `${g.identidade.cidadeNatal}/${g.identidade.uf}`, 'Naturalidade')}
+      ${statTileHtml('⚽', `${g.identidade.posicaoPrincipal}${g.identidade.posicaoSecundaria ? ' / '+g.identidade.posicaoSecundaria : ''}`, 'Posição')}
+      ${statTileHtml('🦶', g.identidade.pe, 'Pé dominante')}
+      ${statTileHtml('📏', `${g.identidade.altura}cm`, 'Altura')}
+      ${statTileHtml('⚖️', `${g.identidade.peso}kg`, 'Peso')}
+      ${statTileHtml('🎭', ESTILOS[g.identidade.estilo].nome, 'Estilo')}
+    </div>
   </div>`;
 }
 function painelStatus(){
@@ -128,23 +129,23 @@ function painelEstatisticas(){
   const s = GAME.stats;
   const linha = (label,val) => `<p><b>${label}:</b> ${val}</p>`;
   return `<div class="card">
-    ${linha('Jogos disputados', `${s.jogos} (${s.titular})`)}
-    <p class="small muted" style="margin-top:-6px">Fora dos parênteses: titular + entrou do banco. Dentro: só como titular.</p>
-    ${linha('Jogos como titular', s.titular)}
-    ${linha('Jogos entrando do banco', s.entrouBanco)}
-    ${linha('Minutos jogados', s.minutos)}
-    ${linha('Gols', s.gols)}
-    ${linha('Assistências', s.assistencias)}
-    ${linha('Finalizações', s.finalizacoes)}
-    ${linha('Desarmes', s.desarmes)}
-    ${linha('Interceptações', s.interceptacoes)}
-    ${linha('Defesas importantes', s.defesasImportantes||0)}
-    ${linha('Cartões amarelos', s.amarelos)}
-    ${linha('Cartões vermelhos', s.vermelhos)}
-    ${linha('Lesões na temporada', s.lesoes)}
-    ${linha('Nota média', s.notaMedia.toFixed(2))}
-    ${linha('Prêmios de melhor em campo', s.melhorEmCampo)}
-    ${linha('Valor estimado', 'R$ ' + s.valorEstimado.toLocaleString('pt-BR'))}
+    <div class="stat-tile-grid">
+      ${statTileHtml('🎮', `${s.jogos} (${s.titular})`, 'Jogos (titular)')}
+      ${statTileHtml('🔄', s.entrouBanco, 'Entrou do banco')}
+      ${statTileHtml('⏱️', s.minutos, 'Minutos jogados')}
+      ${statTileHtml('⚽', s.gols, 'Gols')}
+      ${statTileHtml('🎯', s.assistencias, 'Assistências')}
+      ${statTileHtml('🥅', s.finalizacoes, 'Finalizações')}
+      ${statTileHtml('🛡️', s.desarmes, 'Desarmes')}
+      ${statTileHtml('🔎', s.interceptacoes, 'Interceptações')}
+      ${statTileHtml('🧤', s.defesasImportantes||0, 'Defesas importantes')}
+      ${statTileHtml('🟨', s.amarelos, 'Amarelos')}
+      ${statTileHtml('🟥', s.vermelhos, 'Vermelhos')}
+      ${statTileHtml('🤕', s.lesoes, 'Lesões na temporada')}
+      ${statTileHtml('📊', s.notaMedia.toFixed(2), 'Nota média')}
+      ${statTileHtml('🏅', s.melhorEmCampo, 'Melhor em campo')}
+    </div>
+    <p class="small muted" style="margin-top:8px">Valor de mercado estimado: <b>R$ ${s.valorEstimado.toLocaleString('pt-BR')}</b></p>
     ${barraHtml('Interesse de clubes', s.interesseClubes)}
   </div>`
   + (GAME.statsCareer ? `<div class="card">
@@ -165,14 +166,15 @@ function painelEstatisticas(){
 function painelContrato(){
   const c = GAME.contrato;
   return `<div class="card">
-    <p><b>Tipo:</b> ${c.tipo}</p>
-    <p><b>Bolsa/salário:</b> R$ ${Number(c.bolsa).toLocaleString('pt-BR')}/mês</p>
-    <p><b>Duração:</b> ${c.duracao} meses</p>
-    <p><b>Expectativa do clube:</b> ${c.expectativa}</p>
+    <div class="stat-tile-grid">
+      ${statTileHtml('📄', c.tipo, 'Tipo de contrato')}
+      ${statTileHtml('💵', `R$ ${Number(c.bolsa).toLocaleString('pt-BR')}`, 'Bolsa/salário mensal')}
+      ${statTileHtml('📆', `${c.duracao} meses`, 'Duração')}
+      ${statTileHtml('📈', c.expectativa, 'Expectativa do clube')}
+    </div>
     ${barraHtml('Confiança da diretoria', c.confiancaDiretoria)}
     <div class="spacer"></div>
     <p><b>Carteira (acumulado):</b> R$ ${Math.round(GAME.carteira||0).toLocaleString('pt-BR')}</p>
-    <p class="small muted">Guardado até você poder gastar em algo — em breve.</p>
     <div class="spacer"></div>
     ${GAME.patrocinioAtual ? `<p><b>Patrocínio:</b> ${GAME.patrocinioAtual.marca} — R$ ${Number(GAME.patrocinioAtual.valorMensal).toLocaleString('pt-BR')}/mês</p>` : '<p class="small muted">Sem patrocínio de material esportivo no momento.</p>'}
     ${painelPatrociniosImagemHtml()}
