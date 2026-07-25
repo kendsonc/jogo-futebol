@@ -77,6 +77,7 @@ function painelDados(){
       ${statTileHtml('📏', `${g.identidade.altura}cm`, 'Altura')}
       ${statTileHtml('⚖️', `${g.identidade.peso}kg`, 'Peso')}
       ${statTileHtml('🎭', ESTILOS[g.identidade.estilo].nome, 'Estilo')}
+      ${g.metaCarreira ? statTileHtml('🎯', METAS_CARREIRA[g.metaCarreira].nome, 'Meta de carreira') : ''}
     </div>
   </div>`;
 }

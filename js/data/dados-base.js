@@ -397,6 +397,19 @@ const ESTILOS = {
     mods:{finalizacao:18,velocidade:18,forca:12,controleEmocional:-14,disciplina:-10} }
 };
 
+/* ============================== META DE CARREIRA ==============================
+   Escolha feita na criação do personagem (GAME.metaCarreira) — antes não
+   existia nenhum objetivo de longo prazo declarado pelo jogador; tudo era
+   emergente e passivo. Pesa em pontos concretos do jogo: crescimento de
+   interesseClubes/relacaoTorcida (partida.js) e na ordem das propostas de
+   transferência na entressafra (entressafra.js).
+   ========================================================================= */
+const METAS_CARREIRA = {
+  idoloLocal: { nome:'Ídolo local', desc:'Quer ser lembrado no clube onde criar raízes — mais carinho da torcida ao longo da carreira, menos pressa de sair.' },
+  estrelaInternacional: { nome:'Estrela internacional', desc:'Sonha em jogar no exterior o quanto antes — seu nome circula mais rápido entre clubes grandes.' },
+  legadoTitulos: { nome:'Coleção de títulos', desc:'O que importa é erguer taças — na hora de trocar de clube, prioriza quem tem chance real de título.' }
+};
+
 /* ============================== DATA: POSIÇÕES ============================ */
 const POSICOES = ['Goleiro','Lateral-direito','Lateral-esquerdo','Zagueiro','Volante',
   'Meio-campista','Meia ofensivo','Ponta-direita','Ponta-esquerda','Segundo atacante','Centroavante'];

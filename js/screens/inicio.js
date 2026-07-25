@@ -156,6 +156,8 @@ function renderCriacaoPersonagem(){
           </div>
           <label>Perfil de formação / estilo</label>
           <select id="f-estilo">${estOpts}</select>
+          <label>Meta de carreira</label>
+          <select id="f-metaCarreira">${Object.keys(METAS_CARREIRA).map(k=>`<option value="${k}">${escapeHtml(METAS_CARREIRA[k].nome)} — ${escapeHtml(METAS_CARREIRA[k].desc)}</option>`).join('')}</select>
         </fieldset>
         <fieldset>
           <legend>Aparência</legend>
@@ -257,6 +259,7 @@ function renderCriacaoPersonagem(){
       posicaoPrincipal: document.getElementById('f-posPrincipal').value,
       posicaoSecundaria: document.getElementById('f-posSecundaria').value,
       estilo: document.getElementById('f-estilo').value,
+      metaCarreira: document.getElementById('f-metaCarreira').value,
       aparencia: criacaoAparencia,
       heredeiroDe: heredeiroSelecionado
     };

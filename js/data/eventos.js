@@ -692,9 +692,9 @@ const EVENTOS_EQUIPE = [
           { label:'Manter os velhos hábitos, mesmo contrariando o pedido', efeitos:{relacaoTreinador:-4, tracos:{rebelde:1}} }
         ] };
       return [
-        { label:'Se apresentar rapidamente ao novo treinador, mostrar disposição', efeitos:{relacaoTreinador:5, pressao:2, tracos:{confiante:1}}, extra:(g)=>{ g.tecnico = gerarTecnico(g.tecnico && g.tecnico.nome); }, seguimento:seguimentoNovoTecnico },
-        { label:'Esperar para ver como ele trabalha antes de se expor', efeitos:{pressao:1, atributos:{concentracao:1}}, extra:(g)=>{ g.tecnico = gerarTecnico(g.tecnico && g.tecnico.nome); }, seguimento:seguimentoNovoTecnico },
-        { label:'Comentar com os colegas que sente falta do comandante anterior', efeitos:{relacaoElenco:2, relacaoTreinador:-3, tracos:{serio:1}}, extra:(g)=>{ g.tecnico = gerarTecnico(g.tecnico && g.tecnico.nome); }, seguimento:seguimentoNovoTecnico }
+        { label:'Se apresentar rapidamente ao novo treinador, mostrar disposição', efeitos:{relacaoTreinador:5, pressao:2, tracos:{confiante:1}}, extra:(g)=>{ trocarTecnico(); }, seguimento:seguimentoNovoTecnico },
+        { label:'Esperar para ver como ele trabalha antes de se expor', efeitos:{pressao:1, atributos:{concentracao:1}}, extra:(g)=>{ trocarTecnico(); }, seguimento:seguimentoNovoTecnico },
+        { label:'Comentar com os colegas que sente falta do comandante anterior', efeitos:{relacaoElenco:2, relacaoTreinador:-3, tracos:{serio:1}}, extra:(g)=>{ trocarTecnico(); }, seguimento:seguimentoNovoTecnico }
       ];
     })() }
 ];

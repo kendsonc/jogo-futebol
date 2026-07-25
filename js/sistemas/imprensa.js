@@ -675,6 +675,62 @@ const PERGUNTAS_COLETIVA_EXPANSAO = [
           `"O tempo passa rápido demais no futebol. Aprendi a valorizar cada temporada como única."`,
           `"Olhando pra trás, entendo o tamanho do que já construí. Mas ainda não é hora de parar."`
         ]) }
+    ] },
+
+  // ---------- SEQUÊNCIA DE CRÍTICA DA IMPRENSA (memória social, prioridade) ----------
+  { id:'sequencia_critica_imprensa', prioridade:true,
+    aplicavel: ()=> { const s = sequenciaSocialAtual(); return s.tipo==='critica' && s.tamanho>=3; },
+    pergunta: (j)=> pick([
+      `Já são semanas seguidas de repercussão negativa em cima do seu nome. Em que ponto isso te afeta de verdade?`,
+      `A sequência de críticas não para de crescer há um tempo. Você sente que perdeu o controle da narrativa?`
+    ]),
+    escolhas:[
+      { label:'Admitir que a sequência está pesando e pedir um tempo', tom:'humilde',
+        efeito:{pressaoPsicologica:-4, saudeMental:3},
+        resposta:(g)=>pick([
+          `"Sendo sincero, essa sequência toda mexeu comigo. Preciso de um respiro pra virar a chave."`,
+          `"Não vou fingir que não afeta. Mas confio que vou reverter isso com trabalho."`
+        ]) },
+      { label:'Reagir com irritação à cobertura recente', tom:'rebelde',
+        efeito:{relacaoMidia:-6, pressaoPsicologica:5},
+        resposta:(g)=>pick([
+          `"Vocês só sabem repetir a mesma crítica há semanas. Em algum momento cansa."`,
+          `"Sinto que já foi decidido o que iam escrever antes mesmo do jogo acabar."`
+        ]) },
+      { label:'Ignorar a sequência e focar só no próximo desafio', tom:'serio',
+        efeito:{relacaoTreinador:3},
+        resposta:(g)=>pick([
+          `"Não leio esses acúmulos. Cada semana é uma chance nova de responder dentro de campo."`,
+          `"Prefiro gastar energia treinando, não acompanhando o que sai por aí."`
+        ]) }
+    ] },
+
+  // ---------- SEQUÊNCIA DE ELOGIOS DA IMPRENSA (memória social, prioridade) ----------
+  { id:'sequencia_elogio_imprensa', prioridade:true,
+    aplicavel: ()=> { const s = sequenciaSocialAtual(); return s.tipo==='elogio' && s.tamanho>=3; },
+    pergunta: (j)=> pick([
+      `Faz semanas que só vem elogio pro seu nome na imprensa. Já parou pra sentir esse momento único?`,
+      `Uma sequência e tanto de repercussão positiva. Existe risco de acomodação num momento desses?`
+    ]),
+    escolhas:[
+      { label:'Agradecer com humildade e dividir o mérito', tom:'humilde',
+        efeito:{relacaoElenco:4, moral:3},
+        resposta:(g)=>pick([
+          `"Fico feliz, mas esse momento bom é reflexo do trabalho de muita gente ao meu redor."`,
+          `"Recebo com humildade. Sei que amanhã a régua só fica mais alta."`
+        ]) },
+      { label:'Aproveitar o momento com confiança total', tom:'confiante',
+        efeito:{popularidade:5, imagemMidia:3},
+        resposta:(g)=>pick([
+          `"É gostoso viver uma fase dessas. Quero aproveitar esse embalo o quanto der."`,
+          `"Trabalhei muito pra chegar aqui. Não vou pedir desculpas por viver um bom momento."`
+        ]) },
+      { label:'Dizer que não se deixa levar por fase boa', tom:'serio',
+        efeito:{atributos:{concentracao:1}},
+        resposta:(g)=>pick([
+          `"Sequência boa é bom, mas não posso relaxar. Amanhã tudo pode virar rápido."`,
+          `"Prefiro manter o pé no chão. Elogio de hoje não garante nada pro próximo jogo."`
+        ]) }
     ] }
 ];
 
@@ -701,13 +757,17 @@ function gerarColetiva(j){
   while(escolhidas.length < 2 && regulares.length){
     escolhidas.push(regulares.splice(rand(0, regulares.length-1), 1)[0]);
   }
-  return escolhidas.map(p => ({ id:p.id, pergunta:p.pergunta(j), escolhas:p.escolhas }));
+  return escolhidas.map(p => ({ id:p.id, pergunta:p.pergunta(j), escolhas:p.escolhas, prioridade:!!p.prioridade }));
 }
 
 function renderColetivaImprensa(){
   const col = GAME.temporadaState.coletivaAtual;
   const pergunta = col.perguntas[col.indice];
   const veiculo = veiculoElegivel();
+  // Retrato do repórter — antes a coletiva não tinha rosto nenhum. Pergunta
+  // "prioridade" (contexto raro/importante: contrato, rival, marco...) ganha
+  // retrato em destaque, igual à fase decisiva da peneira.
+  const nomeReporter = veiculo ? `Repórter da ${veiculo.nome}` : 'Repórter';
   app.innerHTML = `
     ${statusBarHtml()}
     <div class="screen-hero">
@@ -715,7 +775,10 @@ function renderColetivaImprensa(){
       <h2>Pergunta ${col.indice+1} de ${col.perguntas.length}</h2>
     </div>
     <div class="card">
-      <div id="scene-text">🎙️ ${escapeHtml(pergunta.pergunta)}</div>
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        ${retratoNpcHtml(nomeReporter, { papel:'jornalista', destaque:pergunta.prioridade })}
+        <div style="flex:1"><div id="scene-text">🎙️ ${escapeHtml(pergunta.pergunta)}</div></div>
+      </div>
       <div class="choices">
         ${pergunta.escolhas.map((e,i)=>`<button class="btn" data-i="${i}">${escapeHtml(e.label)}</button>`).join('')}
       </div>

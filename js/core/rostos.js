@@ -272,12 +272,16 @@ function obterRostoNpc(nome, opts){
 }
 
 /* ------------------------------ HELPERS DE EXIBIÇÃO ------------------------------ */
+// opts.destaque: momentos de mais peso emocional (última fase da peneira,
+// pergunta prioritária da coletiva) ganham retrato maior + moldura destacada
+// — antes o mesmo tamanho pequeno valia pra qualquer fala, trivial ou não.
 function retratoNpcHtml(nome, opts){
   opts = opts || {};
   if(!nome) return '';
   const aparencia = obterRostoNpc(nome, opts);
-  const size = opts.size || 56;
-  return `<div class="npc-portrait" style="width:${size}px;flex:0 0 auto">${pixelRostoSvg(aparencia, size)}</div>`;
+  const size = opts.size || (opts.destaque ? 84 : 56);
+  const classeDestaque = opts.destaque ? ' npc-portrait-destaque' : '';
+  return `<div class="npc-portrait${classeDestaque}" style="width:${size}px;flex:0 0 auto">${pixelRostoSvg(aparencia, size)}</div>`;
 }
 // Retrato + texto lado a lado — usado quando se quer o balão de fala junto do
 // rosto, em vez de só o retrato sozinho (retratoNpcHtml) antecedendo a cena.

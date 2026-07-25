@@ -114,11 +114,15 @@ function renderPeneira(){
   const fase = FASES_PENEIRA[ps.faseIndex];
   const texto = typeof fase.texto === 'function' ? fase.texto(GAME) : pick(fase.texto).replace('{OBS}', GAME.observador).replace('{TEC}', GAME.tecnico.nome).replace('{CLUBE}', GAME.clube.nome);
   const retrato = peneiraRetratoAtual(ps.faseIndex);
+  // Última fase (conversa decisiva com o observador, que define aprovação/
+  // reprovação) ganha retrato em destaque — antes era do mesmo tamanho
+  // trivial de qualquer outra conversa da peneira.
+  const ehFaseDecisiva = ps.faseIndex === FASES_PENEIRA.length-1;
   app.innerHTML = `
     ${peneiraStatusBarHtml(ps)}
     <div class="card">
       <div style="display:flex;align-items:flex-start;gap:10px">
-        ${retratoNpcHtml(retrato.nome, retrato)}
+        ${retratoNpcHtml(retrato.nome, {...retrato, destaque:ehFaseDecisiva})}
         <div style="flex:1"><div id="scene-text">${escapeHtml(texto).replace(/\n/g,'<br>')}</div></div>
       </div>
       <div class="choices">

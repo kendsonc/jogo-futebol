@@ -105,6 +105,8 @@ function gerarEventoConhecerAlguem(){
   };
 }
 
+// `aplicavel` é opcional (ver sortearEvento, eventos.js) — sem ele, o evento
+// entra sempre que houver relacionamento ativo, igual antes.
 const EVENTOS_RELACIONAMENTO = [
   { id:'relacionamento_encontro', categoria:'geral',
     texto:(g)=>`${g.relacionamento.nome} separa um tempo na agenda só pra ficar com você, sem pressa nem crise — só vocês dois.`,
@@ -123,6 +125,45 @@ const EVENTOS_RELACIONAMENTO = [
         extra:(g)=>{ g.relacionamento.relacao = clamp(g.relacionamento.relacao+4, 0, 100); } },
       { label:'Dizer que a correria da carreira vem primeiro agora', efeitos:{pressaoPsicologica:2, tracos:{serio:1}},
         extra:(g)=>{ g.relacionamento.relacao = clamp(g.relacionamento.relacao-6, 0, 100); } }
+    ] },
+  { id:'relacionamento_conhecer_familia', categoria:'geral',
+    texto:(g)=>`${g.relacionamento.nome} convida você pra conhecer a família de verdade, num almoço de domingo — não é mais só um encontro qualquer, é apresentar você pra quem importa.`,
+    retrato:(g)=>({ nome:g.relacionamento.nome, papel:'parceiro', genero:g.relacionamento.genero }),
+    escolhas:[
+      { label:'Ir com carinho e se envolver de verdade com a família dele(a)', efeitos:{moral:6, relacaoFamilia:2},
+        extra:(g)=>{ g.relacionamento.relacao = clamp(g.relacionamento.relacao+10, 0, 100); } },
+      { label:'Ir, mas ficar visivelmente desconfortável com a formalidade', efeitos:{pressaoPsicologica:3},
+        extra:(g)=>{ g.relacionamento.relacao = clamp(g.relacionamento.relacao-2, 0, 100); } }
+    ] },
+  { id:'relacionamento_ciume_exposicao', categoria:'geral',
+    aplicavel:(g)=> g.sociais.popularidade >= 35,
+    texto:(g)=>`${g.relacionamento.nome} comenta, tentando soar leve mas sem esconder o incômodo: "Vi um monte de gente comentando sobre a gente nas redes hoje... confesso que ainda não me acostumei com essa exposição toda."`,
+    retrato:(g)=>({ nome:g.relacionamento.nome, papel:'parceiro', genero:g.relacionamento.genero }),
+    escolhas:[
+      { label:'Tranquilizar e reafirmar o relacionamento publicamente', efeitos:{moral:4, popularidade:2},
+        extra:(g)=>{ g.relacionamento.relacao = clamp(g.relacionamento.relacao+8, 0, 100); } },
+      { label:'Dizer que é o preço da fama e que ele(a) vai se acostumar', efeitos:{pressaoPsicologica:2, tracos:{serio:1}},
+        extra:(g)=>{ g.relacionamento.relacao = clamp(g.relacionamento.relacao-6, 0, 100); } }
+    ] },
+  { id:'relacionamento_flagrado_midia', categoria:'geral',
+    aplicavel:(g)=> g.sociais.popularidade >= 45,
+    texto:(g)=>`Fotos de ${g.relacionamento.nome} na arquibancada, torcendo por você num jogo importante, viralizam nas redes — a imprensa esportiva já pediu posição sobre o relacionamento.`,
+    retrato:(g)=>({ nome:g.relacionamento.nome, papel:'parceiro', genero:g.relacionamento.genero }),
+    escolhas:[
+      { label:'Assumir o relacionamento publicamente com orgulho', efeitos:{popularidade:5, imagemMidia:3},
+        extra:(g)=>{ g.relacionamento.relacao = clamp(g.relacionamento.relacao+6, 0, 100); } },
+      { label:'Pedir à imprensa que respeite a privacidade do casal', efeitos:{relacaoMidia:-2},
+        extra:(g)=>{ g.relacionamento.relacao = clamp(g.relacionamento.relacao+2, 0, 100); } }
+    ] },
+  { id:'relacionamento_conversa_futuro', categoria:'geral',
+    aplicavel:(g)=> (g.relacionamento.semanasJuntos||0) >= 40,
+    texto:(g)=>`Numa noite tranquila, ${g.relacionamento.nome} puxa uma conversa mais profunda sobre o futuro de vocês — onde vão morar, se um dia vão querer filhos, como equilibrar isso com sua carreira que muda de cidade o tempo todo.`,
+    retrato:(g)=>({ nome:g.relacionamento.nome, papel:'parceiro', genero:g.relacionamento.genero }),
+    escolhas:[
+      { label:'Se abrir de verdade sobre os planos de longo prazo', efeitos:{moral:6},
+        extra:(g)=>{ g.relacionamento.relacao = clamp(g.relacionamento.relacao+10, 0, 100); } },
+      { label:'Desconversar, dizendo que é cedo pra pensar nisso', efeitos:{pressaoPsicologica:2},
+        extra:(g)=>{ g.relacionamento.relacao = clamp(g.relacionamento.relacao-5, 0, 100); } }
     ] }
 ];
 
@@ -177,16 +218,59 @@ function gerarEventoCriseCasamento(){
   };
 }
 
-// Check-in narrativo forçado 1x por período (sem depender do roll de 45% de evento comum)
+// Antes, o check-in era 1 texto fixo repetido ~30x numa carreira longa (só o
+// número da família mudava). Agora varia por faixa de saúde mental
+// (statusSaudeMentalLabel, efeitos.js) — 2 textos por faixa — e, em crise
+// real, a opção de "ignorar e seguir 100% focado" some: fica só buscar ajuda
+// de verdade, ecoando a ação de terapia que já existe (ACOES_VIDA_PESSOAL).
+// De quebra, corrige um bug: as escolhas antigas tinham `tracos` FORA de
+// `efeitos` — aplicarEfeitos só lê esc.efeitos, então esses traços nunca
+// eram aplicados de verdade.
+const TEXTOS_CHECKIN_POR_FAIXA = {
+  estavel: [
+    (g)=>`Num momento de respiro entre as obrigações do ${g.clube.nome}, você sente que a vida fora de campo está em ordem — família em dia (${g.relacoes.familia}/100) e a cabeça tranquila.`,
+    (g)=>`Você para um instante pra respirar. As coisas fora de campo andam bem: a relação com a família está em ${g.relacoes.familia}/100, e você se sente no controle da própria rotina.`
+  ],
+  equilibrado: [
+    (g)=>`Entre um treino e outro, você pensa na vida fora do ${g.clube.nome}. Nem tudo é perfeito — a relação com a família está em ${g.relacoes.familia}/100 — mas no geral, dá pra dizer que está equilibrado.`,
+    (g)=>`Altos e baixos, como sempre. A família está em ${g.relacoes.familia}/100 de relação, e por dentro você sente que consegue lidar com o que aparece.`
+  ],
+  sobrecarregado: [
+    (g)=>`A rotina do ${g.clube.nome} está pesando mais do que o normal ultimamente. A relação com a família está em ${g.relacoes.familia}/100, e você sente que precisa dar mais atenção ao que fica de fora do gramado.`,
+    (g)=>`Você percebe que anda sobrecarregado — treino, jogo, cobrança, e pouco tempo pra mais nada. A família está em ${g.relacoes.familia}/100, e isso também pesa.`
+  ],
+  sofrimento: [
+    (g)=>`Você não está bem, e sabe disso. A pressão do ${g.clube.nome} virou um peso difícil de carregar sozinho, e a relação com a família (${g.relacoes.familia}/100) também sente o reflexo.`,
+    (g)=>`Tem noites em que dormir vem difícil. Você está em sofrimento de verdade, e fingir que está tudo bem só piora as coisas.`
+  ],
+  crise: [
+    (g)=>`Você chegou num ponto de crise. Não é fraqueza pedir ajuda — é sobre isso que você devia estar pensando agora, antes de mais nada.`,
+    (g)=>`As coisas fora de campo estão em crise real. Ignorar isso não vai fazer o peso ir embora — alguém precisa saber o que você está sentindo.`
+  ]
+};
+function faixaSaudeMentalAtual(){
+  const v = GAME.status.saudeMental;
+  if(v>=75) return 'estavel';
+  if(v>=55) return 'equilibrado';
+  if(v>=35) return 'sobrecarregado';
+  if(v>=20) return 'sofrimento';
+  return 'crise';
+}
 function gerarEventoCheckinVidaPessoal(){
-  const label = statusSaudeMentalLabel();
+  const faixa = faixaSaudeMentalAtual();
+  const escolhas = [
+    { label: 'Priorizar descanso e gente que você ama nos próximos dias', efeitos: { saudeMental: 4, relacaoFamilia: 3, tracos: { humilde: 1 } } }
+  ];
+  if(faixa === 'crise'){
+    escolhas.push({ label:'Procurar apoio psicológico o quanto antes', efeitos:{ saudeMental:8, pressaoPsicologica:-6, tracos:{humilde:1} },
+      extra:(g)=>{ pushNoticia('geral', `${g.identidade.apelido} decidiu buscar apoio psicológico depois de reconhecer que não estava bem.`); } });
+  } else {
+    escolhas.push({ label: 'Seguir focado 100% na carreira por agora', efeitos: { atributos: { disciplina: 1 }, saudeMental: -2, tracos: { serio: 1 } } });
+  }
   return {
     id: 'checkin_vida_pessoal', categoria: 'vidaPessoal',
-    texto: (g) => `Num momento de respiro entre as obrigações do ${g.clube.nome}, você para pra pensar em como está a vida fora de campo. Sua relação com a família está em ${g.relacoes.familia}/100, e seu estado emocional geral: ${label.toLowerCase()}.`,
-    escolhas: [
-      { label: 'Priorizar descanso e gente que você ama nos próximos dias', efeitos: { saudeMental: 4, relacaoFamilia: 3 }, tracos: { humilde: 1 } },
-      { label: 'Seguir focado 100% na carreira por agora', efeitos: { atributos: { disciplina: 1 }, saudeMental: -2 }, tracos: { serio: 1 } }
-    ]
+    texto: (g) => pick(TEXTOS_CHECKIN_POR_FAIXA[faixa])(g),
+    escolhas
   };
 }
 

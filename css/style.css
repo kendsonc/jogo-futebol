@@ -17,6 +17,33 @@
     --radius: 16px;
     --club-grad: linear-gradient(120deg, var(--club-c1), var(--club-c2));
   }
+  /* Tema claro — alternado pelo botão flutuante (js/main.js), preferência
+     GLOBAL fora de qualquer save (persiste entre carreiras diferentes).
+     Reaproveita as mesmas variáveis já centralizadas, sem duplicar regras. */
+  :root[data-theme="light"] {
+    --bg-base: #eef1f6;
+    --surface: #ffffff;
+    --surface-2: #f4f6fb;
+    --border: #d6dce6;
+    --border-soft: rgba(10,20,40,.06);
+    --text: #1a2130;
+    --text-dim: #4c5871;
+    --text-faint: #7c879c;
+  }
+  /* .hero-title-mega usa um gradiente com stop branco fixo (bonito no tema
+     escuro, ilegível no claro) — única cor "hardcoded" fora das variáveis
+     centralizadas que precisou de override dedicado pro tema claro. */
+  :root[data-theme="light"] .hero-title-mega {
+    background: linear-gradient(120deg, #1a2130 20%, var(--club-c1, #2a9d6f) 78%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .theme-toggle-btn {
+    position: fixed; top: 14px; right: 14px; z-index: 50;
+    width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 14px -4px rgba(0,0,0,.4);
+  }
   * { scrollbar-color: #2a3140 transparent; }
   html, body {
     height: 100%;
@@ -51,6 +78,16 @@
   @keyframes telaEntrada {
     from { opacity: 0; transform: translateY(12px); }
     to { opacity: 1; transform: translateY(0); }
+  }
+  /* Transição diferenciada pra telas-marco (.hero-marco presente, ver
+     appObserver em router.js) — mais lenta e com um leve "zoom", pra separar
+     visualmente um momento de peso (título, Bola de Ouro) de uma troca de
+     tela comum (treino, agenda). */
+  #app.fade-in-marco { animation: telaEntradaMarco .8s cubic-bezier(.22,.75,.35,1); }
+  @keyframes telaEntradaMarco {
+    from { opacity: 0; transform: translateY(18px) scale(.97); }
+    60% { opacity: 1; }
+    to { opacity: 1; transform: translateY(0) scale(1); }
   }
   h1, h2, h3 { font-family: var(--font-display); font-weight: 700; letter-spacing: .2px; }
   a { color: inherit; }
@@ -450,6 +487,10 @@
     0%, 100% { box-shadow: 0 10px 32px -6px rgba(224,171,63,.35), inset 0 1px 0 var(--border-soft), 0 0 0 1px rgba(224,171,63,.25); }
     50% { box-shadow: 0 10px 36px -4px rgba(224,171,63,.55), inset 0 1px 0 var(--border-soft), 0 0 0 1px rgba(224,171,63,.4); }
   }
+
+  /* Retrato de NPC em destaque (retratoNpcHtml, opts.destaque) — momentos de
+     mais peso (fase decisiva da peneira, pergunta prioritária da coletiva) */
+  .npc-portrait-destaque { border-radius: 12px; box-shadow: 0 0 0 2px var(--club-c1), 0 6px 18px -4px rgba(0,0,0,.5); }
 
   /* ===================== SELO DE VEREDITO (aprovado/vitória/campeão...) ===================== */
   .result-badge-big {

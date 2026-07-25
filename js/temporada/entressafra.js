@@ -156,6 +156,7 @@ function resolverRodadaNegociacao(acao){
   const n = st.negociacao;
   if(acao === 'aceitar'){
     GAME.contrato = { tipo:n.tipo, bolsa:n.bolsa, duracao:n.duracao, expectativa:n.expectativa, confiancaDiretoria:n.confiancaDiretoria };
+    Som.tocarEfeito('contratoAssinado');
     pushNoticia('geral', `${GAME.identidade.apelido} renova com o ${GAME.clube.nome}: ${n.tipo}, R$ ${n.bolsa.toLocaleString('pt-BR')}/mês.`);
     GAME.entressafraState.etapa = 2;
     salvarJogo(); render();
@@ -188,6 +189,7 @@ function resolverRodadaNegociacao(acao){
   if(n.humor <= 0){
     n.bolsa = Math.round(n.bolsa*0.9);
     GAME.contrato = { tipo:n.tipo, bolsa:n.bolsa, duracao:n.duracao, expectativa:'Baixa', confiancaDiretoria:clamp(n.confiancaDiretoria-15,0,100) };
+    Som.tocarEfeito('contratoAssinado');
     pushNoticia('geral', `A negociação com o ${GAME.clube.nome} esfriou. Contrato fechado em termos piores do que o esperado.`);
     GAME.entressafraState.etapa = 2;
     salvarJogo(); render();
@@ -195,6 +197,7 @@ function resolverRodadaNegociacao(acao){
   }
   if(n.rodada > 3){
     GAME.contrato = { tipo:n.tipo, bolsa:n.bolsa, duracao:n.duracao, expectativa:n.expectativa, confiancaDiretoria:n.confiancaDiretoria };
+    Som.tocarEfeito('contratoAssinado');
     pushNoticia('geral', `${GAME.identidade.apelido} fecha a renovação com o ${GAME.clube.nome} depois de uma negociação longa.`);
     GAME.entressafraState.etapa = 2;
   }
@@ -202,8 +205,22 @@ function resolverRodadaNegociacao(acao){
   render();
 }
 
+// Meta de carreira (METAS_CARREIRA, dados-base.js) reordena as opções de
+// transferência — não muda QUEM aparece (isso já depende de interesseClubes/
+// notaMedia), só a prioridade de exibição/escolha visual: estrela
+// internacional prioriza clubes fora do país; coleção de títulos prioriza o
+// clube de maior reputação (chance real de brigar por taça).
+function ordenarOpcoesPorMetaCarreira(opcoes){
+  if(GAME.metaCarreira === 'estrelaInternacional'){
+    return [...opcoes].sort((a,b) => (b.divisao==='Internacional'?1:0) - (a.divisao==='Internacional'?1:0));
+  }
+  if(GAME.metaCarreira === 'legadoTitulos'){
+    return [...opcoes].sort((a,b) => (b.reputacao||0) - (a.reputacao||0));
+  }
+  return opcoes;
+}
 function renderEntressafraTransferencia(){
-  const opcoes = [...clubesMaioresDisponiveis(), ...clubesInternacionaisDisponiveis()];
+  const opcoes = ordenarOpcoesPorMetaCarreira([...clubesMaioresDisponiveis(), ...clubesInternacionaisDisponiveis()]);
   if(opcoes.length === 0){
     app.innerHTML = `
       <div class="card">
@@ -266,7 +283,8 @@ function renderEntressafraTransferencia(){
         const ofertaTransferencia = calcularOfertaTransferencia(novoClube);
         GAME.contrato = { tipo:ofertaTransferencia.tipo, bolsa:ofertaTransferencia.bolsa, duracao:ofertaTransferencia.duracao,
           expectativa:ofertaTransferencia.expectativa, confiancaDiretoria:ofertaTransferencia.confiancaDiretoria };
-        GAME.tecnico = gerarTecnico(GAME.tecnico && GAME.tecnico.nome);
+        Som.tocarEfeito('contratoAssinado');
+        trocarTecnico();
         GAME.observador = pickExcluindo(NOMES_OBSERVADORES, GAME.observador);
         GAME.elenco = gerarElenco(); // novo clube, novos companheiros de elenco
         if(amigoPacto){
@@ -290,7 +308,7 @@ function renderEntressafraTransferencia(){
           }
         }
         despedidaDaTorcidaAntesDaTransferencia(clubeAntigoNomeTransferencia, torcidaAntigaTransferencia);
-        GAME.relacoes.treinador = 50; GAME.relacoes.elenco = 50; GAME.relacoes.diretoria = 50; GAME.relacoes.torcida = 15;
+        GAME.relacoes.elenco = 50; GAME.relacoes.diretoria = 50; GAME.relacoes.torcida = 15;
         GAME.status.statusElenco = 'Novo reforço';
         pushNoticia('midia', `${GAME.identidade.apelido} é anunciado como novo reforço do ${novoClube.nome} (${novoClube.divisao})!`);
         GAME.statsCareer.clubesPassados.push({ nome: novoClube.nome, internacional: novoClube.divisao==='Internacional', temporada: GAME.numeroTemporada });

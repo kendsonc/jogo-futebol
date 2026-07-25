@@ -97,7 +97,7 @@ function iniciarPeneira(clube){
     oportunidadeJovens:clube.oportunidadeJovens, financeiro:clube.financeiro,
     reputacao:clube.reputacao, exigenciaPeneira:clube.exigenciaPeneira,
     cor1:clube.cor1, cor2:clube.cor2 };
-  GAME.tecnico = gerarTecnico(GAME.tecnico && GAME.tecnico.nome);
+  trocarTecnico();
   GAME.observador = pickExcluindo(NOMES_OBSERVADORES, GAME.observador);
   GAME.peneiraState = { faseIndex:0, chanceDestaque:0 };
   GAME.fase = 'peneira';

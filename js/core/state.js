@@ -206,7 +206,10 @@ function criarNovoJogador(dados){
     imoveisComprados: [],
     banco: { poupanca: 0, investimentos: [], emprestimos: [] },
     rostosNpc: {},
-    audioConfig: { mutado:false, volumeMusica:0.15, volumeEfeitos:0.7 }
+    audioConfig: { mutado:false, volumeMusica:0.15, volumeEfeitos:0.7 },
+    metaCarreira: dados.metaCarreira || null,
+    historicoTecnicos: {},
+    memoriaSocial: { ultimosEventos: [] }
   };
   salvarJogo();
 }
@@ -224,6 +227,9 @@ function repararEstadoEconomia(){
   if(!GAME.patrociniosImagem) GAME.patrociniosImagem = {};
   if(!GAME.exCompanheiros) GAME.exCompanheiros = [];
   if(GAME.heredeiroDe === undefined) GAME.heredeiroDe = null;
+  if(GAME.metaCarreira === undefined) GAME.metaCarreira = null;
+  if(!GAME.historicoTecnicos) GAME.historicoTecnicos = {};
+  if(!GAME.memoriaSocial) GAME.memoriaSocial = { ultimosEventos: [] };
   if(GAME.identidade && !GAME.identidade.aparencia) GAME.identidade.aparencia = gerarAparenciaAleatoria(Math.random, 'm');
   if(GAME.relacionamento){
     if(GAME.relacionamento.casado === undefined) GAME.relacionamento.casado = false;
@@ -349,6 +355,36 @@ function atualizarRedesSociais(deltaSeguidores, categoria){
   const texto = pick(pool)(GAME);
   GAME.social.mensagens.unshift({ texto, semana: GAME.status.semanaGlobal, categoria });
   if(GAME.social.mensagens.length > 30) GAME.social.mensagens.pop();
+  registrarMemoriaSocial(categoria);
+}
+
+/* ============================== MEMÓRIA SOCIAL DE CURTO PRAZO =================
+   Antes, torcida/imprensa só reagiam ao ÚLTIMO evento (última nota, último
+   resultado) — sem nenhuma "sequência" acumulada tipo o que já existe pra
+   resultados de partida (sequenciaAtual(), js/sistemas/eventos.js). Guarda
+   os últimos 8 eventos sociais (elogio/crítica) pra dar aos sistemas de
+   imprensa a chance de reagir a um PADRÃO (3 semanas seguidas de crítica),
+   não só ao evento mais recente isolado.
+   ========================================================================= */
+function registrarMemoriaSocial(categoria){
+  if(categoria !== 'elogio' && categoria !== 'critica') return;
+  if(!GAME.memoriaSocial) GAME.memoriaSocial = { ultimosEventos: [] };
+  GAME.memoriaSocial.ultimosEventos.push({ tipo:categoria, semana:GAME.status.semanaGlobal });
+  if(GAME.memoriaSocial.ultimosEventos.length > 8) GAME.memoriaSocial.ultimosEventos.shift();
+}
+// Mesmo formato de retorno de sequenciaAtual() (partida.js/eventos.js), só
+// que sobre a memória social (elogio/crítica) em vez do resultado da partida.
+function sequenciaSocialAtual(){
+  const eventos = (GAME.memoriaSocial && GAME.memoriaSocial.ultimosEventos) || [];
+  if(!eventos.length) return { tipo:null, tamanho:0 };
+  let tamanho = 0, tipo = null;
+  for(let i=eventos.length-1; i>=0; i--){
+    const t = eventos[i].tipo;
+    if(tipo===null) tipo = t;
+    if(t !== tipo) break;
+    tamanho++;
+  }
+  return { tipo, tamanho };
 }
 function concluirObjetivo(id){
   const o = GAME.objetivos.find(o=>o.id===id);

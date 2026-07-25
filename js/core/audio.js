@@ -140,6 +140,17 @@ const Som = (function(){
       for(let i=0;i<14;i++){
         criarRuidoFiltrado(t0 + Math.random()*1.1, 0.03 + Math.random()*0.02, 'highpass', 2500, null, 0.16, destino);
       }
+    },
+    // Contrato assinado (renovação/transferência) — arpejo curto e claro,
+    // distinto da comemoração de gol (sem o "thump" grave nem buzinas).
+    contratoAssinado(t0, destino){
+      [392,494,587,784].forEach((f,i) => criarOsc(f, 'triangle', t0 + i*0.08, 0.32, 0.24, destino, { ataque:0.01 }));
+    },
+    // Lesão diagnosticada — tom grave descendente + ruído surdo, o oposto
+    // tonal da comemoração (nada de brilho, só peso).
+    lesao(t0, destino){
+      criarOsc([220,85], 'sawtooth', t0, 1.1, 0.3, destino, { ataque:0.02 });
+      criarRuidoFiltrado(t0+0.1, 0.7, 'lowpass', 450, 140, 0.22, destino);
     }
   };
 
@@ -230,6 +241,29 @@ const Som = (function(){
     pendingAmbiente = null;
   }
 
+  /* ------------------------ Murmúrio de torcida (partida ao vivo) -----------
+     Loop PARALELO à música ambiente (não substitui, toca junto) — antes a
+     "vida" da torcida só aparecia em efeitos pontuais (gol/vaia), o resto da
+     partida rodava só com a música de fundo. Volume propositalmente baixo,
+     ruído filtrado numa faixa de "multidão distante" (sem virar um efeito
+     chamativo). Independente do scheduler de ambienteAtivo pra poder tocar
+     ao mesmo tempo que ele.
+     ========================================================================= */
+  let murmurioAtivo = null;
+  function criarLoopMurmurioTorcida(){
+    return agendarLoop((t0) => {
+      criarRuidoFiltrado(t0, 2.3, 'bandpass', 250, 650, 0.045, efeitosGain);
+      return 2.0;
+    });
+  }
+  function iniciarMurmurioTorcida(){
+    if(!suportado || !destravado || murmurioAtivo) return;
+    murmurioAtivo = criarLoopMurmurioTorcida();
+  }
+  function pararMurmurioTorcida(){
+    if(murmurioAtivo){ murmurioAtivo.parar(); murmurioAtivo = null; }
+  }
+
   /* ------------------------------- Configuração ------------------------------ */
   function setMudo(v){
     if(typeof GAME === 'undefined' || !GAME || !GAME.audioConfig) return;
@@ -267,6 +301,7 @@ const Som = (function(){
 
   return {
     destravar, tocarAmbiente, pararAmbiente, tocarEfeito,
+    iniciarMurmurioTorcida, pararMurmurioTorcida,
     setMudo, setVolumeMusica, setVolumeEfeitos, sincronizarComGame,
     get suportado(){ return suportado; }
   };

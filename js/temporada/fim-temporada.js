@@ -67,12 +67,34 @@ const CATEGORIAS_SELECAO = [
   { id:'sub23', nome:'Seleção Brasileira Sub-23', idadeMax:23, notaMinima:7.2, interesseMinimo:65, overallMinimo:72, chanceBase:30 },
   { id:'sub20', nome:'Seleção Brasileira Sub-20', idadeMax:20, notaMinima:7.0, interesseMinimo:55, overallMinimo:65, chanceBase:35 }
 ];
+// Concorrentes fictícios de posição pra essa categoria — mesmo espírito
+// abstrato do rival de carreira (rival.js): nunca jogam partida própria, só
+// entram como comparação de overall na hora da convocação.
+function gerarConcorrentesConvocacao(cat){
+  return Array.from({length: rand(2,3)}, () => ({
+    nome: pick(NOMES_COMPANHEIROS),
+    overall: clamp(cat.overallMinimo + rand(-5, 15), 40, 99)
+  }));
+}
+// Antes, bater os requisitos + passar num chance() isolado já garantia a
+// convocação — um corte solo do jogador, sem nenhuma disputa real por vaga.
+// Agora, mesmo batendo os requisitos e tendo sorte no chance(), existem
+// concorrentes de posição disputando a mesma lista: perder pra 2+ deles
+// custa a convocação dessa categoria (mas ainda cai pra próxima categoria
+// da cascata, como já acontecia quando o chance() falhava).
 function verificarConvocacaoSelecao(){
   const s = GAME.stats, overall = calcularOverall(), idade = idadeAtual();
   for(const cat of CATEGORIAS_SELECAO){
     if(cat.idadeMax && idade > cat.idadeMax) continue;
     if(s.notaMedia < cat.notaMinima || s.interesseClubes < cat.interesseMinimo || overall < cat.overallMinimo) continue;
     if(chance(cat.chanceBase)){
+      const concorrentes = gerarConcorrentesConvocacao(cat);
+      const meuScore = overall + rand(-5,5);
+      const perdiPara = concorrentes.filter(c => c.overall > meuScore);
+      if(perdiPara.length >= 2){
+        pushNoticia('geral', `Você brigou pela vaga na ${cat.nome}, mas ${pick(perdiPara).nome} levou a melhor dessa vez.`);
+        continue;
+      }
       GAME.statsCareer.convocacoes.push({ categoria:cat.id, nome:cat.nome, temporada:GAME.numeroTemporada, idade });
       pushNoticiaImprensa('midia', `${GAME.identidade.apelido} é convocado para a ${cat.nome}!`);
       aplicarEfeitos({ popularidade:8, confianca:6, pressaoPsicologica:5 });

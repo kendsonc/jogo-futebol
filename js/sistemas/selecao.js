@@ -121,6 +121,14 @@ function finalizarAmistosoSelecao(){
   const resultado = golsBrasil > golsAdv ? 'vitoria' : golsBrasil < golsAdv ? 'derrota' : 'empate';
   let nota = clamp(6 + ac.gols*0.9 + ac.assist*0.5 + ac.defesaImportante*0.6 - ac.erros*0.5 - ac.amarelo*0.3 - ac.vermelho*1.6 + rand(-3,3)/10, 0, 10);
 
+  // Antes, o amistoso da Seleção não custava nada fisicamente — diferente de
+  // uma partida de clube (finalizarPartida, partida.js), que desconta energia/
+  // condicaoFisica pelos minutos jogados. Sem esse custo, convocação virava
+  // "jogo de graça" sempre que aparecia, sem nenhum conflito real entre
+  // clube e seleção. Usa o custo equivalente a uma partida completa (90min).
+  GAME.status.energia = clamp(GAME.status.energia - 15, 0, 100);
+  GAME.status.condicaoFisica = clamp((GAME.status.condicaoFisica!=null?GAME.status.condicaoFisica:90) - 5, 0, 100);
+
   if(!GAME.statsCareer.selecao) GAME.statsCareer.selecao = { jogos:0, gols:0, assistencias:0, vitorias:0, empates:0, derrotas:0 };
   const sel = GAME.statsCareer.selecao;
   sel.jogos += 1; sel.gols += ac.gols; sel.assistencias += ac.assist;

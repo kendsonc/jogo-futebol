@@ -137,6 +137,37 @@ function calcularBonusTecnico(bonusStatus, bonusForma){
   }
 }
 
+/* ============================== HISTÓRICO DE TÉCNICOS ==========================
+   Antes, GAME.relacoes.treinador resetava pra 50 (ou ficava só com os
+   efeitos da conversa de apresentação) toda vez que o técnico mudava —
+   nenhuma "memória" atravessava a troca. Agora existe um histórico leve POR
+   ESTILO de técnico (não por indivíduo — o jogo não persiste identidade de
+   NPC entre clubes) em GAME.historicoTecnicos: quem já teve boa relação com
+   técnicos "disciplinadores" no passado começa a próxima relação com esse
+   estilo um pouco mais inclinado a favor, e vice-versa pra quem já brigou
+   muito com um estilo — dando sensação de personalidade acumulada DO
+   JOGADOR, não só do NPC. Substitui toda chamada direta de gerarTecnico()
+   nos 3 pontos onde o técnico muda (clubes.js, entressafra.js, eventos.js).
+   ========================================================================= */
+function registrarHistoricoTecnicoAtual(){
+  if(!GAME.tecnico || !GAME.tecnico.estilo) return;
+  if(!GAME.historicoTecnicos) GAME.historicoTecnicos = {};
+  const h = GAME.historicoTecnicos[GAME.tecnico.estilo] || { soma:0, vezes:0 };
+  h.soma += GAME.relacoes.treinador;
+  h.vezes += 1;
+  GAME.historicoTecnicos[GAME.tecnico.estilo] = h;
+}
+function trocarTecnico(){
+  registrarHistoricoTecnicoAtual();
+  const novoTecnico = gerarTecnico(GAME.tecnico && GAME.tecnico.nome);
+  GAME.tecnico = novoTecnico;
+  const h = GAME.historicoTecnicos && GAME.historicoTecnicos[novoTecnico.estilo];
+  // média histórica com esse estilo, puxada bem pra perto de 50 (peso baixo)
+  // pra não travar a relação nova num extremo só por causa do passado
+  GAME.relacoes.treinador = h ? clamp(Math.round(50 + (h.soma/h.vezes - 50)*0.3), 20, 80) : 50;
+  return novoTecnico;
+}
+
 // perfilClube (dados-base.js, derivado dos campos numéricos do clube) também
 // pesa na escalação, não só como texto no mercado de transferências: clube
 // "formador" dá chance real de minutos pra quem ainda está construindo nome no

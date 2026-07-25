@@ -680,10 +680,29 @@ function gerarDialogoIntervalo(p, pl){
   return texto;
 }
 
+// Antes, a dificuldade dos lances e o ritmo do 2º tempo eram fixos do início
+// ao fim da partida — o placar do intervalo nunca mudava a postura tática.
+// Perdendo, o time se lança mais ao ataque: lances ficam mais fáceis de
+// aproveitar (dificuldade cai) e reaproveita injetarChanceExtraPorVantagem
+// (mesmo mecanismo já usado pra vantagem numérica) pra representar essa
+// pressão a mais. Vencendo com folga, o time passa a administrar: lances
+// ficam um pouco mais cautelosos de aproveitar com segurança.
+function aplicarVariacaoTaticaIntervalo(p, pl){
+  const saldo = pl.meus - pl.deles;
+  if(saldo < 0){
+    p.dificuldade = clamp(p.dificuldade - 8, 10, 95);
+    p.posturaSegundoTempo = 'ofensiva';
+    injetarChanceExtraPorVantagem(p, 'meu');
+  } else if(saldo >= 2){
+    p.dificuldade = clamp(p.dificuldade + 6, 10, 95);
+    p.posturaSegundoTempo = 'cautelosa';
+  }
+}
 function mostrarIntervalo(p){
   const slot = document.getElementById('lm-lance-slot');
   if(!slot) return;
   const pl = placarAoVivo(p);
+  aplicarVariacaoTaticaIntervalo(p, pl);
   const dialogo = gerarDialogoIntervalo(p, pl);
   const nomeTecnico = (GAME.tecnico && GAME.tecnico.nome) || 'O técnico';
   slot.innerHTML = `
@@ -916,6 +935,7 @@ function encerrarPartidaAoVivo(){
   clearInterval(_timerPartidaAoVivo);
   const p = GAME.temporadaState.partidaEmAndamento;
   if(p) p.rodando = false;
+  Som.pararMurmurioTorcida();
   Som.tocarEfeito('apito');
   setTimeout(() => {
     if(p && p.aoFinalizarNome === 'copa' && typeof finalizarPartidaCopaJogavel === 'function') finalizarPartidaCopaJogavel();
@@ -965,6 +985,7 @@ function renderPartidaAoVivo(){
   atualizarEstatisticasDom(p);
   aplicarTemaCompeticao(p.competicao);
   Som.tocarAmbiente(p.competicao);
+  Som.iniciarMurmurioTorcida();
   if(p.lancePendente){
     montarLanceSlotHtml(p.lances[p.indiceLance], p);
   } else {
@@ -1172,11 +1193,16 @@ function consolidarDesempenhoPartida(p){
   // empresário 'renomado' tem rede de contatos de verdade — joga seu nome pra
   // clubes maiores mais rápido que os outros tipos de empresário (ou nenhum)
   const bonusEmpresarioRenomado = GAME.empresarioAtual === 'renomado' ? 2 : 0;
-  s.interesseClubes = clamp(s.interesseClubes + (nota>=7.5?4:0) + gols*3 + assist*2 - (vermelho*2) + bonusEmpresarioRenomado, 0, 100);
+  // Meta de carreira (escolhida na criação, dados-base.js/METAS_CARREIRA):
+  // quem sonha em jogar fora tem o nome circulando mais rápido pros olheiros.
+  const bonusMetaEstrela = GAME.metaCarreira === 'estrelaInternacional' ? 2 : 0;
+  s.interesseClubes = clamp(s.interesseClubes + (nota>=7.5?4:0) + gols*3 + assist*2 - (vermelho*2) + bonusEmpresarioRenomado + bonusMetaEstrela, 0, 100);
 
   // Relações
   if(minutos>0){
-    GAME.relacoes.torcida = clamp(GAME.relacoes.torcida + (nota>=7?6:nota<5?-4:1), 0, 100);
+    // Ídolo local ganha um empurrão extra de carinho da torcida a cada boa atuação
+    const bonusMetaIdolo = GAME.metaCarreira === 'idoloLocal' ? 1 : 0;
+    GAME.relacoes.torcida = clamp(GAME.relacoes.torcida + (nota>=7?6:nota<5?-4:1) + bonusMetaIdolo, 0, 100);
     GAME.relacoes.treinador = clamp(GAME.relacoes.treinador + (nota>=7?4:nota<5?-3:0), 0, 100);
     GAME.relacoes.midia = clamp(GAME.relacoes.midia + (nota>=7.5?5:0), 0, 100);
     GAME.sociais.moral = clamp(GAME.sociais.moral + (nota>=7?6:nota<5?-6:0), 0, 100);

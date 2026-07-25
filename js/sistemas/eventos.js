@@ -245,7 +245,7 @@ function sortearEvento(){
   // com ~150 outros eventos genéricos, sob risco de sumir por temporadas.
   if(GAME.rival) pool.push(...EVENTOS_RIVAL, ...EVENTOS_RIVAL);
   if(GAME.relacionamento){
-    pool.push(...EVENTOS_RELACIONAMENTO);
+    pool.push(...EVENTOS_RELACIONAMENTO.filter(e => !e.aplicavel || e.aplicavel(GAME)));
     const pedido = gerarEventoPedidoCasamento();
     if(pedido) pool.push(pedido);
     const crise = gerarEventoCriseCasamento();

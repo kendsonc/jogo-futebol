@@ -41,6 +41,7 @@ function checarLesao(riscoMod){
     GAME.sociais.moral = clamp(GAME.sociais.moral - 10, 0, 100);
     GAME.status.pressao = clamp(GAME.status.pressao + 8, 0, 100);
     ajustarSaudeMental(-8);
+    Som.tocarEfeito('lesao');
     pushNoticia('geral', `${GAME.identidade.apelido} sofreu uma lesão: ${tipo}.`);
     // lesão grave pode deixar sequela: o corpo às vezes não esquece, mesmo
     // muito depois de recuperado — atravessa temporadas se preciso

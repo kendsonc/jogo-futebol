@@ -118,6 +118,33 @@ const LANCES_ATAQUE = [
       { label:'Girar rápido e arriscar de primeira', perfil:'finalizar', attr:'frieza' },
       { label:'Aliviar tocando para o meio-campo', perfil:'passar', attr:'passeCurto' },
       { label:'Proteger a bola com o corpo e girar aos poucos', perfil:'driblar', attr:'forca' }
+    ] },
+  { texto:()=>`Cobrança de escanteio fechada, a bola cai na entrada da pequena área direto na sua cabeça.`,
+    escolhas:[
+      { label:'Cabecear forte, no contrapé do goleiro', perfil:'finalizar', attr:'cabeceio' },
+      { label:'Desviar de leve para o companheiro na segunda trave', perfil:'passar', attr:'visaoDeJogo' }
+    ] },
+  { texto:()=>`Depois de um giro rápido na intermediária, você abre espaço para o chute de longa distância.`,
+    escolhas:[
+      { label:'Arriscar o chute colocado no ângulo', perfil:'finalizar', attr:'chuteDeLonge' },
+      { label:'Tocar pro companheiro mais avançado', perfil:'passar', attr:'passeCurto' },
+      { label:'Conduzir mais um pouco antes de decidir', perfil:'driblar', attr:'controleDeBola' }
+    ] },
+  { texto:()=>`Na ponta do campo, o lateral avança pelas suas costas pedindo a bola no espaço.`,
+    escolhas:[
+      { label:'Lançar em profundidade pra ele correr', perfil:'passar', attr:'visaoDeJogo' },
+      { label:'Seguir sozinho pra dentro, encarando a marcação', perfil:'driblar', attr:'drible' }
+    ] },
+  { texto:()=>`Cobrança de escanteio na primeira trave, a bola some no meio de zagueiros e atacantes.`,
+    escolhas:[
+      { label:'Se antecipar e desviar para o gol', perfil:'finalizar', attr:'impulsao' },
+      { label:'Buscar o rebote, sem se arriscar antes da hora', perfil:'cauteloso', attr:'concentracao' }
+    ] },
+  { texto:()=>`Você recebe entre as linhas, de frente para o gol, com um zagueiro se aproximando por trás.`,
+    escolhas:[
+      { label:'Finalizar rápido, antes da marcação chegar', perfil:'finalizar', attr:'finalizacao' },
+      { label:'Proteger a bola até o apoio chegar', perfil:'driblar', attr:'forca' },
+      { label:'Devolver o passe de primeira pro meio', perfil:'passar', attr:'passeCurto' }
     ] }
 ];
 const LANCES_DEFESA = [
@@ -225,6 +252,31 @@ const LANCES_DEFESA = [
     escolhas:[
       { label:'Se antecipar e afastar antes da disputa', perfil:'desarmar', attr:'interceptacao' },
       { label:'Ficar bem postado para o corpo a corpo', perfil:'cauteloso', attr:'forca' }
+    ] },
+  { texto:()=>`O armador adversário tenta o túnel na sua marcação, no meio-campo.`,
+    escolhas:[
+      { label:'Fechar as pernas e não cair na provocação', perfil:'desarmar', attr:'concentracao' },
+      { label:'Antecipar o passe antes que o drible aconteça', perfil:'cauteloso', attr:'interceptacao' }
+    ] },
+  { texto:()=>`Escanteio cobrado tenso na entrada da pequena área, disputa de corpo com o atacante mais alto do adversário.`,
+    escolhas:[
+      { label:'Subir com tudo pra ganhar no alto', perfil:'desarmar', attr:'impulsao' },
+      { label:'Segurar a posição com o corpo, sem se atirar', perfil:'cauteloso', attr:'forca' }
+    ] },
+  { texto:()=>`Você é pego de saída de bola errada do goleiro, sobrando pro atacante adversário livre.`,
+    escolhas:[
+      { label:'Correr pra tentar o desarme por trás', perfil:'desarmar', attr:'velocidade' },
+      { label:'Cometer a falta antes que ele fique cara a cara com o gol', perfil:'arriscado', attr:'disciplina' }
+    ] },
+  { texto:()=>`Disputa de bola dividida na entrada da sua área, o árbitro deixa o jogo rolar.`,
+    escolhas:[
+      { label:'Entrar duro pra ganhar a dividida', perfil:'desarmar', attr:'forca' },
+      { label:'Ler a trajetória e cortar antes da disputa', perfil:'cauteloso', attr:'interceptacao' }
+    ] },
+  { texto:()=>`O atacante adversário pede a bola de costas, tentando o giro rápido dentro da sua área.`,
+    escolhas:[
+      { label:'Grudar na marcação sem deixar ele girar', perfil:'desarmar', attr:'marcacao' },
+      { label:'Segurar a posição e esperar o apoio chegar', perfil:'cauteloso', attr:'concentracao' }
     ] }
 ];
 const LANCES_GOLEIRO = [
@@ -327,5 +379,30 @@ const LANCES_GOLEIRO = [
     escolhas:[
       { label:'Saltar para desviar por cima do travessão', perfil:'defender', attr:'agilidade' },
       { label:'Confiar na trajetória e deixar passar', perfil:'cauteloso', attr:'concentracao' }
+    ] },
+  { texto:()=>`Cobrança de falta de longe, com efeito, o goleiro precisa ler a trajetória cedo.`,
+    escolhas:[
+      { label:'Se antecipar já lendo o efeito da bola', perfil:'defender', attr:'concentracao' },
+      { label:'Esperar a bola descrever a curva antes de se jogar', perfil:'cauteloso', attr:'frieza' }
+    ] },
+  { texto:()=>`Bate-rebate dentro da pequena área depois de uma cobrança de escanteio confusa.`,
+    escolhas:[
+      { label:'Se lançar no meio da confusão pra agarrar', perfil:'defender', attr:'coragem' },
+      { label:'Espalmar pra longe da pequena área', perfil:'cauteloso', attr:'agilidade' }
+    ] },
+  { texto:()=>`Um a um decisivo no fim do jogo, tudo aponta pra você segurar o resultado.`,
+    escolhas:[
+      { label:'Sair com tudo pra reduzir o ângulo de chute', perfil:'defender', attr:'decisao' },
+      { label:'Segurar a posição e esperar ele bater', perfil:'cauteloso', attr:'concentracao' }
+    ] },
+  { texto:()=>`Chute forte rasteiro no canto, sem muito tempo de reação.`,
+    escolhas:[
+      { label:'Jogar o corpo todo pra tentar alcançar', perfil:'defender', attr:'agilidade' },
+      { label:'Confiar no reflexo na última fração de segundo', perfil:'cauteloso', attr:'frieza' }
+    ] },
+  { texto:()=>`Cruzamento tenso na pequena área, disputa de posicionamento antes da bola cair.`,
+    escolhas:[
+      { label:'Sair decidido pra socar pra longe', perfil:'defender', attr:'agilidade' },
+      { label:'Confiar na zaga e segurar a posição', perfil:'cauteloso', attr:'decisao' }
     ] }
 ];

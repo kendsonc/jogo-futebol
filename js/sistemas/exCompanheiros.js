@@ -61,6 +61,7 @@ function evoluirExCompanheiros(){
   const perdidos = GAME.exCompanheiros.filter(ex => ex.relacao <= 15);
   perdidos.forEach(ex => pushNoticia('geral', `Você e ${ex.nome} praticamente perderam contato desde que os caminhos se separaram.`));
   GAME.exCompanheiros = GAME.exCompanheiros.filter(ex => ex.relacao > 15);
+  if(chance(30)) gerarNoticiaComparativaExCompanheiro();
 }
 
 const FLAVOR_REENCONTRO_EX_COMPANHEIRO = [
@@ -101,13 +102,15 @@ function gerarEventoPactoCarreira(c){
   };
 }
 
-// Evento leve e recorrente: mensagem nostálgica de um ex-companheiro —
-// responder mantém o vínculo vivo, ignorar deixa a amizade esfriar mais rápido.
-function gerarEventoMensagemExCompanheiro(){
-  const ex = pick(GAME.exCompanheiros);
-  return {
-    id: 'ex_companheiro_mensagem', categoria: 'exCompanheiro',
-    retrato: () => ({ nome: ex.nome, papel: 'ex-companheiro' }),
+// Antes, só existia 1 SITUAÇÃO (mensagem nostálgica) — variando apenas o
+// texto de abertura, sempre a mesma dinâmica de resposta. Agora é um pool de
+// situações distintas (não só frases): convite de reencontro, pedido de
+// conselho (ex-companheiro mal na carreira dele), e comemoração de um marco
+// dele — cada uma com sua própria dinâmica de escolha, todas atualizando
+// `ex.relacao` (mesmo padrão de sempre).
+const SITUACOES_EX_COMPANHEIRO = [
+  (ex) => ({
+    id: 'ex_companheiro_mensagem',
     texto: (g) => `Uma mensagem chega no seu celular: "${ex.nome}: E aí, campeão! Vi seu último jogo, tamo junto. Ainda lembro dos nossos tempos no ${ex.clubeConheceuNome}. Como andam as coisas por aí?"`,
     escolhas: [
       { label: 'Responder com carinho e trocar figurinha', efeitos: { moral:3, tracos:{humilde:1} },
@@ -117,5 +120,57 @@ function gerarEventoMensagemExCompanheiro(){
       { label: 'Deixar a mensagem no vácuo por enquanto', efeitos: { tracos:{serio:1} },
         extra: (g) => { ex.relacao = clamp(ex.relacao - 3, 0, 100); } }
     ]
-  };
+  }),
+  (ex) => ({
+    id: 'ex_companheiro_convite_visita',
+    texto: (g) => `${ex.nome} manda mensagem animado: "Vi que a gente pode se enfrentar em breve! Bora tomar um café antes ou depois do jogo, igual antigamente?"`,
+    escolhas: [
+      { label: 'Topar o encontro com alegria', efeitos: { moral:4 },
+        extra: (g) => { ex.relacao = clamp(ex.relacao + 10, 0, 100); pushHistorico(`Encontrou ${ex.nome} pessoalmente, relembrando os tempos de ${ex.clubeConheceuNome}.`); } },
+      { label: 'Agradecer o convite, mas dizer que a agenda está cheia', efeitos: {},
+        extra: (g) => { ex.relacao = clamp(ex.relacao - 3, 0, 100); } }
+    ]
+  }),
+  (ex) => ({
+    id: 'ex_companheiro_pedido_conselho',
+    texto: (g) => `${ex.nome} te manda uma mensagem mais séria: "Cara, posso desabafar? Não ando bem na minha carreira, perdi espaço no ${ex.clubeNome}. Queria um conselho seu."`,
+    escolhas: [
+      { label: 'Dar um conselho sincero e apoiar de verdade', efeitos: { moral:3, tracos:{humilde:1} },
+        extra: (g) => { ex.relacao = clamp(ex.relacao + 12, 0, 100); } },
+      { label: 'Responder de forma breve e genérica', efeitos: {},
+        extra: (g) => { ex.relacao = clamp(ex.relacao + 2, 0, 100); } }
+    ]
+  }),
+  (ex) => ({
+    id: 'ex_companheiro_marco',
+    texto: (g) => `Você vê nas redes: ${ex.nome} conquistou um marco importante na carreira dele(a) pelo ${ex.clubeNome} — a galera já está comentando.`,
+    escolhas: [
+      { label: 'Comemorar publicamente pelo amigo', efeitos: { popularidade:2, relacaoElenco:1 },
+        extra: (g) => { ex.relacao = clamp(ex.relacao + 8, 0, 100); pushNoticia('geral', `${g.identidade.apelido} celebrou publicamente a conquista de ${ex.nome}.`); } },
+      { label: 'Mandar só uma mensagem particular de parabéns', efeitos: { moral:2 },
+        extra: (g) => { ex.relacao = clamp(ex.relacao + 5, 0, 100); } }
+    ]
+  })
+];
+function gerarEventoMensagemExCompanheiro(){
+  const ex = pick(GAME.exCompanheiros);
+  const situacao = pick(SITUACOES_EX_COMPANHEIRO)(ex);
+  return { id: situacao.id, categoria: 'exCompanheiro', retrato: () => ({ nome: ex.nome, papel: 'ex-companheiro' }), texto: situacao.texto, escolhas: situacao.escolhas };
+}
+
+// Espelha gerarNoticiaComparativaRival (rival.js) — antes, o único jeito de
+// saber que um ex-companheiro estava indo bem era uma notícia isolada de
+// transferência, sem nenhuma reflexão pessoal do jogador sobre isso.
+function gerarNoticiaComparativaExCompanheiro(){
+  if(!GAME.exCompanheiros || !GAME.exCompanheiros.length) return;
+  const ex = pick(GAME.exCompanheiros);
+  const meuOverall = calcularOverall();
+  const templates = [
+    () => `Reencontro à distância: enquanto você segue sua trajetória, ${ex.nome} — que já dividiu vestiário com você no ${ex.clubeConheceuNome} — segue a carreira dele(a) pelo ${ex.clubeNome}.`,
+    () => meuOverall >= ex.overall
+      ? `Quem acompanhou vocês dois na base do ${ex.clubeConheceuNome} nota como sua trajetória vem se destacando mais que a de ${ex.nome}.`
+      : `${ex.nome}, que começou junto com você no ${ex.clubeConheceuNome}, vem tendo uma trajetória de chamar atenção nesta fase.`,
+    () => `Torcedores mais antigos ainda lembram da dupla que você e ${ex.nome} formavam no ${ex.clubeConheceuNome} — hoje, cada um seguiu seu caminho.`
+  ];
+  pushNoticiaImprensa('midia', pick(templates)());
 }

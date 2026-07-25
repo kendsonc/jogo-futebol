@@ -47,9 +47,13 @@ function sincronizarAmbienteSonoro(){
 // updates internos da partida ao vivo), também é o gatilho certo pra saber
 // quando vale atualizar o anúncio do canto (ver js/core/ads.js).
 const appObserver = new MutationObserver(() => {
-  app.classList.remove('fade-in');
+  app.classList.remove('fade-in', 'fade-in-marco');
   void app.offsetWidth; // força reflow para reiniciar a animação
-  app.classList.add('fade-in');
+  // Tela-marco (hero-marco, css/style.css) ganha uma transição mais lenta e
+  // dramática — antes toda troca de tela usava a mesma animação rápida,
+  // sem distinguir um título/Bola de Ouro de uma troca de tela comum.
+  const ehTelaMarco = !!app.querySelector('.hero-marco');
+  app.classList.add(ehTelaMarco ? 'fade-in-marco' : 'fade-in');
   if(typeof talvezAtualizarAnuncio === 'function') talvezAtualizarAnuncio();
 });
 appObserver.observe(app, { childList: true });
