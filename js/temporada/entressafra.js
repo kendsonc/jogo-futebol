@@ -322,41 +322,103 @@ function iniciarAposentadoria(){
   GAME.legadoFinal = calcularLegadoFinal();
   registrarMarco('Aposentadoria', `Encerrou a carreira aos ${idadeAtual()} anos, defendendo o ${GAME.clube.nome}.`, 'alta');
   GAME.fase = 'aposentadoria';
+  documentarioCapitulo = 0;
   salvarJogo();
   render();
 }
 
+/* ============================== DOCUMENTÁRIO DA APOSENTADORIA ================
+   Antes, GAME.memorial (já curado por registrarMarco ao longo da carreira
+   inteira) era só despejado numa lista simples dentro da tela de legado —
+   subutilizado, sendo o dado mais "narrativamente pronto" do jogo. Agora vira
+   uma cena de documentário navegável por capítulos: abertura (legado +
+   números), um capítulo por marco do memorial (em ordem cronológica, cada um
+   com uma pequena reflexão), e um fechamento ("onde ele está hoje"). Reusa
+   o stepper visual já existente da peneira (.phase-stepper/.phase-dot) e a
+   variante hero-marco (css/style.css).
+   ========================================================================= */
+let documentarioCapitulo = 0;
+function capitulosDocumentario(){
+  const marcos = [...(GAME.memorial||[])].sort((a,b) => a.temporada-b.temporada);
+  return [{ tipo:'abertura' }, ...marcos.map(m => ({ tipo:'marco', marco:m })), { tipo:'fechamento' }];
+}
+const REFLEXOES_DOCUMENTARIO = [
+  (g)=>`Passaram-se anos, mas esse momento ainda pesa na memória de ${g.identidade.apelido}.`,
+  (g)=>`Entre tantos capítulos de uma carreira longa, esse é um dos que ${g.identidade.apelido} guarda com mais carinho.`,
+  (g)=>`Olhando pra trás, é fácil entender por que esse instante marcou a trajetória de ${g.identidade.apelido}.`,
+  (g)=>`Quem acompanhou de perto lembra bem do clima daquele momento na carreira de ${g.identidade.apelido}.`
+];
 function renderAposentadoria(){
   const legado = LEGADOS[GAME.legadoFinal];
   const s = GAME.statsCareer;
+  const capitulos = capitulosDocumentario();
+  documentarioCapitulo = clamp(documentarioCapitulo, 0, capitulos.length-1);
+  const cap = capitulos[documentarioCapitulo];
+
+  const stepperHtml = `<div class="phase-stepper">${capitulos.map((c,i) => `<div class="phase-dot ${i<documentarioCapitulo?'done':i===documentarioCapitulo?'current':''}" data-cap="${i}" style="cursor:pointer"></div>`).join('')}</div>`;
+
+  let corpoHtml;
+  if(cap.tipo === 'abertura'){
+    corpoHtml = `
+      <div class="screen-hero hero-marco">
+        <span class="hero-marco-selo">⭐ Marco</span>
+        <div class="screen-hero-kicker">Documentário da Carreira</div>
+        <h1>${escapeHtml(GAME.identidade.apelido)}</h1>
+        <span class="result-badge-big good">🏅 ${escapeHtml(legado.titulo)}</span>
+      </div>
+      <div class="card"><div id="scene-text">${escapeHtml(legado.texto(GAME)).replace(/\n/g,'<br>')}</div></div>
+      <div class="card">
+        <div class="card-title">Números da Carreira</div>
+        <p>${s.temporadas} temporada(s) • ${s.jogos} jogos • ${s.gols} gols • ${s.assistencias} assistências</p>
+        <p>${s.titulos} título(s) • ${s.acessos} acesso(s) de divisão • Nota média: ${s.notaMediaCareer.toFixed(2)}</p>
+      </div>`;
+  } else if(cap.tipo === 'marco'){
+    const m = cap.marco;
+    corpoHtml = `
+      <div class="screen-hero hero-marco">
+        <span class="hero-marco-selo">⭐ Marco</span>
+        <div class="screen-hero-kicker">Temporada ${m.temporada}</div>
+        <h1>${escapeHtml(m.titulo)}</h1>
+      </div>
+      <div class="card">
+        <div id="scene-text">${escapeHtml(m.descricao)}</div>
+        <p class="small muted spacer">${escapeHtml(pick(REFLEXOES_DOCUMENTARIO)(GAME))}</p>
+      </div>`;
+  } else {
+    corpoHtml = `
+      <div class="screen-hero">
+        <div class="screen-hero-kicker">Onde ele está hoje</div>
+        <h1>Fim da Jornada</h1>
+        <p class="screen-hero-sub">${s.clubesPassados.length ? `Passou por ${s.clubesPassados.map(c=>escapeHtml(c.nome)).join(', ')} ao longo de ${s.temporadas} temporada(s).` : `Uma carreira inteira construída em ${s.temporadas} temporada(s).`}</p>
+      </div>
+      <div class="card">
+        <div class="card-title">Legado</div>
+        <p>${s.convocacoes.length ? `Convocações: ${s.convocacoes.map(c=>escapeHtml(c.nome)).join(', ')}` : 'Nunca foi convocado para uma seleção nacional.'}</p>
+        <p>${s.clubesPassados.length ? `Clubes defendidos: ${s.clubesPassados.map(c=>escapeHtml(c.nome)).join(', ')}` : ''}</p>
+      </div>
+      <div class="btn-row" style="max-width:360px">
+        <button class="btn" id="btn-ver-painel-aposentadoria">Ver painel completo</button>
+        <button class="btn btn-primary" id="btn-nova-carreira-aposentadoria">Começar nova carreira</button>
+      </div>`;
+  }
+
   app.innerHTML = `
-    <div class="screen-hero hero-marco">
-      <span class="hero-marco-selo">⭐ Marco</span>
-      <div class="screen-hero-kicker">Documentário da Carreira</div>
-      <h1>${escapeHtml(GAME.identidade.apelido)}</h1>
-      <span class="result-badge-big good">🏅 ${escapeHtml(legado.titulo)}</span>
-    </div>
-    <div class="card">
-      <div id="scene-text">${escapeHtml(legado.texto(GAME)).replace(/\n/g,'<br>')}</div>
-    </div>
-    <div class="card">
-      <div class="card-title">Números da Carreira</div>
-      <p>${s.temporadas} temporada(s) • ${s.jogos} jogos • ${s.gols} gols • ${s.assistencias} assistências</p>
-      <p>${s.titulos} título(s) • ${s.acessos} acesso(s) de divisão • Nota média: ${s.notaMediaCareer.toFixed(2)}</p>
-      <p>${s.convocacoes.length ? `Convocações: ${s.convocacoes.map(c=>c.nome).join(', ')}` : 'Nunca foi convocado para uma seleção nacional.'}</p>
-      <p>${s.clubesPassados.length ? `Clubes defendidos: ${s.clubesPassados.map(c=>c.nome).join(', ')}` : ''}</p>
-    </div>
-    ${(GAME.memorial||[]).length ? `<div class="card">
-      <div class="card-title">⭐ Memorial</div>
-      ${GAME.memorial.map(m => `<p>⭐ <b>${escapeHtml(m.titulo)}</b> <span class="small muted">(Temporada ${m.temporada})</span><br><span class="small muted">${escapeHtml(m.descricao)}</span></p>`).join('<hr style="border-color:#232b3a;margin:8px 0">')}
-    </div>` : ''}
-    <div class="btn-row" style="max-width:360px">
-      <button class="btn" id="btn-ver-painel-aposentadoria">Ver painel completo</button>
-      <button class="btn btn-primary" id="btn-nova-carreira-aposentadoria">Começar nova carreira</button>
-    </div>
+    ${stepperHtml}
+    ${corpoHtml}
+    <div class="card"><div class="choices">
+      ${documentarioCapitulo>0 ? '<button class="btn" id="btn-doc-anterior">← Capítulo anterior</button>' : ''}
+      ${documentarioCapitulo<capitulos.length-1 ? '<button class="btn btn-primary" id="btn-doc-proximo">Próximo capítulo →</button>' : ''}
+    </div></div>
   `;
-  document.getElementById('btn-ver-painel-aposentadoria').onclick = abrirPainel;
-  document.getElementById('btn-nova-carreira-aposentadoria').onclick = () => { apagarSave(); renderCriacaoPersonagem(); };
+  document.querySelectorAll('[data-cap]').forEach(dot => { dot.onclick = () => { documentarioCapitulo = parseInt(dot.dataset.cap,10); render(); }; });
+  const btnAnterior = document.getElementById('btn-doc-anterior');
+  if(btnAnterior) btnAnterior.onclick = () => { documentarioCapitulo--; render(); };
+  const btnProximo = document.getElementById('btn-doc-proximo');
+  if(btnProximo) btnProximo.onclick = () => { documentarioCapitulo++; render(); };
+  const btnPainel = document.getElementById('btn-ver-painel-aposentadoria');
+  if(btnPainel) btnPainel.onclick = abrirPainel;
+  const btnNovaCarreira = document.getElementById('btn-nova-carreira-aposentadoria');
+  if(btnNovaCarreira) btnNovaCarreira.onclick = () => { apagarSave(); renderCriacaoPersonagem(); };
 }
 
 // Antes, o único sinal de idade no corpo era o corte binário de aposentadoria

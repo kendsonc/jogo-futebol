@@ -28,20 +28,28 @@ const MARCAS_ESPORTIVAS = [
   { nome:'Nike', tier:3, requisitoInteresse:86, requisitoNota:7.9, valorMensal:2000 }
 ];
 
+// marcaAnterior != null → isso é uma oferta de TROCA (ver sortearEvento: só
+// dispara quando a melhor marca elegível paga bastante mais que a atual).
+// Antes, a oferta só era sorteada com `!GAME.patrocinioAtual`, então o
+// primeiro contrato assinado (mesmo o mais fraco, Topper) travava o jogador
+// nele pelo resto da carreira — a Nike nunca mais aparecia.
 function gerarEventoPatrocinio(marca){
+  const marcaAnterior = GAME.patrocinioAtual ? GAME.patrocinioAtual.marca : null;
   return {
     id:'patrocinio_'+marca.nome, categoria:'midia',
-    texto:(g)=>`Um representante da ${marca.nome} entra em contato através do seu empresário${g.empresarioAtual?'':' — ou diretamente, já que você ainda não tem um'}.\n\n— A gente vem acompanhando seu desempenho. Queremos te propor um contrato de patrocínio de material esportivo.`,
+    texto:(g)=> marcaAnterior
+      ? `Um representante da ${marca.nome} entra em contato através do seu empresário${g.empresarioAtual?'':' — ou diretamente, já que você ainda não tem um'}.\n\n— Sabemos que você já veste a ${marcaAnterior} hoje, mas queremos te tirar de lá. Nossa proposta paga bem mais.`
+      : `Um representante da ${marca.nome} entra em contato através do seu empresário${g.empresarioAtual?'':' — ou diretamente, já que você ainda não tem um'}.\n\n— A gente vem acompanhando seu desempenho. Queremos te propor um contrato de patrocínio de material esportivo.`,
     escolhas:[
-      { label:`Assinar com a ${marca.nome}`, efeitos:{imagemMidia:6, popularidade:5, carteira:marca.valorMensal*2},
+      { label: marcaAnterior ? `Trocar para a ${marca.nome}` : `Assinar com a ${marca.nome}`, efeitos:{imagemMidia:6, popularidade:5, carteira:marca.valorMensal*2},
         extra:(g)=>{ g.patrocinioAtual = { marca:marca.nome, valorMensal:marca.valorMensal, tier:marca.tier };
-          pushNoticia('midia', `${g.identidade.apelido} fecha patrocínio de material esportivo com a ${marca.nome}.`);
+          pushNoticia('midia', marcaAnterior ? `${g.identidade.apelido} rompe com a ${marcaAnterior} e assina patrocínio maior com a ${marca.nome}.` : `${g.identidade.apelido} fecha patrocínio de material esportivo com a ${marca.nome}.`);
           atualizarRedesSociais(rand(80,300), 'marca'); } },
       { label:'Negociar um valor melhor antes de assinar', efeitos:{pressaoPsicologica:3},
         extra:(g)=>{ if(chance(50)){ g.patrocinioAtual = { marca:marca.nome, valorMensal:Math.round(marca.valorMensal*1.15), tier:marca.tier };
             pushNoticia('midia', `${g.identidade.apelido} negocia e fecha com a ${marca.nome} por um valor melhor.`); }
           else { pushNoticia('geral', `A negociação com a ${marca.nome} esfriou depois que você pediu mais.`); } } },
-      { label:'Recusar por enquanto', efeitos:{} }
+      { label: marcaAnterior ? `Permanecer com a ${marcaAnterior}` : 'Recusar por enquanto', efeitos:{} }
     ]
   };
 }
@@ -79,25 +87,36 @@ const MARCAS_IMAGEM = {
 const NOMES_CATEGORIA_PATROCINIO = { bebida:'bebida isotônica', celular:'celular', banco:'banco', streaming:'streaming' };
 function gerarEventoPatrocinioImagem(categoria, marca){
   const nomeCategoria = NOMES_CATEGORIA_PATROCINIO[categoria];
+  const atual = GAME.patrociniosImagem && GAME.patrociniosImagem[categoria];
   return {
     id:'patrocinio_imagem_'+categoria, categoria:'midia',
-    texto:(g)=>`Uma marca de ${nomeCategoria} entra em contato através do seu empresário${g.empresarioAtual?'':' — ou diretamente, já que você ainda não tem um'}.\n\n— A ${marca.nome} quer associar a imagem dela à sua. Estão propondo um contrato de patrocínio de ${nomeCategoria}.`,
+    texto:(g)=> atual
+      ? `Uma marca de ${nomeCategoria} entra em contato através do seu empresário${g.empresarioAtual?'':' — ou diretamente, já que você ainda não tem um'}.\n\n— Sabemos que você já tem parceria com a ${atual.marca}, mas a ${marca.nome} quer te tirar de lá com uma proposta bem maior.`
+      : `Uma marca de ${nomeCategoria} entra em contato através do seu empresário${g.empresarioAtual?'':' — ou diretamente, já que você ainda não tem um'}.\n\n— A ${marca.nome} quer associar a imagem dela à sua. Estão propondo um contrato de patrocínio de ${nomeCategoria}.`,
     escolhas:[
-      { label:`Assinar com a ${marca.nome}`, efeitos:{imagemMidia:4, popularidade:3, carteira:marca.valorMensal*2},
+      { label: atual ? `Trocar para a ${marca.nome}` : `Assinar com a ${marca.nome}`, efeitos:{imagemMidia:4, popularidade:3, carteira:marca.valorMensal*2},
         extra:(g)=>{ if(!g.patrociniosImagem) g.patrociniosImagem = {};
           g.patrociniosImagem[categoria] = { marca:marca.nome, valorMensal:marca.valorMensal, categoria };
-          pushNoticia('midia', `${g.identidade.apelido} fecha patrocínio de ${nomeCategoria} com a ${marca.nome}.`);
+          pushNoticia('midia', atual ? `${g.identidade.apelido} rompe com a ${atual.marca} e fecha patrocínio maior de ${nomeCategoria} com a ${marca.nome}.` : `${g.identidade.apelido} fecha patrocínio de ${nomeCategoria} com a ${marca.nome}.`);
           atualizarRedesSociais(rand(40,180), 'marca'); } },
-      { label:'Recusar por enquanto', efeitos:{} }
+      { label: atual ? `Permanecer com a ${atual.marca}` : 'Recusar por enquanto', efeitos:{} }
     ]
   };
 }
+// Antes, cada categoria (bebida/celular/banco/streaming) só oferecia uma
+// marca ENQUANTO não houvesse contrato ativo (`!GAME.patrociniosImagem[cat]`)
+// — sem nenhum caminho de troca, um contrato fraco fechado cedo travava a
+// categoria inteira pro resto da carreira. Agora também permite upgrade
+// quando a melhor marca elegível paga bem mais que a atual (>30%).
 function categoriaPatrocinioImagemDisponivel(){
   if(!GAME.patrociniosImagem) GAME.patrociniosImagem = {};
-  const categorias = Object.keys(MARCAS_IMAGEM).filter(cat => !GAME.patrociniosImagem[cat]);
-  for(const cat of categorias){
+  for(const cat of Object.keys(MARCAS_IMAGEM)){
+    const atual = GAME.patrociniosImagem[cat];
     const elegiveis = MARCAS_IMAGEM[cat].filter(m => GAME.sociais.popularidade >= m.requisitoPopularidade && GAME.sociais.imagemMidia >= m.requisitoImagemMidia);
-    if(elegiveis.length) return { categoria:cat, marca:elegiveis[elegiveis.length-1] };
+    if(!elegiveis.length) continue;
+    const melhor = elegiveis[elegiveis.length-1];
+    if(!atual) return { categoria:cat, marca:melhor };
+    if(melhor.marca !== atual.marca && melhor.valorMensal > atual.valorMensal*1.3) return { categoria:cat, marca:melhor };
   }
   return null;
 }
@@ -186,7 +205,10 @@ function sortearEvento(){
     pool.push(...EVENTOS_AMIZADE.map(gerador => gerador()));
     pool.push(...EVENTOS_ELENCO_PAPEL.map(gerador => gerador()).filter(Boolean));
   }
-  if(GAME.rival) pool.push(...EVENTOS_RIVAL);
+  // Empurrado 2x (dobra o peso no sorteio uniforme) — o rival é personagem
+  // recorrente central da carreira e não deveria competir em pé de igualdade
+  // com ~150 outros eventos genéricos, sob risco de sumir por temporadas.
+  if(GAME.rival) pool.push(...EVENTOS_RIVAL, ...EVENTOS_RIVAL);
   if(GAME.relacionamento){
     pool.push(...EVENTOS_RELACIONAMENTO);
     const pedido = gerarEventoPedidoCasamento();
@@ -203,9 +225,17 @@ function sortearEvento(){
     && (GAME.stats.interesseClubes >= 50 || calcularOverall() >= 68) && chance(12)){
     pool.push(gerarEventoEmpresarioConcorrente());
   }
-  if(!GAME.patrocinioAtual && GAME.stats.notaMedia > 0 && chance(28)){
-    const elegiveis = MARCAS_ESPORTIVAS.filter(m => GAME.stats.interesseClubes >= m.requisitoInteresse && GAME.stats.notaMedia >= m.requisitoNota);
-    if(elegiveis.length) pool.push(gerarEventoPatrocinio(elegiveis[elegiveis.length-1]));
+  {
+    const elegiveisPatrocinio = MARCAS_ESPORTIVAS.filter(m => GAME.stats.interesseClubes >= m.requisitoInteresse && GAME.stats.notaMedia >= m.requisitoNota);
+    if(elegiveisPatrocinio.length && GAME.stats.notaMedia > 0){
+      const melhorElegivel = elegiveisPatrocinio[elegiveisPatrocinio.length-1];
+      const semPatrocinio = !GAME.patrocinioAtual;
+      // upgrade real: só oferece troca quando a melhor marca elegível paga
+      // bem mais que a atual — sem isso o primeiro contrato assinado (mesmo
+      // o mais fraco) travava o jogador nele pro resto da carreira
+      const upgradeReal = GAME.patrocinioAtual && melhorElegivel.nome !== GAME.patrocinioAtual.marca && melhorElegivel.valorMensal > GAME.patrocinioAtual.valorMensal*1.3;
+      if((semPatrocinio || upgradeReal) && chance(semPatrocinio?28:14)) pool.push(gerarEventoPatrocinio(melhorElegivel));
+    }
   }
   if(chance(22)){
     const oferta = categoriaPatrocinioImagemDisponivel();

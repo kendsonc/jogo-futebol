@@ -120,7 +120,10 @@ function pedirEmprestimo(opcaoId, valor, parcelas, garantiaRef){
     if(!garantiaRef) return false;
     const bem = bensDisponiveisGarantia().find(b => b.tipo === garantiaRef.tipo && b.instanceId === garantiaRef.instanceId);
     if(!bem || valor > bem.valor) return false;
-    garantia = { tipo: bem.tipo, instanceId: bem.instanceId, descricao: bem.descricao };
+    // valor precisa ir junto — processarInadimplenciaSemanal usa garantia.valor
+    // pra saber quanto abater da dívida na penhora (sem isso, dava NaN e
+    // corrompia semanasPagas/saldoDevedor do empréstimo inteiro)
+    garantia = { tipo: bem.tipo, instanceId: bem.instanceId, descricao: bem.descricao, valor: bem.valor };
   }
   if(valor <= 0 || valor > opcao.maxValor) return false;
   if(!opcao.parcelasDisponiveis.includes(parcelas)) return false;
@@ -182,9 +185,22 @@ function processarInadimplenciaSemanal(){
       const g = empComGarantia.garantia;
       if(g.tipo === 'carro') GAME.garagem = GAME.garagem.filter(c => c.instanceId !== g.instanceId);
       else GAME.imoveisComprados = GAME.imoveisComprados.filter(i => i.instanceId !== g.instanceId);
-      empComGarantia.quitado = true;
-      empComGarantia.saldoDevedor = 0;
-      pushNoticiaImprensa('midia', `Penhora! O banco tomou ${g.descricao}, dado como garantia, para quitar um empréstimo que ficou tempo demais em atraso.`);
+      // A penhora só abate o valor do BEM tomado — convertido em "semanas
+      // pagas", a mesma unidade que processarEmprestimosSemanal usa pra
+      // recalcular saldoDevedor toda semana (sem isso, setar saldoDevedor=0
+      // direto seria sobrescrito pela fórmula já na semana seguinte). Sem
+      // esse abatimento proporcional, dava pra contrair um empréstimo bem
+      // maior que o bem oferecido em garantia e "quitar" tudo perdendo só o
+      // bem menor — agora a dívida que sobrar do valor do bem continua ativa,
+      // só que sem garantia nenhuma protegendo mais nada.
+      const semanasAbatidas = Math.floor(g.valor / empComGarantia.valorSemanal);
+      empComGarantia.semanasPagas = Math.min(empComGarantia.semanasTotais, empComGarantia.semanasPagas + semanasAbatidas);
+      empComGarantia.saldoDevedor = Math.max(0, Math.round((empComGarantia.parcelas*empComGarantia.valorParcela) - empComGarantia.semanasPagas*empComGarantia.valorSemanal));
+      empComGarantia.garantia = null;
+      if(empComGarantia.semanasPagas >= empComGarantia.semanasTotais){ empComGarantia.quitado = true; empComGarantia.saldoDevedor = 0; }
+      pushNoticiaImprensa('midia', empComGarantia.quitado
+        ? `Penhora! O banco tomou ${g.descricao}, dado como garantia, e quitou o empréstimo em atraso.`
+        : `Penhora! O banco tomou ${g.descricao}, dado como garantia, mas ainda restam R$ ${empComGarantia.saldoDevedor.toLocaleString('pt-BR')} de dívida em aberto, agora sem nenhuma garantia.`);
       GAME.banco.semanasNegativo = 0;
       GAME.sociais.imagemMidia = clamp(GAME.sociais.imagemMidia - 6, 0, 100);
     }

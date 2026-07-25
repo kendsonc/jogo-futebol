@@ -51,24 +51,43 @@ function evoluirRival(){
     }
   }
   const meuOverall = calcularOverall();
+  const trajetoriaAnterior = r.trajetoria;
   if(r.overall > meuOverall + 6) r.trajetoria = 'ascendente';
   else if(r.overall < meuOverall - 6) r.trajetoria = 'em baixa';
   else r.trajetoria = 'parelha à sua';
-  gerarNoticiaComparativaRival();
+  gerarNoticiaComparativaRival(trajetoriaAnterior);
 }
 
-function gerarNoticiaComparativaRival(){
+// Antes eram só 3 templates fixos, repetidos ao pé da letra ao longo de 10+
+// temporadas pra um personagem descrito como "persistente e recorrente" —
+// agora 9, incluindo uma variação específica pra quando a trajetória do
+// rival MUDA de estado (trajetoriaAnterior, capturado em evoluirRival antes
+// de sobrescrever), que antes passava batido silenciosamente.
+function gerarNoticiaComparativaRival(trajetoriaAnterior){
   const r = GAME.rival;
   if(!r) return;
   const meuOverall = calcularOverall();
   const meusGols = (GAME.statsCareer ? GAME.statsCareer.gols : 0) + GAME.stats.gols;
+  const meusTitulos = GAME.statsCareer ? GAME.statsCareer.titulos : 0;
   const templates = [
     () => `Comparação da imprensa: enquanto ${GAME.identidade.apelido} soma ${meusGols} gols na carreira, ${r.nome} já tem ${r.statsCareer.gols} pelo ${r.clubeNome}.`,
     () => `"Quem é o melhor da geração?" — matéria coloca ${GAME.identidade.apelido} e ${r.nome} lado a lado outra vez.`,
     () => meuOverall >= r.overall
       ? `Colunista destaca que ${GAME.identidade.apelido} vem se sobressaindo na comparação direta com ${r.nome}.`
-      : `Colunista aponta que ${r.nome} vem se destacando mais do que ${GAME.identidade.apelido} nesta fase.`
+      : `Colunista aponta que ${r.nome} vem se destacando mais do que ${GAME.identidade.apelido} nesta fase.`,
+    () => `Estudo de mercado especula: "quem valeria mais hoje, ${GAME.identidade.apelido} ou ${r.nome}?" — a resposta divide opiniões entre os colunistas.`,
+    () => meusTitulos === r.statsCareer.titulos
+      ? `No quesito títulos, ${GAME.identidade.apelido} e ${r.nome} seguem empatados: ${meusTitulos} conquistas cada um até aqui.`
+      : meusTitulos > r.statsCareer.titulos
+        ? `Na prateleira de títulos, ${GAME.identidade.apelido} (${meusTitulos}) segue à frente de ${r.nome} (${r.statsCareer.titulos}).`
+        : `${r.nome} já tem ${r.statsCareer.titulos} título(s) contra ${meusTitulos} de ${GAME.identidade.apelido} — a comparação pesa pro lado dele por enquanto.`,
+    () => `Programa esportivo dedica um bloco inteiro só pra comparar os números de ${GAME.identidade.apelido} e ${r.nome} nesta temporada.`
   ];
+  if(trajetoriaAnterior && trajetoriaAnterior !== r.trajetoria){
+    if(r.trajetoria === 'ascendente') templates.push(() => `Virada na comparação: ${r.nome} vinha de um momento discreto e agora entra em ascensão pelo ${r.clubeNome} — a imprensa já fala em "resposta" na rivalidade com ${GAME.identidade.apelido}.`);
+    else if(r.trajetoria === 'em baixa') templates.push(() => `${r.nome} vinha em alta, mas a fase mudou — colunistas notam que ele perdeu terreno na comparação direta com ${GAME.identidade.apelido} nos últimos tempos.`);
+    else templates.push(() => `Depois de um tempo em desequilíbrio, a comparação entre ${GAME.identidade.apelido} e ${r.nome} volta a ficar parelha, segundo a imprensa esportiva.`);
+  }
   pushNoticiaImprensa('midia', pick(templates)());
 }
 
@@ -95,6 +114,30 @@ const EVENTOS_RIVAL = [
     escolhas: [
       { label: 'Tentar não pensar nisso e manter a rotina', efeitos: { pressaoPsicologica: 3, tracos: { serio: 1 } } },
       { label: 'Se cobrar mais nos próximos treinos', efeitos: { atributos: { disciplina: 1 }, energia: -6, pressaoPsicologica: 5, tracos: { confiante: 1 } } }
+    ] },
+  { id: 'rival_ranking_posicao', categoria: 'rival',
+    retrato: (g) => ({ nome: g.rival.nome, papel: 'rival' }),
+    texto: (g) => `Um site especializado publica um ranking dos melhores jogadores da sua posição no país — ${g.identidade.apelido} e ${g.rival.nome} aparecem lado a lado na lista, gerando debate nos comentários.`,
+    escolhas: [
+      { label: 'Comentar que rankings são só opinião, o campo decide', efeitos: { relacaoTreinador: 2, tracos: { serio: 1 } } },
+      { label: 'Compartilhar o ranking nas redes com bom humor', efeitos: { popularidade: 4, tracos: { descontraido: 1 } } },
+      { label: 'Discordar publicamente da posição no ranking', efeitos: { popularidade: 3, imagemMidia: -3, pressaoPsicologica: 3, tracos: { confiante: 1 } } }
+    ] },
+  { id: 'rival_amistoso_solidario', categoria: 'rival',
+    retrato: (g) => ({ nome: g.rival.nome, papel: 'rival' }),
+    texto: (g) => `A organização de um amistoso beneficente convida você e ${g.rival.nome} pra jogarem no MESMO time, numa partida de arrecadação de fundos — a imprensa já batizou o evento de "trégua da rivalidade".`,
+    escolhas: [
+      { label: 'Aceitar de bom grado, é uma causa maior', efeitos: { popularidade: 6, imagemMidia: 5, moral: 3, tracos: { humilde: 1 } } },
+      { label: 'Aceitar, mas deixar claro que a rivalidade volta depois', efeitos: { popularidade: 4, pressaoPsicologica: 2, tracos: { confiante: 1 } } },
+      { label: 'Recusar educadamente, prefere manter distância dele', efeitos: { imagemMidia: -2, tracos: { serio: 1 } } }
+    ] },
+  { id: 'rival_documentario_rivalidade', categoria: 'rival',
+    retrato: (g) => ({ nome: g.rival.nome, papel: 'rival' }),
+    texto: (g) => `Uma produtora de streaming entra em contato querendo fazer um documentário sobre a rivalidade entre você e ${g.rival.nome} — desde as categorias de base até hoje.`,
+    escolhas: [
+      { label: 'Topar participar e contar sua versão da história', efeitos: { popularidade: 7, imagemMidia: 4, carteira: 400, tracos: { confiante: 1 } } },
+      { label: 'Topar, mas pedir pra focar mais no coletivo que na rivalidade pessoal', efeitos: { popularidade: 4, relacaoElenco: 3, tracos: { humilde: 1 } } },
+      { label: 'Recusar, prefere manter esse capítulo só pra si', efeitos: { pressaoPsicologica: -3, tracos: { serio: 1 } } }
     ] }
 ];
 

@@ -1232,7 +1232,7 @@ function finalizarPartida(){
   const resultado = {
     adversario, status, titular, entrouBanco, minutos, gols, assist, erros, amarelo, vermelho, defesaImportante, nota, eventos,
     golsTime, golsAdversario, resultadoJogo, artilheiros, mandante, outrosResultados, sumulaTime, cronologiaGols, confrontoRival, reacaoElenco,
-    estatisticasFinais
+    estatisticasFinais, classicoRegional: p.classicoRegional
   };
 
   // Notícia pós-jogo

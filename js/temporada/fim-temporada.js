@@ -119,6 +119,9 @@ function finalizarTemporada(){
   disputarMundialDeClubesSeNecessario();
   disputarCopaDoMundoSeNecessario();
   calcularMelhorDoMundoSeElegivel();
+  // Cena dedicada de gala só quando VOCÊ vence (renderGalaBolaDeOuro, copas.js)
+  // — intercepta o fluxo de render() (router.js) antes do relatório comum.
+  GAME.galaBolaDeOuroPendente = !!(GAME.bolaDeOuroResultado && GAME.bolaDeOuroResultado.venci);
   calcularQualificacoesProximaTemporada();
   GAME.statsCareer.premios.push(...GAME.premiacoesTemporada.map(t => `${t} (Temporada ${GAME.numeroTemporada})`));
   salvarJogo();

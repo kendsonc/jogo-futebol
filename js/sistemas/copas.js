@@ -773,3 +773,61 @@ function calcularMelhorDoMundoSeElegivel(){
     pushNoticiaImprensa('midia', `Bola de Ouro: ${vencedor.nome} foi eleito o melhor do mundo nesta temporada — ${GAME.identidade.apelido} ficou entre os concorrentes.`);
   }
 }
+
+/* ============================== GALA DO BOLA DE OURO ==========================
+   Cena dedicada só quando VOCÊ vence a Bola de Ouro (calcularMelhorDoMundoSeElegivel
+   acima) — antes o prêmio era só uma notícia + badge no relatório de fim de
+   temporada, sem nenhum momento próprio pro maior prêmio individual do
+   futebol. Reaproveita 100% de padrões já existentes: screen-hero na variante
+   "marco" (css/style.css), retrato pixel art (pixelRostoSvg, js/core/pixelart.js)
+   e escolhas de tom no discurso de vitória, no mesmo espírito da coletiva de
+   imprensa (js/sistemas/imprensa.js). Intercepta render() (js/core/router.js)
+   via GAME.galaBolaDeOuroPendente, setado em finalizarTemporada (fim-temporada.js).
+   ========================================================================= */
+const ESCOLHAS_DISCURSO_BOLA_DE_OURO = [
+  { label:'Agradecer à família e a quem esteve do seu lado desde o início', tom:'humilde',
+    efeito:{relacaoFamilia:8, moral:5, popularidade:3},
+    resposta:()=>'"Esse prêmio é de quem nunca me deixou desistir. Minha família esteve comigo em cada etapa dessa caminhada."' },
+  { label:'Agradecer ao elenco e ao clube pelo trabalho coletivo', tom:'humilde',
+    efeito:{relacaoElenco:8, relacaoDiretoria:4, moral:3},
+    resposta:(g)=>`"Sem meus companheiros de ${g.clube.nome}, esse prêmio individual não existiria. É mérito do grupo inteiro."` },
+  { label:'Falar com confiança sobre o trabalho duro que trouxe até aqui', tom:'confiante',
+    efeito:{popularidade:8, imagemMidia:5, confianca:4},
+    resposta:()=>'"Trabalhei a vida inteira por esse momento. Ninguém chega aqui por acaso — isso é fruto de muito sacrifício."' },
+  { label:'Dedicar o prêmio à torcida que acompanhou cada jogo', tom:'humilde',
+    efeito:{relacaoTorcida:10, popularidade:4},
+    resposta:(g)=>`"Esse prêmio também é da torcida do ${g.clube.nome}. Vocês vivem cada jogo comigo, essa taça é nossa."` }
+];
+function renderGalaBolaDeOuro(){
+  const r = GAME.bolaDeOuroResultado;
+  app.innerHTML = `
+    <div class="screen-hero hero-marco">
+      <span class="hero-marco-selo">⭐ Marco</span>
+      <div class="screen-hero-kicker">Gala do Melhor do Mundo — Temporada ${r.temporada}</div>
+      <h1>Bola de Ouro</h1>
+      <div style="display:flex; justify-content:center; margin:10px 0">${GAME.identidade.aparencia ? pixelRostoSvg(GAME.identidade.aparencia, 96) : ''}</div>
+      <span class="result-badge-big good">🏆 ${escapeHtml(GAME.identidade.apelido)} é o Melhor do Mundo!</span>
+      <p class="screen-hero-sub">Diante de craques do mundo inteiro, seu nome foi o escolhido. É hora do discurso.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">Seu discurso de vitória</div>
+      <div class="choices">
+        ${ESCOLHAS_DISCURSO_BOLA_DE_OURO.map((e,i)=>`<button class="btn" data-i="${i}">${escapeHtml(e.label)}</button>`).join('')}
+      </div>
+    </div>
+  `;
+  document.querySelectorAll('.choices .btn').forEach(btn => {
+    btn.onclick = () => {
+      const escolha = ESCOLHAS_DISCURSO_BOLA_DE_OURO[parseInt(btn.dataset.i,10)];
+      const efeito = Object.assign({}, escolha.efeito);
+      efeito.tracos = Object.assign({}, efeito.tracos, { [escolha.tom]: 1 });
+      aplicarEfeitos(efeito);
+      const respostaTexto = escolha.resposta(GAME);
+      pushHistorico(`Discurso da Bola de Ouro: ${respostaTexto}`);
+      pushNoticiaImprensa('midia', `${GAME.identidade.apelido} discursou na gala do Bola de Ouro: ${respostaTexto}`);
+      GAME.galaBolaDeOuroPendente = false;
+      salvarJogo();
+      render();
+    };
+  });
+}

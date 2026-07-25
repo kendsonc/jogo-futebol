@@ -104,7 +104,7 @@ function render(){
   if(GAME.fase === 'peneira') return renderPeneira();
   if(GAME.fase === 'temporada') return renderTemporada();
   if(GAME.fase === 'entressafra') return renderEntressafra();
-  if(GAME.fase === 'fim') return renderFimDeTemporada();
+  if(GAME.fase === 'fim') return GAME.galaBolaDeOuroPendente ? renderGalaBolaDeOuro() : renderFimDeTemporada();
   if(GAME.fase === 'aposentadoria') return renderAposentadoria();
   renderStart();
 }
