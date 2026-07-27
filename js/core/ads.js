@@ -63,8 +63,21 @@ function elementoRealmenteVisivel(el){
   return !!el && getComputedStyle(el).display !== 'none';
 }
 
+// O Google reprovou o site com o motivo "anúncios veiculados pelo Google em
+// telas sem conteúdo do editor" (sem conteúdo/baixo valor, em construção, ou
+// usadas para navegação). As telas antes de GAME.clube existir (menu inicial,
+// criação de personagem, história de fundo, escolha de clube) são só
+// navegação/formulário — pouco texto autoral, nenhuma delas deveria carregar
+// anúncio. A partir da peneira (GAME.clube já escolhido) o jogo passa a ter
+// conteúdo narrativo real (texto de cena, decisões, estatísticas), aí sim
+// anúncio é apropriado.
+function telaAtualPermiteAnuncio(){
+  return typeof GAME !== 'undefined' && !!GAME && !!GAME.clube;
+}
+
 // Chamado pelo appObserver (router.js) a cada troca de tela de verdade.
 function talvezAtualizarAnuncio(){
+  if(!telaAtualPermiteAnuncio()) return;
   if(Date.now() - _ultimoAnuncioEm < INTERVALO_MINIMO_ANUNCIO_MS) return;
   _ultimoAnuncioEm = Date.now();
 
