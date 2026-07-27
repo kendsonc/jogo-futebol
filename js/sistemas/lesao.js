@@ -43,6 +43,7 @@ function checarLesao(riscoMod){
     ajustarSaudeMental(-8);
     Som.tocarEfeito('lesao');
     pushNoticia('geral', `${GAME.identidade.apelido} sofreu uma lesão: ${tipo}.`);
+    if(!estaEmPartidaAoVivo()) mostrarToast({ icone:'🩹', titulo:'Lesão', texto:`${tipo} — ${semanas} semana(s) de recuperação` });
     // lesão grave pode deixar sequela: o corpo às vezes não esquece, mesmo
     // muito depois de recuperado — atravessa temporadas se preciso
     if(tipo === 'Lesão grave'){

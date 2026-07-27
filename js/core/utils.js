@@ -36,12 +36,16 @@ function fmtData(d){ const dd=String(d.getDate()).padStart(2,'0'), mm=String(d.g
 function el(html){ const t=document.createElement('template'); t.innerHTML=html.trim(); return t.content.firstChild; }
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-/* Barra de progresso textual (0-100) usada em várias telas do painel */
-function barraHtml(label, valor, tipo){
+/* Barra de progresso textual (0-100) usada em várias telas do painel.
+   `icone` é só um prefixo visual (físico/mental/social) pra dar leitura
+   instantânea de categoria sem mexer na cor — a cor continua 100% reservada
+   pro estado (bom/atenção/crítico), que é o sinal mais importante da barra. */
+function barraHtml(label, valor, tipo, icone){
   valor = clamp(Math.round(valor),0,100);
   let cls = tipo || (valor>=66?'':valor>=33?'warn':'danger');
   if(!tipo){ cls = valor>=66?'':valor>=33?'warn':'danger'; }
-  return `<div><div class="bar-label"><span>${escapeHtml(label)}</span><span>${valor}</span></div>
+  const rotulo = icone ? `${icone} ${escapeHtml(label)}` : escapeHtml(label);
+  return `<div><div class="bar-label"><span>${rotulo}</span><span>${valor}</span></div>
   <div class="bar-track"><div class="bar-fill ${cls}" style="width:${valor}%"></div></div></div>`;
 }
 

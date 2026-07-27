@@ -167,6 +167,7 @@ function resolverRodadaNegociacao(acao){
   if(acao === 'aceitar'){
     GAME.contrato = { tipo:n.tipo, bolsa:n.bolsa, duracao:n.duracao, expectativa:n.expectativa, confiancaDiretoria:n.confiancaDiretoria };
     Som.tocarEfeito('contratoAssinado');
+    mostrarToast({ icone:'📝', titulo:'Contrato renovado', texto:`${n.tipo}, R$ ${n.bolsa.toLocaleString('pt-BR')}/mês` });
     pushNoticia('geral', `${GAME.identidade.apelido} renova com o ${GAME.clube.nome}: ${n.tipo}, R$ ${n.bolsa.toLocaleString('pt-BR')}/mês.`);
     GAME.entressafraState.etapa = 2;
     salvarJogo(); render();
@@ -200,6 +201,7 @@ function resolverRodadaNegociacao(acao){
     n.bolsa = Math.round(n.bolsa*0.9);
     GAME.contrato = { tipo:n.tipo, bolsa:n.bolsa, duracao:n.duracao, expectativa:'Baixa', confiancaDiretoria:clamp(n.confiancaDiretoria-15,0,100) };
     Som.tocarEfeito('contratoAssinado');
+    mostrarToast({ icone:'📝', titulo:'Contrato fechado', texto:`Negociação esfriou — termos piores que o esperado com o ${GAME.clube.nome}` });
     pushNoticia('geral', `A negociação com o ${GAME.clube.nome} esfriou. Contrato fechado em termos piores do que o esperado.`);
     GAME.entressafraState.etapa = 2;
     salvarJogo(); render();
@@ -208,6 +210,7 @@ function resolverRodadaNegociacao(acao){
   if(n.rodada > 3){
     GAME.contrato = { tipo:n.tipo, bolsa:n.bolsa, duracao:n.duracao, expectativa:n.expectativa, confiancaDiretoria:n.confiancaDiretoria };
     Som.tocarEfeito('contratoAssinado');
+    mostrarToast({ icone:'📝', titulo:'Contrato renovado', texto:`${n.tipo}, R$ ${n.bolsa.toLocaleString('pt-BR')}/mês` });
     pushNoticia('geral', `${GAME.identidade.apelido} fecha a renovação com o ${GAME.clube.nome} depois de uma negociação longa.`);
     GAME.entressafraState.etapa = 2;
   }
@@ -300,6 +303,7 @@ function renderEntressafraTransferencia(){
         pushNoticiaImprensa('midia', `${novoClube.nome} paga R$ ${valorTransferencia.toLocaleString('pt-BR')} por ${GAME.identidade.apelido}, vindo do ${clubeAntigoNomeTransferencia}.`);
         if(recordeTransferencia && valorTransferencia >= 500000) registrarMarco('Recorde pessoal de transferência', `Maior valor de transferência da carreira: R$ ${valorTransferencia.toLocaleString('pt-BR')}, para o ${novoClube.nome}.`, 'media');
         Som.tocarEfeito('contratoAssinado');
+        mostrarToast({ icone:'✍️', titulo:'Novo clube!', texto:`Transferido para o ${novoClube.nome} por R$ ${valorTransferencia.toLocaleString('pt-BR')}` });
         trocarTecnico();
         GAME.observador = pickExcluindo(NOMES_OBSERVADORES, GAME.observador);
         GAME.elenco = gerarElenco(); // novo clube, novos companheiros de elenco
@@ -382,6 +386,11 @@ function renderEntressafraFinal(){
 function iniciarAposentadoria(){
   GAME.legadoFinal = calcularLegadoFinal();
   registrarMarco('Aposentadoria', `Encerrou a carreira aos ${idadeAtual()} anos, defendendo o ${GAME.clube.nome}.`, 'alta');
+  const progressoMeta = calcularProgressoMetaCarreira();
+  if(progressoMeta && progressoMeta.cumprida){
+    const nomeMeta = METAS_CARREIRA[progressoMeta.meta].nome;
+    registrarMarco(`Meta de carreira cumprida: ${nomeMeta}`, `${GAME.identidade.apelido} realizou o sonho que levou pra carreira desde o início: ${progressoMeta.tituloDesc.toLowerCase()}.`, 'alta');
+  }
   // Lealdade ao empresário também vira parte do legado — antes disso, trocar
   // (ou nunca trocar) de empresário não tinha nenhum eco na aposentadoria.
   if(GAME.empresarioAtual && !(GAME.statsCareer.trocasEmpresario||0)){

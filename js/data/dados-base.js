@@ -361,6 +361,17 @@ function modsTaticosClube(clube){
   return MODS_TATICOS[cat];
 }
 
+// Instrução tática do JOGADOR pra uma partida específica (renderPreJogo) —
+// diferente de MODS_TATICOS (identidade fixa do clube a temporada inteira),
+// essa é uma escolha pontual, com trade-off claro, somada em cima dos mods
+// do clube só naquele jogo (ver prepararPartida, js/sistemas/partida.js).
+const POSTURAS_TATICAS = {
+  equilibrado:  { nome:'Equilibrado', desc:'Sem exagero pra nenhum lado.', ataque:0, defesa:0, posse:0, agressividade:0 },
+  ofensivo:     { nome:'Ofensivo', desc:'Mais chance de gol a favor, mas defesa mais vulnerável.', ataque:5, defesa:-4, posse:2, agressividade:0 },
+  retranqueiro: { nome:'Retranqueiro', desc:'Prioriza não sofrer gol, abrindo mão de ataque.', ataque:-5, defesa:5, posse:-3, agressividade:0 },
+  pressaoAlta:  { nome:'Pressão alta', desc:'Rouba mais bola no campo de ataque, mas cansa mais e arrisca mais cartão.', ataque:2, defesa:1, posse:3, agressividade:4 }
+};
+
 /* ============================== CLÁSSICOS REGIONAIS ==========================
    Em vez de catalogar manualmente cada par de rivais (93+ clubes nacionais +
    dezenas internacionais), um clássico é detectado pela mesma "cidade" —
@@ -409,6 +420,29 @@ const METAS_CARREIRA = {
   estrelaInternacional: { nome:'Estrela internacional', desc:'Sonha em jogar no exterior o quanto antes — seu nome circula mais rápido entre clubes grandes.' },
   legadoTitulos: { nome:'Coleção de títulos', desc:'O que importa é erguer taças — na hora de trocar de clube, prioriza quem tem chance real de título.' }
 };
+
+// Progresso numérico da meta escolhida na criação do personagem — antes
+// METAS_CARREIRA só reordenava propostas de transferência (ordenarOpcoesPorMetaCarreira,
+// entressafra.js), sem nenhum objetivo rastreado nem recompensa de fim de
+// carreira dedicada. Reaproveita dado que o jogo já rastreia (statsCareer,
+// clubesIdolo) em vez de criar estado novo.
+function calcularProgressoMetaCarreira(){
+  const meta = GAME.metaCarreira;
+  const s = GAME.statsCareer;
+  if(meta === 'legadoTitulos'){
+    const alvo = 3;
+    return { meta, tituloDesc:'Erguer 3 títulos de clube na carreira', atual:Math.min(s.titulos,alvo), alvo, cumprida:s.titulos >= alvo };
+  }
+  if(meta === 'estrelaInternacional'){
+    const jaJogouFora = (s.clubesPassados||[]).some(c => c.internacional) || (GAME.clube && GAME.clube.divisao === 'Internacional');
+    return { meta, tituloDesc:'Jogar em um clube internacional', atual:jaJogouFora?1:0, alvo:1, cumprida:jaJogouFora };
+  }
+  if(meta === 'idoloLocal'){
+    const jaFoiIdolo = (s.clubesIdolo||[]).length > 0 || GAME.relacoes.torcida >= 85;
+    return { meta, tituloDesc:'Virar ídolo de um clube', atual:jaFoiIdolo?1:0, alvo:1, cumprida:jaFoiIdolo };
+  }
+  return null;
+}
 
 /* ============================== DATA: POSIÇÕES ============================ */
 const POSICOES = ['Goleiro','Lateral-direito','Lateral-esquerdo','Zagueiro','Volante',

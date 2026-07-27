@@ -22,9 +22,7 @@ function aplicarTemaCompeticao(competicao){
 }
 function removerTemaCompeticao(){ document.body.classList.remove(...CLASSES_TEMA_COMPETICAO); }
 function sincronizarTemaCompeticao(){
-  const ts = GAME && GAME.temporadaState;
-  const emPartida = !!(ts && ts.subFase === 'partidaAoVivo' && ts.partidaEmAndamento);
-  if(emPartida) aplicarTemaCompeticao(ts.partidaEmAndamento.competicao);
+  if(estaEmPartidaAoVivo()) aplicarTemaCompeticao(GAME.temporadaState.partidaEmAndamento.competicao);
   else removerTemaCompeticao();
 }
 
@@ -37,9 +35,7 @@ function sincronizarTemaCompeticao(){
 // QUALQUER tela fora de uma partida ao vivo, seja qual for o caminho até
 // ela — tocarAmbiente já é no-op se o mesmo loop já estiver tocando.
 function sincronizarAmbienteSonoro(){
-  const ts = GAME && GAME.temporadaState;
-  const emPartida = !!(ts && ts.subFase === 'partidaAoVivo' && ts.partidaEmAndamento);
-  if(!emPartida) Som.tocarAmbiente('menu');
+  if(!estaEmPartidaAoVivo()) Som.tocarAmbiente('menu');
 }
 
 // Dispara uma transição suave sempre que o conteúdo principal muda de tela —

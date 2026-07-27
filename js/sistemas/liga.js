@@ -167,6 +167,25 @@ function simularPartidaGenerica(clubeA, clubeB, momentoA, momentoB){
 // histórico de jogo a jogo, já aproxima bem uma sequência de vitórias/derrotas
 // virando vantagem/crise real na força do clube (zebra de verdade, não só
 // Poisson estático o ano inteiro).
+// Empurra a força de um clube pra cima ou pra baixo conforme a "necessidade"
+// da posição na tabela em reta final de campeonato — clube brigando contra o
+// rebaixamento joga mais motivado/arriscado (zebra real de fim de temporada),
+// clube já com acesso praticamente garantido relaxa um pouco. Só pesa depois
+// de metade do campeonato — antes disso a tabela ainda é ruído demais pra
+// significar pressão real.
+function fatorNecessidadeClube(liga, clubeId){
+  const totalRodadas = liga.calendario.length;
+  if(liga.rodadaAtual < totalRodadas*0.5) return 0;
+  const linhas = liga.clubes.map(c => ({ id:c.id, t: liga.tabela[c.id] }))
+    .filter(l => l.t).sort((a,b) => b.t.pts-a.t.pts || b.t.sg-a.t.sg || b.t.gp-a.t.gp);
+  const posicao = linhas.findIndex(l => l.id === clubeId) + 1;
+  if(posicao <= 0) return 0;
+  const total = linhas.length;
+  const faltam = totalRodadas - liga.rodadaAtual;
+  if(posicao > total - ZONA_REBAIXAMENTO) return clamp(6 - faltam*0.15, 0, 6);
+  if(posicao <= ZONA_ACESSO && faltam <= totalRodadas*0.15) return -3;
+  return 0;
+}
 function atualizarMomentoClube(tabela, id, resultado){
   const linha = tabela[id];
   if(!linha) return;
@@ -209,7 +228,9 @@ function processarRodadaLiga(confronto, golsJogador, golsAdversario){
     if(!home || !away) return;
     const momentoHome = (liga.tabela[home.id]||{}).momento || 0;
     const momentoAway = (liga.tabela[away.id]||{}).momento || 0;
-    const sim = simularPartidaGenerica(home, away, momentoHome, momentoAway);
+    const necessidadeHome = fatorNecessidadeClube(liga, home.id);
+    const necessidadeAway = fatorNecessidadeClube(liga, away.id);
+    const sim = simularPartidaGenerica(home, away, momentoHome + necessidadeHome, momentoAway + necessidadeAway);
     atualizarLinhaTabela(liga.tabela, home.id, away.id, sim.golsA, sim.golsB);
     atualizarMomentoClube(liga.tabela, home.id, sim.golsA>sim.golsB?'vitoria':sim.golsA<sim.golsB?'derrota':'empate');
     atualizarMomentoClube(liga.tabela, away.id, sim.golsB>sim.golsA?'vitoria':sim.golsB<sim.golsA?'derrota':'empate');

@@ -731,6 +731,52 @@ const PERGUNTAS_COLETIVA_EXPANSAO = [
           `"Sequência boa é bom, mas não posso relaxar. Amanhã tudo pode virar rápido."`,
           `"Prefiro manter o pé no chão. Elogio de hoje não garante nada pro próximo jogo."`
         ]) }
+    ] },
+
+  // ---------- REPUTAÇÃO ACUMULADA (traço dominante, prioridade) ----------
+  // Antes GAME.tracos era alimentado por quase toda escolha do jogo e nunca
+  // era lido de volta por ninguém — essas perguntas fecham esse ciclo,
+  // fazendo a imprensa reagir de verdade ao jeito que o jogador vem
+  // construindo o personagem ao longo das temporadas.
+  { id:'reputacao_cabeca_quente', prioridade:true,
+    aplicavel: ()=> tracoDominante() === 'rebelde',
+    pergunta: (j)=> pick([
+      `Sua fama de polêmico só cresce, hein. Isso te incomoda ou você acha que é parte do seu jogo?`,
+      `Tem gente na imprensa te chamando de cabeça-quente. Você concorda com esse rótulo?`
+    ]),
+    escolhas:[
+      { label:'Assumir o rótulo com orgulho', tom:'rebelde',
+        efeito:{popularidade:5, relacaoDiretoria:-4},
+        resposta:(g)=>pick([
+          `"Prefiro ser autêntico a ser morno. Se incomoda alguém, problema é de quem se incomoda."`,
+          `"Cabeça-quente é rótulo de quem não entende paixão. Eu jogo assim, ponto."`
+        ]) },
+      { label:'Tentar suavizar a própria imagem', tom:'serio',
+        efeito:{imagemMidia:4, relacaoDiretoria:3},
+        resposta:(g)=>pick([
+          `"Reconheço que já exagerei em alguns momentos. Tô tentando amadurecer isso."`,
+          `"Não gosto do rótulo, mas entendo de onde vem. Quero mostrar outro lado."`
+        ]) }
+    ] },
+  { id:'reputacao_humilde', prioridade:true,
+    aplicavel: ()=> tracoDominante() === 'humilde',
+    pergunta: (j)=> pick([
+      `Mesmo com tudo que já conquistou, você segue com os pés no chão. De onde vem essa simplicidade?`,
+      `A torcida e a imprensa comentam bastante sobre sua humildade. Isso é postura calculada ou é você mesmo?`
+    ]),
+    escolhas:[
+      { label:'Falar da criação e das origens simples', tom:'humilde',
+        efeito:{popularidade:5, relacaoTorcida:5},
+        resposta:(g)=>pick([
+          `"Não esqueço de onde vim. Isso me mantém com os pés no chão todos os dias."`,
+          `"Simplicidade não é postura, é quem eu sou. Aprendi assim e não vou mudar."`
+        ]) },
+      { label:'Desviar do elogio e devolver ao coletivo', tom:'serio',
+        efeito:{relacaoElenco:4},
+        resposta:(g)=>pick([
+          `"Prefiro falar do grupo. Sozinho eu não sou nada disso que perguntam."`,
+          `"Esse tipo de elogio eu divido com quem trabalha comigo todos os dias."`
+        ]) }
     ] }
 ];
 

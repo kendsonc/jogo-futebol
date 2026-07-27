@@ -151,6 +151,17 @@ const Som = (function(){
     lesao(t0, destino){
       criarOsc([220,85], 'sawtooth', t0, 1.1, 0.3, destino, { ataque:0.02 });
       criarRuidoFiltrado(t0+0.1, 0.7, 'lowpass', 450, 140, 0.22, destino);
+    },
+    // Objetivo concluído — sino curto de 2 notas, mais discreto que a
+    // comemoração de gol (esse dispara fora de partida, junto do toast).
+    objetivoConcluido(t0, destino){
+      [880,1175].forEach((f,i) => criarOsc(f, 'sine', t0 + i*0.09, 0.3, 0.2, destino, { ataque:0.005 }));
+    },
+    // Marco de carreira "alta importância" (título, convocação, recorde) —
+    // fanfarra curta, reaproveitando o timbre de comemoracaoGrande num
+    // registro mais alto, pra soar como conquista sem confundir com gol.
+    marcoDeCarreira(t0, destino){
+      [659,784,988,1319].forEach((f,i) => criarOsc(f, 'triangle', t0 + i*0.07, 0.4, 0.24, destino, { ataque:0.006 }));
     }
   };
 

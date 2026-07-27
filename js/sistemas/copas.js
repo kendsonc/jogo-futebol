@@ -203,6 +203,7 @@ function renderPreJogoCopa(){
       <div style="font-family:var(--font-display); font-weight:800; color:var(--text-faint); font-size:15px">VS</div>
       <div style="text-align:center">${escudoClubeHtml(souMandante?oponente:GAME.clube, 56)}<p class="small muted" style="margin-top:6px;max-width:90px">${escapeHtml((souMandante?oponente:GAME.clube).nome)}</p></div>
     </div>`;
+  posturaTaticaSelecionada = 'equilibrado';
   app.innerHTML = `
     ${statusBarHtml()}
     <div class="screen-hero">
@@ -212,12 +213,14 @@ function renderPreJogoCopa(){
       ${matchupHtml}
       <p class="screen-hero-sub">${souMandante ? 'Jogo em casa.' : 'Jogo fora de casa.'}${agregadoTxt}</p>
     </div>
+    ${posturaTaticaSeletorHtml()}
     <div class="card center">
       <div class="choices"><button class="btn btn-primary" id="btn-jogar-copa">Ir para a partida</button></div>
     </div>
   `;
+  wirePosturaTaticaBotoes();
   document.getElementById('btn-jogar-copa').onclick = () => {
-    prepararPartida({ oponente, mandante: souMandante, competicao: p.copaId, aoFinalizarNome: 'copa', statusPreDecidido: status });
+    prepararPartida({ oponente, mandante: souMandante, competicao: p.copaId, aoFinalizarNome: 'copa', statusPreDecidido: status, postura: posturaTaticaSelecionada });
   };
 }
 // Callback de finalização passado como aoFinalizarNome:'copa' — chamado por

@@ -311,12 +311,25 @@ function pushNoticiaImprensa(tipo, texto){
 function pushHistorico(texto){
   GAME.historico.unshift({texto, semana: GAME.status.semanaGlobal});
 }
+// Usado tanto pra decidir se toca música de menu (sincronizarAmbienteSonoro,
+// router.js) quanto pra suprimir toast (mostrarToast) durante uma partida —
+// o feed/celebração de partida.js já é dono exclusivo daquele espaço de tela.
+function estaEmPartidaAoVivo(){
+  const ts = GAME && GAME.temporadaState;
+  return !!(ts && ts.subFase === 'partidaAoVivo' && ts.partidaEmAndamento);
+}
 // Marco de carreira (memorial) — diferente de pushHistorico (log de TODA
 // escolha), aqui só entram momentos curados/marcantes, exibidos com destaque
-// acima do histórico comum (js/ui/painel.js, painelHistorico).
+// acima do histórico comum (js/ui/painel.js, painelHistorico). Marcos de
+// importância "alta" fora de partida também ganham um toast + som — dentro
+// de partida, fica só registrado (o feed ao vivo já narra o que importa).
 function registrarMarco(titulo, descricao, importancia){
   if(!GAME.memorial) GAME.memorial = [];
   GAME.memorial.push({ titulo, descricao, temporada: GAME.numeroTemporada, importancia });
+  if(importancia === 'alta' && !estaEmPartidaAoVivo() && typeof mostrarToast === 'function'){
+    mostrarToast({ icone:'🏆', titulo, texto: descricao });
+    if(typeof Som !== 'undefined') Som.tocarEfeito('marcoDeCarreira');
+  }
 }
 
 /* ============================== REDES SOCIAIS ================================
@@ -392,6 +405,10 @@ function concluirObjetivo(id){
     o.concluido = true;
     if(o.recompensa) aplicarEfeitos(o.recompensa);
     pushNoticia('geral', `Objetivo concluído: ${o.titulo}.`);
+    if(!estaEmPartidaAoVivo() && typeof mostrarToast === 'function'){
+      mostrarToast({ icone:'🎯', titulo:'Objetivo concluído', texto: o.titulo });
+      if(typeof Som !== 'undefined') Som.tocarEfeito('objetivoConcluido');
+    }
   }
 }
 

@@ -83,6 +83,15 @@ function painelDados(){
       ${statTileHtml('🎭', ESTILOS[g.identidade.estilo].nome, 'Estilo')}
       ${g.metaCarreira ? statTileHtml('🎯', METAS_CARREIRA[g.metaCarreira].nome, 'Meta de carreira') : ''}
     </div>
+    ${progressoMetaCarreiraHtml()}
+  </div>`;
+}
+function progressoMetaCarreiraHtml(){
+  const p = calcularProgressoMetaCarreira();
+  if(!p) return '';
+  return `<div class="spacer">
+    <p class="small muted" style="margin-bottom:4px">${p.cumprida ? '✅' : '🎯'} ${escapeHtml(p.tituloDesc)}</p>
+    ${barraHtml('Progresso da meta', Math.round(p.atual/p.alvo*100))}
   </div>`;
 }
 function painelStatus(){
@@ -90,15 +99,15 @@ function painelStatus(){
   return `<div class="card">
     <p class="muted small">Semana global: ${s.semanaGlobal} • ${GAME.fase === 'temporada' && periodoAtualObj() ? periodoAtualObj().nome : 'Fora de temporada'}</p>
     <div class="spacer"></div>
-    ${barraHtml('Energia', s.energia)}
-    ${barraHtml('Moral', so.moral)}
-    ${barraHtml('Confiança', so.confianca)}
-    ${barraHtml('Pressão', s.pressao, s.pressao>60?'danger':undefined)}
-    ${barraHtml('Condição física', s.condicaoFisica)}
-    ${barraHtml('Pressão psicológica', so.pressaoPsicologica, so.pressaoPsicologica>60?'danger':undefined)}
-    ${barraHtml('Saúde mental', s.saudeMental, s.saudeMental<35?'danger':s.saudeMental<55?'warn':undefined)}
+    ${barraHtml('Energia', s.energia, undefined, '⚡')}
+    ${barraHtml('Moral', so.moral, undefined, '🙂')}
+    ${barraHtml('Confiança', so.confianca, undefined, '🙂')}
+    ${barraHtml('Pressão', s.pressao, s.pressao>60?'danger':undefined, '🔥')}
+    ${barraHtml('Condição física', s.condicaoFisica, undefined, '💪')}
+    ${barraHtml('Pressão psicológica', so.pressaoPsicologica, so.pressaoPsicologica>60?'danger':undefined, '🔥')}
+    ${barraHtml('Saúde mental', s.saudeMental, s.saudeMental<35?'danger':s.saudeMental<55?'warn':undefined, '🧠')}
     <p class="small muted">${statusSaudeMentalLabel()}</p>
-    ${barraHtml('Cuidado com o corpo', GAME.cuidadoFisico!=null?GAME.cuidadoFisico:50, (GAME.cuidadoFisico||50)<35?'danger':(GAME.cuidadoFisico||50)<55?'warn':undefined)}
+    ${barraHtml('Cuidado com o corpo', GAME.cuidadoFisico!=null?GAME.cuidadoFisico:50, (GAME.cuidadoFisico||50)<35?'danger':(GAME.cuidadoFisico||50)<55?'warn':undefined, '💪')}
     <p class="small muted">Reflete o quanto você tem cuidado do corpo fora de campo (sono, recuperação, hábitos) — quanto mais baixo, maior a chance de lesão.</p>
     <p class="spacer"><b>Status no elenco:</b> ${s.statusElenco}</p>
     ${GAME.forma && GAME.forma.ultimasNotas.length ? `<p class="small muted">Forma recente: <b>${escapeHtml(GAME.forma.momento)}</b> (média das últimas ${GAME.forma.ultimasNotas.length} notas: ${GAME.forma.media.toFixed(1)})</p>` : ''}
@@ -115,13 +124,13 @@ function painelAtributos(){
 function painelRelacoes(){
   const r = GAME.relacoes;
   const geral = `<div class="card">
-    ${barraHtml('Treinador', r.treinador)}
-    ${barraHtml('Elenco (geral)', r.elenco)}
-    ${barraHtml('Família', r.familia)}
-    ${barraHtml('Empresário', GAME.empresarioAtual ? r.empresario : 0)}
-    ${barraHtml('Diretoria', r.diretoria)}
-    ${barraHtml('Torcida', r.torcida)}
-    ${barraHtml('Mídia', r.midia)}
+    ${barraHtml('Treinador', r.treinador, undefined, '👥')}
+    ${barraHtml('Elenco (geral)', r.elenco, undefined, '👥')}
+    ${barraHtml('Família', r.familia, undefined, '👥')}
+    ${barraHtml('Empresário', GAME.empresarioAtual ? r.empresario : 0, undefined, '👥')}
+    ${barraHtml('Diretoria', r.diretoria, undefined, '👥')}
+    ${barraHtml('Torcida', r.torcida, undefined, '👥')}
+    ${barraHtml('Mídia', r.midia, undefined, '👥')}
     ${GAME.empresarioAtual ? `<p class="spacer small muted">Empresário: ${NOMES_EMPRESARIOS[GAME.empresarioAtual]} (comissão de ${GAME.empresarioComissao}%)</p>` : '<p class="spacer small muted">Sem empresário no momento.</p>'}
   </div>`;
   const amigos = (GAME.elenco && GAME.elenco.length) ? `<div class="card">

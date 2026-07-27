@@ -1,4 +1,32 @@
 
+// Postura tática escolhida na tela de pré-jogo (renderPreJogo/renderPreJogoCopa)
+// — vive só durante a sessão, reseta pro padrão a cada nova tela de pré-jogo
+// (não precisa persistir no save: é uma escolha "desta partida", não da carreira).
+let posturaTaticaSelecionada = 'equilibrado';
+function posturaTaticaSeletorHtml(){
+  return `<div class="card">
+    <div class="card-title">Postura tática para este jogo</div>
+    <div class="menu-tiles">
+      ${Object.keys(POSTURAS_TATICAS).map(k => `
+        <button type="button" class="menu-tile postura-tile ${k===posturaTaticaSelecionada?'sel':''}" data-postura="${k}">
+          <span class="menu-tile-body">
+            <span class="menu-tile-title">${escapeHtml(POSTURAS_TATICAS[k].nome)}</span>
+            <span class="menu-tile-sub">${escapeHtml(POSTURAS_TATICAS[k].desc)}</span>
+          </span>
+        </button>`).join('')}
+    </div>
+  </div>`;
+}
+function wirePosturaTaticaBotoes(){
+  document.querySelectorAll('.postura-tile').forEach(btn => {
+    btn.onclick = () => {
+      posturaTaticaSelecionada = btn.dataset.postura;
+      document.querySelectorAll('.postura-tile').forEach(b => b.classList.remove('sel'));
+      btn.classList.add('sel');
+    };
+  });
+}
+
 // Calcula o "nível" da decisão (ótimo/bom/neutro/ruim/péssimo) a partir do
 // atributo relevante, da dificuldade do adversário e de um tanto de sorte
 function resolverNivelLance(attr, dificuldade){
@@ -72,7 +100,17 @@ function prepararPartida(contexto){
   const ehMeio = posicao === 'Meio-campista';
   // Tática do clube (estiloJogo) reduzida a um punhado de arquétipos com efeito
   // real na simulação (dados-base.js) — não é mais só um texto na tela de clubes.
-  const modsMeu = modsTaticosClube(GAME.clube);
+  // A postura tática escolhida pelo jogador nesta partida (renderPreJogo) soma
+  // em cima disso — copiado pra um objeto novo, nunca mutando MODS_TATICOS
+  // (que é compartilhado e usado a temporada inteira por todo mundo).
+  const postura = POSTURAS_TATICAS[contexto.postura] || POSTURAS_TATICAS.equilibrado;
+  const modsClubeMeu = modsTaticosClube(GAME.clube);
+  const modsMeu = {
+    ataque: modsClubeMeu.ataque + postura.ataque,
+    defesa: modsClubeMeu.defesa + postura.defesa,
+    posse: modsClubeMeu.posse + postura.posse,
+    agressividade: modsClubeMeu.agressividade + postura.agressividade
+  };
   const modsAdv = modsTaticosClube(oponente || GAME.clube);
   const forcaOponente = oponente ? oponente.reputacao : GAME.clube.reputacao;
   const dificuldade = clamp(forcaOponente*0.6 + (mandante?-3:3) + (modsAdv.defesa-modsAdv.ataque)*0.5 + rand(-10,15), 15, 95);
@@ -227,10 +265,17 @@ function resolverEscolhaLance(escolha){
     else if(nivel==='bom'){ ac.desarmesCertos++; texto = 'Conseguiu tirar a bola, mas deu escanteio.'; }
     else if(nivel==='neutro'){ texto = 'O lance seguiu, sem grandes consequências.'; }
     else if(nivel==='ruim'){ ac.erros++; texto = 'Chegou atrasado no lance, deu falta perigosa perto da área.'; GAME.sociais.moral = clamp(GAME.sociais.moral-3,0,100); }
-    else { ac.erros++; ac.amarelo++; texto = 'Errou o tempo da divida e ainda levou cartão amarelo.'; GAME.sociais.moral = clamp(GAME.sociais.moral-6,0,100); }
+    // Chegada péssima num desarme carrega risco de contato ruim de verdade —
+    // além do checarLesao genérico de fim de partida, essa escolha específica
+    // ganha uma chance extra IMEDIATA, pra lesão parecer causada por uma
+    // decisão, não só um dado sorteado no fim do jogo.
+    else { ac.erros++; ac.amarelo++; texto = 'Errou o tempo da divida e ainda levou cartão amarelo.'; GAME.sociais.moral = clamp(GAME.sociais.moral-6,0,100); checarLesao(22); }
   } else if(escolha.perfil === 'arriscado'){
     if(nivel==='otimo' || nivel==='bom'){ ac.amarelo++; texto = 'A falta tática deu certo — cortou o contra-ataque, levando amarelo.'; }
-    else { ac.erros++; ac.vermelho++; texto = 'A falta foi dura demais e você viu o cartão vermelho direto!'; GAME.sociais.moral = clamp(GAME.sociais.moral-10,0,100); }
+    else {
+      ac.erros++; ac.vermelho++; texto = 'A falta foi dura demais e você viu o cartão vermelho direto!'; GAME.sociais.moral = clamp(GAME.sociais.moral-10,0,100);
+      if(nivel==='pessimo') checarLesao(30); // carrinho descontrolado — o pior desfecho tático também é o de maior risco físico
+    }
   } else if(escolha.perfil === 'defender'){
     if(nivel==='otimo'){ ac.defesaImportante++; texto = 'Defesa espetacular! Você salvou o time sozinho.'; GAME.sociais.moral = clamp(GAME.sociais.moral+5,0,100); }
     else if(nivel==='bom'){ texto = 'Boa defesa, deu rebote mas o time conseguiu afastar.'; }
@@ -1313,6 +1358,7 @@ function renderPreJogo(){
   const classicoRegional = !!(oponente && ehClassicoRegional(GAME.clube, oponente));
   const rivalHtml = confrontoRival ? `<div class="badge" style="display:block;margin-bottom:10px">⚔️ Duelo direto contra ${escapeHtml(GAME.rival.nome)}, seu rival de carreira</div>`
     : classicoRegional ? `<div class="badge" style="display:block;margin-bottom:10px">🏟️ Clássico da cidade contra o ${escapeHtml(oponente.nome)}!</div>` : '';
+  posturaTaticaSelecionada = 'equilibrado';
   app.innerHTML = `
     ${statusBarHtml()}
     <div class="screen-hero">
@@ -1323,13 +1369,15 @@ function renderPreJogo(){
       ${matchupHtml}
       <p class="screen-hero-sub">O ônibus do ${escapeHtml(GAME.clube.nome)} já está de prontidão. Mais uma partida na temporada, mais uma chance de mostrar serviço — ou de ficar só observando.</p>
     </div>
+    ${posturaTaticaSeletorHtml()}
     <div class="card center">
       ${viagemTxt}
       <div class="choices"><button class="btn btn-primary" id="btn-jogar">Ir para a partida</button></div>
     </div>
   `;
+  wirePosturaTaticaBotoes();
   document.getElementById('btn-jogar').onclick = () => {
-    prepararPartida({ statusPreDecidido: status });
+    prepararPartida({ statusPreDecidido: status, postura: posturaTaticaSelecionada });
   };
 }
 
