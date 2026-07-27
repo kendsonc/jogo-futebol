@@ -93,7 +93,7 @@ function peneiraStatusBarHtml(ps){
       <div class="sb-club">${escudoClubeHtml(GAME.clube, 34)}<div><div class="sb-club-name">${escapeHtml(GAME.clube.nome)}</div>${tierBadgeHtml(GAME.clube.divisao)}</div></div>
       <div class="sb-divider"></div>
       <div class="sb-item"><span class="lbl">Energia</span><b>${GAME.status.energia}</b></div>
-      <div class="sb-item"><span class="lbl">Confiança</span><b>${GAME.sociais.confianca}</b></div>
+      <div class="sb-item"><span class="lbl">Confiança${infoTipHtml('Suas escolhas na peneira mexem nela — decisões confiantes tendem a aumentar sua chance de se destacar e ser aprovado.')}</span><b>${GAME.sociais.confianca}</b></div>
     </div>
     <div class="screen-hero" style="padding:16px 18px">
       <div class="screen-hero-kicker">Fase ${ps.faseIndex+1}/${NOMES_FASES_PENEIRA.length} — ${escapeHtml(NOMES_FASES_PENEIRA[ps.faseIndex])}</div>

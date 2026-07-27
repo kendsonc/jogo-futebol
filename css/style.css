@@ -458,6 +458,17 @@
 
   /* ===================== BARRA DE STATUS: AÇÕES DA CARREIRA ===================== */
   #status-bar .sb-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+  .sb-toggle-btn { display: none; }
+  #status-bar .sb-extra { display: contents; }
+  @media (max-width: 640px){
+    /* Em tela estreita, a barra de status inteira (overall, temporada, jogos,
+       gols, energia, moral...) ocupava várias linhas permanentemente. Some
+       tudo dentro de .sb-extra por padrão, revelado só com o botão ☰. */
+    .sb-toggle-btn { display: inline-flex; }
+    #status-bar .sb-extra { display: none; width: 100%; }
+    #status-bar.sb-expandido .sb-extra { display: flex; flex-wrap: wrap; gap: 10px 20px; width: 100%; order: 3; }
+    #status-bar .sb-actions { order: 4; }
+  }
 
   /* ===================== SHOPPING / IMÓVEIS / BANCO (CENTRAL DE CARREIRA) ======== */
   .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }

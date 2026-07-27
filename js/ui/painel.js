@@ -241,7 +241,7 @@ function painelContrato(){
       ${statTileHtml('📈', c.expectativa, 'Expectativa do clube')}
       ${statTileHtml('🔏', `R$ ${Number(c.clausulaRescisao||0).toLocaleString('pt-BR')}`, 'Cláusula de rescisão')}
     </div>
-    ${barraHtml('Confiança da diretoria', c.confiancaDiretoria)}
+    ${barraHtml('Confiança da diretoria', c.confiancaDiretoria, undefined, undefined, 'Sobe com bom desempenho e decisões maduras nas negociações; cai com blefes sem sustento e ameaças de saída. Pesa na próxima renovação de contrato.')}
     ${c.clausulaDesempenho ? `<p class="small muted spacer">Cláusula de desempenho: ${(GAME.stats.gols||0)+(GAME.stats.assistencias||0)}/${c.clausulaDesempenho.meta} gols+assistências na temporada (bate a meta = bônus de ${c.clausulaDesempenho.bonusMeses} mês(es) de salário no fim da temporada).</p>` : ''}
     <div class="spacer"></div>
     <p><b>Carteira (acumulado):</b> R$ ${Math.round(GAME.carteira||0).toLocaleString('pt-BR')}</p>
