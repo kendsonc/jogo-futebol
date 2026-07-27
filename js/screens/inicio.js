@@ -1,3 +1,50 @@
+/* ============================== ONBOARDING (primeira sessão) ==================
+   Antes, um jogador novo caía direto no formulário de criação de personagem
+   sem nenhum contexto do que o jogo É como sistema (traços de personalidade,
+   energia/moral/pressão afetando desempenho de verdade, objetivos rendendo
+   recompensa) — só descobria isso "na marra", tropeçando nos sistemas.
+   Mostrado 1x só (flag em localStorage, mesmo padrão de TEMA_CLARO_KEY,
+   main.js), com "Pular" sempre visível em qualquer slide.
+   ========================================================================= */
+const ONBOARDING_KEY = 'modoCarreira_onboardingVisto';
+const ONBOARDING_SLIDES = [
+  { icone:'⚽', titulo:'Bem-vindo ao Modo Carreira', texto:'Você vai construir a carreira de um jogador de futebol do zero — desde os 16 anos numa peneira até a aposentadoria, com dezenas de temporadas, decisões e histórias no caminho.' },
+  { icone:'🎭', titulo:'Cada escolha marca um traço', texto:'Diálogos com a imprensa, o técnico e a torcida vão moldando sua personalidade (humilde, confiante, cabeça-quente...) — e o mundo do jogo reage a isso com o tempo.' },
+  { icone:'⚡', titulo:'De olho em Energia, Moral e Pressão', texto:'Esses números, sempre visíveis na barra de status, afetam seu desempenho em campo de verdade — cuide do seu jogador fora dos gramados também.' },
+  { icone:'🎯', titulo:'Objetivos rendem recompensa', texto:'No Painel, a aba Objetivos mostra metas da temporada — cumprir uma renda bônus de atributos, moral e outros ganhos.' }
+];
+let onboardingSlideAtual = 0;
+function mostrarOnboardingSeNecessario(aoConcluir){
+  if(localStorage.getItem(ONBOARDING_KEY) === '1'){ aoConcluir(); return; }
+  onboardingSlideAtual = 0;
+  renderOnboardingOverlay(aoConcluir);
+}
+function renderOnboardingOverlay(aoConcluir){
+  const slide = ONBOARDING_SLIDES[onboardingSlideAtual];
+  const ultimoSlide = onboardingSlideAtual === ONBOARDING_SLIDES.length-1;
+  const overlay = el(`<div id="onboarding-overlay" class="dialogo-overlay" role="dialog" aria-modal="true"></div>`);
+  overlay.innerHTML = `
+    <div class="dialogo-card" style="max-width:460px">
+      <div class="phase-stepper" style="margin-bottom:14px">${ONBOARDING_SLIDES.map((_,i)=>`<div class="phase-dot ${i<onboardingSlideAtual?'done':i===onboardingSlideAtual?'current':''}"></div>`).join('')}</div>
+      <div style="font-size:28px;margin-bottom:6px">${slide.icone}</div>
+      <div class="dialogo-titulo">${escapeHtml(slide.titulo)}</div>
+      <div class="dialogo-texto" style="margin-bottom:20px">${escapeHtml(slide.texto)}</div>
+      <div class="dialogo-acoes" style="justify-content:space-between">
+        <button class="btn btn-small" id="btn-onboarding-pular">Pular</button>
+        <button class="btn btn-small btn-primary" id="btn-onboarding-proximo">${ultimoSlide ? 'Começar' : 'Próximo'}</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  const concluir = () => { localStorage.setItem(ONBOARDING_KEY, '1'); overlay.remove(); aoConcluir(); };
+  document.getElementById('btn-onboarding-pular').onclick = concluir;
+  document.getElementById('btn-onboarding-proximo').onclick = () => {
+    if(ultimoSlide) concluir();
+    else { onboardingSlideAtual++; overlay.remove(); renderOnboardingOverlay(aoConcluir); }
+  };
+  ativarFocoModal(overlay, document.getElementById('btn-onboarding-proximo'), concluir);
+}
+
 /* ============================== TELA: INÍCIO ============================== */
 function renderStart(){
   Som.tocarAmbiente('menu');
@@ -48,7 +95,7 @@ function renderStart(){
 
     <footer>Modo Carreira: A Jornada · <a href="privacidade.html" class="footer-link">Política de Privacidade</a></footer>
   `;
-  document.getElementById('btn-nova').onclick = () => renderCriacaoPersonagem();
+  document.getElementById('btn-nova').onclick = () => mostrarOnboardingSeNecessario(() => renderCriacaoPersonagem());
   const bc = document.getElementById('btn-continuar');
   if(bc) bc.onclick = () => { carregarJogo(); render(); };
   const ba = document.getElementById('btn-apagar');

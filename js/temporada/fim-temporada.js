@@ -177,6 +177,7 @@ function finalizarSequenciaFimDeTemporada(){
   // telas conseguirem aparecer com GAME.fase já em 'fim') tentaria renderizar
   // a tela de jogo de novo em loop, em vez de cair no relatório de temporada.
   if(GAME.temporadaState) GAME.temporadaState.subFase = null;
+  fimTemporadaCapitulo = 0;
   calcularMelhorDoMundoSeElegivel();
   // Cena dedicada de gala só quando VOCÊ vence (renderGalaBolaDeOuro, copas.js)
   // — intercepta o fluxo de render() (router.js) antes do relatório comum.
@@ -217,6 +218,12 @@ function blocoCopasTemporadaHtml(){
   return `<div class="card"><div class="card-title">🌎 Copas e Competições Internacionais</div>${partes.join('')}</div>`;
 }
 
+// Recap de fim de temporada em capítulos navegáveis — antes eram ~10 cards
+// empilhados numa rolagem só. Reaproveita o mesmo padrão de stepper do
+// documentário de aposentadoria (phase-stepper/phase-dot), só com 4 paradas
+// em vez de 1 por marco. Reseta pra 0 sempre que uma NOVA temporada termina
+// (fimTemporadaResultadoParaCapitulo, chamado 1x em finalizarSequenciaFimDeTemporada).
+let fimTemporadaCapitulo = 0;
 function renderFimDeTemporada(){
   if(GAME.finalTipo === 'reprovado'){
     app.innerHTML = `
@@ -248,77 +255,120 @@ function renderFimDeTemporada(){
   // registrarMarco() já rodou pra ESTA temporada em algum ponto de
   // finalizarTemporada() — mesmo destaque visual usado na aposentadoria.
   const temMarcoNaTemporada = (GAME.memorial||[]).some(m => m.temporada === GAME.numeroTemporada);
-  app.innerHTML = `
-    <div class="screen-hero ${temMarcoNaTemporada ? 'hero-marco' : ''}">
-      ${temMarcoNaTemporada ? '<span class="hero-marco-selo">⭐ Marco</span>' : ''}
-      <div class="screen-hero-kicker">Relatório de Fim de Temporada ${GAME.numeroTemporada}</div>
-      <h1>${escapeHtml(GAME.clube.nome)}</h1>
-      <span class="result-badge-big good">${escapeHtml(finalObj.titulo)}</span>
-    </div>
-    <div class="card">
-      <div id="scene-text">${escapeHtml(finalObj.texto(GAME)).replace(/\n/g,'<br>')}</div>
-    </div>
-    ${(GAME.premiacoesTemporada||[]).length ? `<div class="card">
-      <div class="card-title">🏆 Prêmios da Temporada</div>
-      ${GAME.premiacoesTemporada.map(t => `<p class="badge good" style="display:inline-block;margin:2px">${escapeHtml(t)}</p>`).join('')}
-    </div>` : ''}
-    ${blocoCopasTemporadaHtml()}
-    <div class="card">
-      <div class="card-title">Resumo da Jornada</div>
-      <p>${GAME.numeroTemporada===1 ? `Você tentou a peneira do <b>${GAME.clube.nome}</b> (${localClube(GAME.clube)}) e foi aprovado com um ${GAME.contrato.tipo.toLowerCase()}.` : `Você encerrou sua Temporada ${GAME.numeroTemporada} no <b>${GAME.clube.nome}</b> (${localClube(GAME.clube)}).`}</p>
-      <p>Encerrou a temporada com status: <b>${GAME.status.statusElenco}</b>, aos ${idadeAtual()} anos.</p>
-      ${(() => {
-        const pos = posicaoFinalLiga();
-        return pos ? `<p class="spacer">Terminou a ${GAME.temporadaState.liga.divisao} na <b>${pos.posicao}ª colocação</b> de ${pos.total}.</p>` : '';
-      })()}
-      ${GAME.acessoRebaixamentoResultado ? `<p class="badge ${GAME.acessoRebaixamentoResultado.tipo==='acesso'?'good':'bad'}">${GAME.acessoRebaixamentoResultado.tipo==='acesso' ? `Acesso para a ${GAME.acessoRebaixamentoResultado.novoTier}!` : `Rebaixado para a ${GAME.acessoRebaixamentoResultado.novoTier}.`}</p>` : ''}
-    </div>
-    <div class="card">
-      <div class="card-title">Estatísticas da Temporada</div>
-      <p>${s.jogos} jogos disputados (${s.titular} como titular) • ${s.minutos} minutos • ${s.gols} gols • ${s.assistencias} assistências</p>
-      <p>Nota média: ${s.notaMedia.toFixed(2)} • Cartões: ${s.amarelos}A/${s.vermelhos}V • Lesões: ${s.lesoes}</p>
-      <p>Valor de mercado estimado: <b>R$ ${s.valorEstimado.toLocaleString('pt-BR')}</b></p>
-      ${barraHtml('Interesse de clubes', s.interesseClubes)}
-    </div>
-    <div class="card">
-      <div class="card-title">Evolução de Atributos</div>
-      ${evolucao.length ? evolucao.map(a => `<p class="small">${a.nome}: ${a.antes} → <b>${a.depois}</b> (${a.depois>a.antes?'+':''}${a.depois-a.antes})</p>`).join('') : '<p class="muted small">Sem mudanças relevantes registradas.</p>'}
-    </div>
-    <div class="card">
-      <div class="card-title">Relações Finais</div>
-      ${barraHtml('Treinador', GAME.relacoes.treinador)}
-      ${barraHtml('Elenco', GAME.relacoes.elenco)}
-      ${barraHtml('Torcida', GAME.relacoes.torcida)}
-      ${barraHtml('Família', GAME.relacoes.familia)}
-      ${barraHtml('Diretoria', GAME.relacoes.diretoria)}
-      ${barraHtml('Mídia', GAME.relacoes.midia)}
-      <p class="small muted spacer">Personalidade que foi se firmando ao longo da temporada: <b>${labelTracoDominante()}</b></p>
-    </div>
-    ${(() => {
-      if(!GAME.elenco || !GAME.elenco.length) return '';
-      const ordenado = [...GAME.elenco].sort((a,b)=>b.relacao-a.relacao);
-      const amigo = ordenado[0], rival = ordenado[ordenado.length-1];
-      return `<div class="card">
-        <div class="card-title">Círculo do Elenco</div>
-        <p>Amigo mais próximo: <b>${amigo.nome}</b> (${amigo.papel.toLowerCase()}) — relação ${amigo.relacao}</p>
-        <p>Relação mais distante: <b>${rival.nome}</b> (${rival.papel.toLowerCase()}) — relação ${rival.relacao}</p>
+
+  const CAPITULOS = ['Resultado', 'Estatísticas', 'Relações', 'Próximo capítulo'];
+  fimTemporadaCapitulo = clamp(fimTemporadaCapitulo, 0, CAPITULOS.length-1);
+  const stepperHtml = `<div class="phase-stepper">${CAPITULOS.map((_,i) => `<div class="phase-dot ${i<fimTemporadaCapitulo?'done':i===fimTemporadaCapitulo?'current':''}" data-cap="${i}" style="cursor:pointer"></div>`).join('')}</div>`;
+
+  let corpoHtml;
+  if(fimTemporadaCapitulo === 0){
+    corpoHtml = `
+      <div class="screen-hero ${temMarcoNaTemporada ? 'hero-marco' : ''}">
+        ${temMarcoNaTemporada ? '<span class="hero-marco-selo">⭐ Marco</span>' : ''}
+        <div class="screen-hero-kicker">Relatório de Fim de Temporada ${GAME.numeroTemporada}</div>
+        <h1>${escapeHtml(GAME.clube.nome)}</h1>
+        <span class="result-badge-big good">${escapeHtml(finalObj.titulo)}</span>
+      </div>
+      <div class="card">
+        <div id="scene-text">${escapeHtml(finalObj.texto(GAME)).replace(/\n/g,'<br>')}</div>
+      </div>
+      ${(GAME.premiacoesTemporada||[]).length ? `<div class="card">
+        <div class="card-title">🏆 Prêmios da Temporada</div>
+        ${GAME.premiacoesTemporada.map(t => `<p class="badge good" style="display:inline-block;margin:2px">${escapeHtml(t)}</p>`).join('')}
+      </div>` : ''}
+      ${blocoCopasTemporadaHtml()}
+      <div class="card">
+        <div class="card-title">Resumo da Jornada</div>
+        <p>${GAME.numeroTemporada===1 ? `Você tentou a peneira do <b>${GAME.clube.nome}</b> (${localClube(GAME.clube)}) e foi aprovado com um ${GAME.contrato.tipo.toLowerCase()}.` : `Você encerrou sua Temporada ${GAME.numeroTemporada} no <b>${GAME.clube.nome}</b> (${localClube(GAME.clube)}).`}</p>
+        <p>Encerrou a temporada com status: <b>${GAME.status.statusElenco}</b>, aos ${idadeAtual()} anos.</p>
+        ${(() => {
+          const pos = posicaoFinalLiga();
+          return pos ? `<p class="spacer">Terminou a ${GAME.temporadaState.liga.divisao} na <b>${pos.posicao}ª colocação</b> de ${pos.total}.</p>` : '';
+        })()}
+        ${GAME.acessoRebaixamentoResultado ? `<p class="badge ${GAME.acessoRebaixamentoResultado.tipo==='acesso'?'good':'bad'}">${GAME.acessoRebaixamentoResultado.tipo==='acesso' ? `Acesso para a ${GAME.acessoRebaixamentoResultado.novoTier}!` : `Rebaixado para a ${GAME.acessoRebaixamentoResultado.novoTier}.`}</p>` : ''}
       </div>`;
-    })()}
-    <div class="card">
-      <div class="card-title">Próximos Caminhos (Temporada ${GAME.numeroTemporada+1})</div>
-      <p class="small muted">Renovar ou revisar contrato no ${GAME.clube.nome}, avaliar propostas de empresário, responder ao interesse de clubes maiores, e seguir evoluindo os atributos que mais pesarem na sua posição.</p>
-    </div>
-    <div class="btn-row" style="max-width:360px">
-      <button class="btn btn-primary" id="btn-proxima-temporada">Iniciar Temporada ${GAME.numeroTemporada+1}</button>
-      <button class="btn" id="btn-ver-painel-final">Ver painel completo</button>
-      <button class="btn" id="btn-nova-carreira-2">Começar nova carreira (do zero)</button>
-      <button class="btn btn-danger" id="btn-apagar-final-2">Apagar save</button>
-    </div>
+  } else if(fimTemporadaCapitulo === 1){
+    corpoHtml = `
+      <div class="screen-hero">
+        <div class="screen-hero-kicker">Temporada ${GAME.numeroTemporada}</div>
+        <h1>Números da Temporada</h1>
+      </div>
+      <div class="card">
+        <div class="card-title">Estatísticas da Temporada</div>
+        <p>${s.jogos} jogos disputados (${s.titular} como titular) • ${s.minutos} minutos • ${s.gols} gols • ${s.assistencias} assistências</p>
+        <p>Nota média: ${s.notaMedia.toFixed(2)} • Cartões: ${s.amarelos}A/${s.vermelhos}V • Lesões: ${s.lesoes}</p>
+        <p>Valor de mercado estimado: <b>R$ ${s.valorEstimado.toLocaleString('pt-BR')}</b></p>
+        ${barraHtml('Interesse de clubes', s.interesseClubes)}
+      </div>
+      <div class="card">
+        <div class="card-title">Evolução de Atributos</div>
+        ${evolucao.length ? evolucao.map(a => `<p class="small">${a.nome}: ${a.antes} → <b>${a.depois}</b> (${a.depois>a.antes?'+':''}${a.depois-a.antes})</p>`).join('') : '<p class="muted small">Sem mudanças relevantes registradas.</p>'}
+      </div>`;
+  } else if(fimTemporadaCapitulo === 2){
+    corpoHtml = `
+      <div class="screen-hero">
+        <div class="screen-hero-kicker">Temporada ${GAME.numeroTemporada}</div>
+        <h1>Relações e Vestiário</h1>
+      </div>
+      <div class="card">
+        <div class="card-title">Relações Finais</div>
+        ${barraHtml('Treinador', GAME.relacoes.treinador)}
+        ${barraHtml('Elenco', GAME.relacoes.elenco)}
+        ${barraHtml('Torcida', GAME.relacoes.torcida)}
+        ${barraHtml('Família', GAME.relacoes.familia)}
+        ${barraHtml('Diretoria', GAME.relacoes.diretoria)}
+        ${barraHtml('Mídia', GAME.relacoes.midia)}
+        <p class="small muted spacer">Personalidade que foi se firmando ao longo da temporada: <b>${labelTracoDominante()}</b></p>
+      </div>
+      ${(() => {
+        if(!GAME.elenco || !GAME.elenco.length) return '';
+        const ordenado = [...GAME.elenco].sort((a,b)=>b.relacao-a.relacao);
+        const amigo = ordenado[0], rival = ordenado[ordenado.length-1];
+        return `<div class="card">
+          <div class="card-title">Círculo do Elenco</div>
+          <p>Amigo mais próximo: <b>${amigo.nome}</b> (${amigo.papel.toLowerCase()}) — relação ${amigo.relacao}</p>
+          <p>Relação mais distante: <b>${rival.nome}</b> (${rival.papel.toLowerCase()}) — relação ${rival.relacao}</p>
+        </div>`;
+      })()}`;
+  } else {
+    corpoHtml = `
+      <div class="screen-hero">
+        <div class="screen-hero-kicker">Próximo Capítulo</div>
+        <h1>Temporada ${GAME.numeroTemporada+1}</h1>
+      </div>
+      <div class="card">
+        <div class="card-title">Próximos Caminhos</div>
+        <p class="small muted">Renovar ou revisar contrato no ${GAME.clube.nome}, avaliar propostas de empresário, responder ao interesse de clubes maiores, e seguir evoluindo os atributos que mais pesarem na sua posição.</p>
+      </div>
+      <div class="btn-row" style="max-width:360px">
+        <button class="btn btn-primary" id="btn-proxima-temporada">Iniciar Temporada ${GAME.numeroTemporada+1}</button>
+        <button class="btn" id="btn-ver-painel-final">Ver painel completo</button>
+        <button class="btn" id="btn-nova-carreira-2">Começar nova carreira (do zero)</button>
+        <button class="btn btn-danger" id="btn-apagar-final-2">Apagar save</button>
+      </div>`;
+  }
+
+  app.innerHTML = `
+    ${stepperHtml}
+    ${corpoHtml}
+    <div class="card"><div class="choices">
+      ${fimTemporadaCapitulo>0 ? '<button class="btn" id="btn-recap-anterior">← Capítulo anterior</button>' : ''}
+      ${fimTemporadaCapitulo<CAPITULOS.length-1 ? '<button class="btn btn-primary" id="btn-recap-proximo">Próximo capítulo →</button>' : ''}
+    </div></div>
   `;
-  document.getElementById('btn-proxima-temporada').onclick = iniciarEntressafra;
-  document.getElementById('btn-ver-painel-final').onclick = abrirPainel;
-  document.getElementById('btn-nova-carreira-2').onclick = () => { apagarSave(); renderCriacaoPersonagem(); };
-  document.getElementById('btn-apagar-final-2').onclick = () => { apagarSave(); render(); };
+  document.querySelectorAll('[data-cap]').forEach(dot => { dot.onclick = () => { fimTemporadaCapitulo = parseInt(dot.dataset.cap,10); render(); }; });
+  const btnAnterior = document.getElementById('btn-recap-anterior');
+  if(btnAnterior) btnAnterior.onclick = () => { fimTemporadaCapitulo--; render(); };
+  const btnProximo = document.getElementById('btn-recap-proximo');
+  if(btnProximo) btnProximo.onclick = () => { fimTemporadaCapitulo++; render(); };
+  const btnProximaTemp = document.getElementById('btn-proxima-temporada');
+  if(btnProximaTemp) btnProximaTemp.onclick = iniciarEntressafra;
+  const btnPainel = document.getElementById('btn-ver-painel-final');
+  if(btnPainel) btnPainel.onclick = abrirPainel;
+  const btnNovaCarreira2 = document.getElementById('btn-nova-carreira-2');
+  if(btnNovaCarreira2) btnNovaCarreira2.onclick = () => { apagarSave(); renderCriacaoPersonagem(); };
+  const btnApagarFinal2 = document.getElementById('btn-apagar-final-2');
+  if(btnApagarFinal2) btnApagarFinal2.onclick = () => { apagarSave(); render(); };
 }
 
 /* ================================= LEGADO =====================================
