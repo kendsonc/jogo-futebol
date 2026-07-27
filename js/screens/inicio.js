@@ -140,7 +140,7 @@ function legadoSelecaoHtml(hallDaFama){
   if(!hallDaFama.length) return '';
   return `<div class="card">
     <div class="card-title">🏆 Hall da Fama</div>
-    <p class="small muted" style="margin-bottom:10px">Comece como herdeiro(a) de uma lenda aposentada — o sobrenome já pesa (mais popularidade inicial, bônus de atributos ligado ao jeito dela jogar), mas vem com mais pressão desde o primeiro dia. Ou comece do zero, sem nenhum peso.</p>
+    <p class="small muted" style="margin-bottom:10px">Comece como herdeiro(a) de uma lenda aposentada — o sobrenome já pesa (mais popularidade inicial, bônus de atributos ligado ao jeito dela jogar, e uma herança financeira), mas vem com mais pressão desde o primeiro dia. Ou comece do zero, sem nenhum peso.</p>
     <div class="menu-tiles">
       <button type="button" class="menu-tile legado-tile sel" data-legado="">
         <span class="menu-tile-icon">🌱</span>
@@ -151,7 +151,7 @@ function legadoSelecaoHtml(hallDaFama){
         <span class="menu-tile-icon">⭐</span>
         <span class="menu-tile-body">
           <span class="menu-tile-title">Filho(a) de ${escapeHtml(l.apelido)}</span>
-          <span class="menu-tile-sub">${escapeHtml(l.posicaoPrincipal)} • ${l.temporadas} temporada(s) • ${l.gols} gols • ${l.titulos} título(s)</span>
+          <span class="menu-tile-sub">${escapeHtml(l.posicaoPrincipal)} • ${l.temporadas} temporada(s) • ${l.gols} gols • ${l.titulos} título(s)${l.patrimonioLiquido ? ` • herança de R$ ${Math.round(l.patrimonioLiquido*0.15).toLocaleString('pt-BR')}` : ''}</span>
         </span>
       </button>`).join('')}
     </div>

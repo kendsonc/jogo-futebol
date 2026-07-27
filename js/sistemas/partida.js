@@ -914,6 +914,18 @@ function tickPartidaAoVivo(){
       return;
     }
   }
+  // Pressão final: time perdendo com pouco tempo de jogo restante se lança
+  // mais ao ataque (efeito "abandono tático" real de fim de partida) — mesmo
+  // mecanismo já usado no intervalo (injetarChanceExtraPorVantagem), só que
+  // disparado pela reta final do jogo em vez do resultado do 1º tempo.
+  if(!p.pushFinalAplicado && p.minutoAtual >= 75){
+    p.pushFinalAplicado = true;
+    const plFinal = placarAoVivo(p);
+    if(plFinal.deles > plFinal.meus){
+      adicionarLinhaFeed(`${minutoExibido(p)} — Pressionando faltando pouco tempo, o ${GAME.clube.nome} se lança ao ataque em busca do empate.`);
+      injetarChanceExtraPorVantagem(p, 'meu');
+    }
+  }
   // Substituição por decisão do jogador — antes só existia a troca automática
   // por acúmulo de erros (resolverEscolhaLance, mais abaixo). Titular que
   // devia jogar os 90min (sem saída planejada), perdendo numa janela realista

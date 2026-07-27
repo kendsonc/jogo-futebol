@@ -119,6 +119,21 @@ function posicaoFinalLiga(){
 // passivo que só mudava se você trocasse de marca. Chamada 1x por fim de
 // temporada, com GAME.stats ainda com os totais da temporada que terminou
 // (o reset só acontece depois, em avancarParaProximaTemporada).
+// Cláusula de desempenho do PRÓPRIO clube (contrato de trabalho) — antes só
+// existia pro patrocínio pessoal (função abaixo). Bônus pago em dinheiro
+// direto, sem mexer na bolsa mensal (diferente do patrocínio, que também
+// pode CAIR se não bater a meta — o clube não corta salário por desempenho).
+function processarClausulaContratoTemporada(){
+  const cd = GAME.contrato.clausulaDesempenho;
+  if(!cd) return;
+  const producao = (GAME.stats.gols||0) + (GAME.stats.assistencias||0);
+  if(producao >= cd.meta){
+    const bonus = Math.round((GAME.contrato.bolsa||0) * (cd.bonusMeses||1));
+    GAME.carteira = Math.round((GAME.carteira||0) + bonus);
+    mostrarToast({ icone:'🎯', titulo:'Cláusula de desempenho batida!', texto:`Bônus de R$ ${bonus.toLocaleString('pt-BR')} do ${GAME.clube.nome}` });
+    pushNoticiaImprensa('midia', `${GAME.identidade.apelido} bateu a cláusula de desempenho do contrato (${producao} participações em gols) e recebe um bônus de R$ ${bonus.toLocaleString('pt-BR')} do ${GAME.clube.nome}.`);
+  }
+}
 function processarClausulaPatrocinioTemporada(){
   if(!GAME.patrocinioAtual || !GAME.patrocinioAtual.clausula) return;
   const producao = (GAME.stats.gols||0) + (GAME.stats.assistencias||0);
@@ -183,6 +198,7 @@ function finalizarSequenciaFimDeTemporada(){
   // — intercepta o fluxo de render() (router.js) antes do relatório comum.
   GAME.galaBolaDeOuroPendente = !!(GAME.bolaDeOuroResultado && GAME.bolaDeOuroResultado.venci);
   calcularQualificacoesProximaTemporada();
+  processarClausulaContratoTemporada();
   processarClausulaPatrocinioTemporada();
   GAME.statsCareer.premios.push(...GAME.premiacoesTemporada.map(t => `${t} (Temporada ${GAME.numeroTemporada})`));
   salvarJogo();

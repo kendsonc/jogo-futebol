@@ -32,7 +32,10 @@ function registrarNoHallDaFama(){
       posicaoPrincipal: GAME.identidade.posicaoPrincipal,
       temporadas: s.temporadas, gols: s.gols, assistencias: s.assistencias, titulos: s.titulos,
       legadoFinal: GAME.legadoFinal, tracoDominante: tracoDominante(),
-      clubesPassados: (s.clubesPassados||[]).map(c => c.nome)
+      clubesPassados: (s.clubesPassados||[]).map(c => c.nome),
+      // Herança financeira pro próximo herdeiro (aplicarBonusHeranca) — antes
+      // o Hall da Fama só passava bônus de atributo, nunca patrimônio de verdade.
+      patrimonioLiquido: (typeof calcularPatrimonioLiquido === 'function') ? calcularPatrimonioLiquido() : 0
     });
     if(hall.length > 12) hall.splice(0, hall.length-12);
     localStorage.setItem(HALL_DA_FAMA_KEY, JSON.stringify(hall));
@@ -190,7 +193,9 @@ function criarNovoJogador(dados){
     historicoLesoesTotal: 0,
     tracos: { humilde:0, confiante:0, descontraido:0, serio:0, rebelde:0 },
     forma: { ultimasNotas: [], media: 0, momento: 'regular' },
-    carteira: 0,
+    // Herança financeira: uma fração do patrimônio da lenda escolhida no Hall
+    // da Fama (registrarNoHallDaFama) — antes só herdava atributo, nunca dinheiro.
+    carteira: dados.heredeiroDe ? Math.round((dados.heredeiroDe.patrimonioLiquido||0) * 0.15) : 0,
     patrocinioAtual: null,
     patrociniosImagem: {},
     numeroTemporada: 1,
@@ -222,6 +227,7 @@ function repararEstadoEconomia(){
   if(!GAME.garagem) GAME.garagem = [];
   if(!GAME.imoveisComprados) GAME.imoveisComprados = [];
   if(!GAME.banco) GAME.banco = { poupanca: 0, investimentos: [], emprestimos: [] };
+  if(!GAME.banco.seguroCarreira) GAME.banco.seguroCarreira = { ativo:false };
   if(!GAME.rostosNpc) GAME.rostosNpc = {};
   if(!GAME.audioConfig) GAME.audioConfig = { mutado:false, volumeMusica:0.15, volumeEfeitos:0.7 };
   if(!GAME.patrociniosImagem) GAME.patrociniosImagem = {};
@@ -229,6 +235,8 @@ function repararEstadoEconomia(){
   if(GAME.heredeiroDe === undefined) GAME.heredeiroDe = null;
   if(GAME.metaCarreira === undefined) GAME.metaCarreira = null;
   if(!GAME.historicoTecnicos) GAME.historicoTecnicos = {};
+  if(GAME.contrato && GAME.contrato.clausulaRescisao == null) GAME.contrato.clausulaRescisao = Math.round(Math.max(50000, (GAME.stats.valorEstimado||50000) * 1.5) / 1000) * 1000;
+  if(GAME.contrato && GAME.contrato.clausulaDesempenho === undefined) GAME.contrato.clausulaDesempenho = null;
   if(!GAME.memoriaSocial) GAME.memoriaSocial = { ultimosEventos: [] };
   if(GAME.identidade && !GAME.identidade.aparencia) GAME.identidade.aparencia = gerarAparenciaAleatoria(Math.random, 'm');
   if(GAME.relacionamento){

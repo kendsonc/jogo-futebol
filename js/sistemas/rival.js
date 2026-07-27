@@ -30,16 +30,20 @@ function gerarRival(){
 // temporada — uma temporada boa sua freia o crescimento dele (ele sente a
 // pressão da comparação direta), uma temporada fraca sua dá mais espaço pra
 // ele crescer — ainda com ruído, só que com um viés causal de verdade.
+// Bug corrigido: os números do rival (gols/assistências) só cresciam nesta
+// função, chamada 1x por virada de temporada — durante a temporada INTEIRA
+// eles ficavam parados enquanto os seus (GAME.stats) atualizavam a cada
+// partida, dando a impressão de que o rival "não estava jogando". Agora essa
+// função só cuida do que É de verdade anual (overall, título, trajetória,
+// possível troca de clube); gols/assistências evoluem semana a semana em
+// evoluirRivalSemanal, abaixo.
 function evoluirRival(){
   const r = GAME.rival;
   if(!r) return;
   const notaMedia = GAME.stats.notaMedia || 6;
   const desempenhoRelativo = clamp((6 - notaMedia) * 1.5, -4, 4);
   r.overall = clamp(r.overall + rand(-3, 6) + desempenhoRelativo, 30, 95);
-  const ehAtacante = POSICOES_ATACANTE.includes(r.posicao);
   r.statsCareer.temporadas += 1;
-  r.statsCareer.gols += ehAtacante ? rand(4, 18) : rand(0, 6);
-  r.statsCareer.assistencias += rand(1, 8);
   if(chance(8)) r.statsCareer.titulos += 1;
   if(chance(25)){
     const outros = CLUBES.filter(c => c.id !== r.clubeId && (!GAME.clube || c.id !== GAME.clube.id));
@@ -76,6 +80,19 @@ function considerarSucessaoRival(){
   GAME.statsCareer.duelosRival = { vitorias:0, derrotas:0 };
   pushNoticiaImprensa('midia', `Nova geração: com ${rivalAntigo} em fim de carreira, ${GAME.rival.nome} surge como o novo nome a disputar espaço com ${GAME.identidade.apelido}.`);
   registrarMarco('Passagem de bastão', `${rivalAntigo} deu lugar a ${GAME.rival.nome} como o grande rival da sua geração.`, 'media');
+}
+
+// Chamada 1x por semana COM jogo (concluirTickSemanal, liga.js) — pequeno
+// incremento probabilístico calibrado pra, ao longo de uma temporada inteira
+// (~38 rodadas), somar aproximadamente o mesmo total que antes só aparecia
+// de uma vez na virada de temporada. Sem isso, o rival parecia "não jogar"
+// a temporada inteira enquanto suas próprias estatísticas cresciam a cada partida.
+function evoluirRivalSemanal(){
+  const r = GAME.rival;
+  if(!r) return;
+  const ehAtacante = POSICOES_ATACANTE.includes(r.posicao);
+  if(chance(ehAtacante ? 24 : 8)) r.statsCareer.gols += 1;
+  if(chance(12)) r.statsCareer.assistencias += 1;
 }
 
 // Antes eram só 3 templates fixos, repetidos ao pé da letra ao longo de 10+

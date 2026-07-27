@@ -49,6 +49,7 @@ function checarLesao(riscoMod){
     if(tipo === 'Lesão grave'){
       if(GAME.historicoLesoesTotal === 1) registrarMarco('Primeira lesão grave', `Lesão grave (${tipo}) na Temporada ${GAME.numeroTemporada}, tirando ${semanas} semana(s) de recuperação.`, 'media');
       agendarConsequencia('lesao_sequela', rand(35,55), {atributo: pick(['resistencia','velocidade'])});
+      acionarSeguroCarreiraSeElegivel();
     }
   }
 }

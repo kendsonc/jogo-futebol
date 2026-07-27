@@ -369,7 +369,7 @@ function renderBancoBody(){
       <div class="card-title">Investimentos a prazo</div>
       <p class="small muted" style="margin-bottom:8px">Bloqueado até o vencimento — no resgate você recebe o valor investido + todo o rendimento do período de uma vez.</p>
       <div class="row" style="flex-wrap:wrap;gap:8px;margin-bottom:10px">
-        ${INVESTIMENTOS_OPCOES.map(o => `<button class="btn btn-small" data-abrir-invest="${o.id}">${escapeHtml(o.nome)} (${o.taxaMensal}%/mês)</button>`).join('')}
+        ${INVESTIMENTOS_OPCOES.map(o => `<button class="btn btn-small" data-abrir-invest="${o.id}">${escapeHtml(o.nome)} (${o.risco ? `${o.taxaMinMensal}% a ${o.taxaMaxMensal}%/mês, com risco` : `${o.taxaMensal}%/mês`})</button>`).join('')}
       </div>
       ${bancoFormAberto && bancoFormAberto.tipo==='invest' ? renderBancoFormHtml() : ''}
       ${investimentosHtml}
@@ -381,6 +381,14 @@ function renderBancoBody(){
       </div>
       ${bancoFormAberto && bancoFormAberto.tipo==='emprestimo' ? renderBancoFormHtml() : ''}
       ${emprestimosHtml}
+    </div>
+    <div class="card">
+      <div class="card-title">Seguro de carreira${infoTipHtml('Paga uma indenização se você sofrer uma lesão grave antes dos 30 anos. Aciona uma única vez — depois de pagar, precisa contratar de novo.')}</div>
+      ${GAME.banco.seguroCarreira && GAME.banco.seguroCarreira.ativo
+        ? `<p class="small muted">Ativo — R$ ${SEGURO_CARREIRA_CUSTO_SEMANAL}/semana, cobertura de R$ ${SEGURO_CARREIRA_COBERTURA.toLocaleString('pt-BR')} contra lesão grave antes dos 30 anos.</p>
+           <button class="btn btn-small btn-danger" id="btn-cancelar-seguro">Cancelar seguro</button>`
+        : `<p class="small muted">R$ ${SEGURO_CARREIRA_CUSTO_SEMANAL}/semana — cobertura de R$ ${SEGURO_CARREIRA_COBERTURA.toLocaleString('pt-BR')} se sofrer uma lesão grave antes dos 30 anos.</p>
+           <button class="btn btn-small btn-primary" id="btn-contratar-seguro">Contratar seguro</button>`}
     </div>
   `;
   wireBancoButtons();
@@ -394,6 +402,14 @@ function wireBancoButtons(){
   if(btnDepositar) btnDepositar.onclick = () => {
     const v = Number(inputPoupanca.value);
     if(depositarPoupanca(v)){ atualizarCarteiraStatusBar(); renderBancoBody(); } else avisar('Valor inválido ou saldo insuficiente na carteira.');
+  };
+  const btnContratarSeguro = document.getElementById('btn-contratar-seguro');
+  if(btnContratarSeguro) btnContratarSeguro.onclick = () => { contratarSeguroCarreira(); renderBancoBody(); };
+  const btnCancelarSeguro = document.getElementById('btn-cancelar-seguro');
+  if(btnCancelarSeguro) btnCancelarSeguro.onclick = () => {
+    confirmarAcao({ titulo:'Cancelar seguro', texto:'Cancelar o seguro de carreira? Você perde a cobertura contra lesão grave.', textoConfirmar:'Cancelar seguro', perigoso:true }).then(ok => {
+      if(ok){ cancelarSeguroCarreira(); renderBancoBody(); }
+    });
   };
   if(btnSacar) btnSacar.onclick = () => {
     const v = Number(inputPoupanca.value);

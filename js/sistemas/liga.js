@@ -342,7 +342,9 @@ function concluirTickSemanal(){
   GAME.carteira = Math.round((GAME.carteira||0) + ganhoAposComissao * (1 - aliquotaImposto));
   // Central de Carreira: juros da poupança, parcelas de empréstimo e
   // condomínio/IPTU de imóveis são processados no mesmo tick semanal.
+  evoluirRivalSemanal();
   processarJurosPoupancaSemanal();
+  processarSeguroCarreiraSemanal();
   processarEmprestimosSemanal();
   descontarCustosImoveisSemanal();
   descontarManutencaoCarrosSemanal();

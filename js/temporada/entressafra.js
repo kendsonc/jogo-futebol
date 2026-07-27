@@ -31,8 +31,17 @@ function calcularOfertaContrato(){
   const novaBolsa = Math.max(150, Math.round(bolsaBase * (1 + (desempenho/100 + 0.12)*fatorFinanceiro)));
   const novaExpectativa = desempenho > 15 ? 'Alta' : desempenho > -5 ? 'Moderada' : 'Baixa';
   const novoTipo = novaBolsa >= 1000 ? 'Contrato profissional júnior' : novaBolsa >= 500 ? 'Contrato de base' : 'Bolsa auxílio';
+  // Cláusula de rescisão padrão, ancorada no valor de mercado — negociável pra
+  // baixo em resolverRodadaNegociacao (mais liberdade, clube menos protegido).
+  const clausulaPadrao = Math.round(Math.max(50000, (s.valorEstimado||50000) * 1.5) / 1000) * 1000;
+  // Cláusula de desempenho do PRÓPRIO clube (não só de patrocínio pessoal,
+  // ver processarClausulaPatrocinioTemporada) — meta ancorada na produção da
+  // temporada que passou, bônus pago pelo clube se bater de novo.
+  const metaDesempenho = Math.max(8, Math.round(((s.gols||0)+(s.assistencias||0)) * 1.3));
   return { tipo:novoTipo, bolsa:novaBolsa, duracao:12, expectativa:novaExpectativa,
-    confiancaDiretoria: clamp(c.confiancaDiretoria + Math.round(desempenho/4), 10, 95) };
+    confiancaDiretoria: clamp(c.confiancaDiretoria + Math.round(desempenho/4), 10, 95),
+    clausulaRescisao: clausulaPadrao,
+    clausulaDesempenho: { meta: metaDesempenho, bonusMeses: 1 } };
 }
 function clubesMaioresDisponiveis(){
   if(!(GAME.stats.interesseClubes >= 55 && GAME.stats.notaMedia >= 6.8)) return [];
@@ -87,7 +96,10 @@ function calcularOfertaTransferencia(clubeDestino, emDisputa){
 function calcularValorTransferencia(clubeDestino){
   const base = Math.max(50000, GAME.stats.valorEstimado || 0);
   const fatorClube = clamp(0.7 + clubeDestino.financeiro/100 * 0.6, 0.7, 1.5);
-  return Math.round(base * fatorClube / 1000) * 1000;
+  const valor = Math.round(base * fatorClube / 1000) * 1000;
+  // A cláusula de rescisão negociada no contrato é um PISO — nenhum clube
+  // paga menos que isso pra te tirar (é justamente o que ela protege).
+  return Math.max(valor, GAME.contrato.clausulaRescisao || 0);
 }
 
 // Empréstimo esportivo: só oferecido quando a relação com o técnico já está
@@ -181,7 +193,7 @@ function iniciarNegociacaoContrato(){
   GAME.entressafraState.negociacao = {
     dirigente: pick(NOMES_DIRIGENTES),
     bolsa: base.bolsa, duracao: base.duracao, expectativa: base.expectativa, tipo: base.tipo,
-    confiancaDiretoria: base.confiancaDiretoria,
+    confiancaDiretoria: base.confiancaDiretoria, clausulaRescisao: base.clausulaRescisao, clausulaDesempenho: base.clausulaDesempenho,
     humor: clamp(50 + (GAME.relacoes.diretoria-50)*0.4 + (GAME.stats.notaMedia-6)*5 + rand(-8,8), 5, 95),
     rodada: 0
   };
@@ -203,13 +215,15 @@ function renderEntressafraContrato(){
       { label:'Pedir um contrato mais longo', acao:'pedir_prazo' },
       { label:'Destacar seus números da temporada', acao:'destacar_stats' },
       ...(podeAmeacar ? [{ label:'Insinuar que tem interesse de outros clubes', acao:'ameacar_sair' }] : []),
-      ...(GAME.empresarioAtual ? [{ label:'Deixar seu empresário conduzir a conversa', acao:'usar_empresario' }] : [])
+      ...(GAME.empresarioAtual ? [{ label:'Deixar seu empresário conduzir a conversa', acao:'usar_empresario' }] : []),
+      { label:'Negociar uma cláusula de saída mais baixa (mais liberdade, salário menor)', acao:'clausula_baixa' }
     ] : [])
   ];
   app.innerHTML = `
     <div class="card">
       <div class="card-title">Renovação de Contrato ${n.rodada>0 ? `— rodada ${n.rodada+1}` : ''}</div>
       <div id="scene-text">${escapeHtml(introducao).replace(/\n/g,'<br>')}</div>
+      <p class="small muted">Cláusula de rescisão atual: <b>R$ ${n.clausulaRescisao.toLocaleString('pt-BR')}</b>${infoTipHtml('Valor mínimo que outro clube precisaria "pagar" pra te tirar daqui — quanto mais baixa, mais liberdade você tem pra sair, mas menos protegido o clube te considera.')}</p>
       <div class="choices">${escolhas.map((e,i)=>`<button class="btn ${e.acao==='aceitar'?'btn-primary':''}" data-i="${i}">${escapeHtml(e.label)}</button>`).join('')}</div>
     </div>
   `;
@@ -225,7 +239,7 @@ function resolverRodadaNegociacao(acao){
   const st = GAME.entressafraState;
   const n = st.negociacao;
   if(acao === 'aceitar'){
-    GAME.contrato = { tipo:n.tipo, bolsa:n.bolsa, duracao:n.duracao, expectativa:n.expectativa, confiancaDiretoria:n.confiancaDiretoria };
+    GAME.contrato = { tipo:n.tipo, bolsa:n.bolsa, duracao:n.duracao, expectativa:n.expectativa, confiancaDiretoria:n.confiancaDiretoria, clausulaRescisao:n.clausulaRescisao, clausulaDesempenho:n.clausulaDesempenho };
     Som.tocarEfeito('contratoAssinado');
     mostrarToast({ icone:'📝', titulo:'Contrato renovado', texto:`${n.tipo}, R$ ${n.bolsa.toLocaleString('pt-BR')}/mês` });
     pushNoticia('geral', `${GAME.identidade.apelido} renova com o ${GAME.clube.nome}: ${n.tipo}, R$ ${n.bolsa.toLocaleString('pt-BR')}/mês.`);
@@ -254,12 +268,18 @@ function resolverRodadaNegociacao(acao){
     else if(tipo === 'amigoFamilia'){ n.bolsa = Math.round(n.bolsa*1.08); n.humor = clamp(n.humor+3,0,100); }
     else if(tipo === 'oportunista'){ if(chance(50)){ n.bolsa = Math.round(n.bolsa*1.3); n.humor = clamp(n.humor-5,0,100); } else { n.humor = clamp(n.humor-20,0,100); } }
     else { if(chance(40)){ n.bolsa = Math.round(n.bolsa*1.15); } else { n.humor = clamp(n.humor-15,0,100); } }
+  } else if(acao === 'clausula_baixa'){
+    // Trade-off real: cláusula mais baixa (mais liberdade pra sair depois)
+    // custa salário e deixa a diretoria um pouco mais reticente.
+    n.clausulaRescisao = Math.round(n.clausulaRescisao * 0.6 / 1000) * 1000;
+    n.bolsa = Math.round(n.bolsa * 0.94);
+    n.humor = clamp(n.humor - 6, 0, 100);
   }
   n.rodada += 1;
   // se o humor despenca, a diretoria endurece de vez e força o encerramento
   if(n.humor <= 0){
     n.bolsa = Math.round(n.bolsa*0.9);
-    GAME.contrato = { tipo:n.tipo, bolsa:n.bolsa, duracao:n.duracao, expectativa:'Baixa', confiancaDiretoria:clamp(n.confiancaDiretoria-15,0,100) };
+    GAME.contrato = { tipo:n.tipo, bolsa:n.bolsa, duracao:n.duracao, expectativa:'Baixa', confiancaDiretoria:clamp(n.confiancaDiretoria-15,0,100), clausulaRescisao:n.clausulaRescisao, clausulaDesempenho:n.clausulaDesempenho };
     Som.tocarEfeito('contratoAssinado');
     mostrarToast({ icone:'📝', titulo:'Contrato fechado', texto:`Negociação esfriou — termos piores que o esperado com o ${GAME.clube.nome}` });
     pushNoticia('geral', `A negociação com o ${GAME.clube.nome} esfriou. Contrato fechado em termos piores do que o esperado.`);
@@ -268,7 +288,7 @@ function resolverRodadaNegociacao(acao){
     return;
   }
   if(n.rodada > 3){
-    GAME.contrato = { tipo:n.tipo, bolsa:n.bolsa, duracao:n.duracao, expectativa:n.expectativa, confiancaDiretoria:n.confiancaDiretoria };
+    GAME.contrato = { tipo:n.tipo, bolsa:n.bolsa, duracao:n.duracao, expectativa:n.expectativa, confiancaDiretoria:n.confiancaDiretoria, clausulaRescisao:n.clausulaRescisao, clausulaDesempenho:n.clausulaDesempenho };
     Som.tocarEfeito('contratoAssinado');
     mostrarToast({ icone:'📝', titulo:'Contrato renovado', texto:`${n.tipo}, R$ ${n.bolsa.toLocaleString('pt-BR')}/mês` });
     pushNoticia('geral', `${GAME.identidade.apelido} fecha a renovação com o ${GAME.clube.nome} depois de uma negociação longa.`);

@@ -1,3 +1,42 @@
+/* ============================== RISCO DE OSTENTAÇÃO =============================
+   Consumo de luxo (calcularIndiceEstilo, loja.js) hoje só empurra popularidade/
+   imagem pra cima, nunca pra baixo — sem nenhum risco real associado a ostentar.
+   Esses 3 eventos (raros, só com índice de estilo alto e sem empresário
+   experiente/renomado cuidando da imagem) dão uma contrapartida de risco.
+   ========================================================================= */
+function gerarEventoAssalto(){
+  return {
+    id:'ostentacao_assalto', categoria:'geral',
+    texto:(g)=>`Saindo de um evento badalado, você é rendido e obrigado a entregar pertences de valor — o carro fica exposto demais estacionado ali na frente, chamando atenção.`,
+    escolhas:[
+      { label:'Entregar tudo sem reagir e prestar queixa depois', efeitos:{carteira:-Math.round((GAME.carteira||0)*0.08), pressaoPsicologica:6, saudeMental:-4},
+        extra:(g)=>pushNoticiaImprensa('midia', `${g.identidade.apelido} foi vítima de assalto, mas passa bem.`) },
+      { label:'Reduzir a exposição pública dos bens de agora em diante', efeitos:{carteira:-Math.round((GAME.carteira||0)*0.08), pressaoPsicologica:4, saudeMental:-2, imagemMidia:-2} }
+    ]
+  };
+}
+function gerarEventoExtorsao(){
+  return {
+    id:'ostentacao_extorsao', categoria:'midia',
+    texto:(g)=>`Um perfil anônimo manda mensagem ameaçando divulgar fotos antigas fora de contexto, "a menos que" você pague uma quantia pra ele sumir.`,
+    escolhas:[
+      { label:'Pagar discretamente pra resolver rápido', efeitos:{carteira:-Math.round((GAME.carteira||0)*0.05), pressaoPsicologica:5} },
+      { label:'Ignorar e denunciar o perfil às autoridades', efeitos:{pressaoPsicologica:8, imagemMidia:-3},
+        extra:(g)=>{ if(chance(50)) pushNoticia('geral', 'A ameaça não passou de bluff — nada foi divulgado.'); else pushNoticiaImprensa('midia', `Fotos antigas de ${g.identidade.apelido} circulam fora de contexto nas redes — repercussão negativa.`); } }
+    ]
+  };
+}
+function gerarEventoEscandaloFiscal(){
+  return {
+    id:'ostentacao_escandalo_fiscal', categoria:'midia',
+    texto:(g)=>`A Receita notifica uma inconsistência na declaração de bens do último ano — carros e imóveis comprados não bateram direito com a renda declarada.`,
+    escolhas:[
+      { label:'Contratar contador pra regularizar tudo e pagar a multa', efeitos:{carteira:-Math.round((GAME.carteira||0)*0.1), pressaoPsicologica:3} },
+      { label:'Tentar minimizar o problema publicamente', efeitos:{imagemMidia:-6, pressaoPsicologica:6},
+        extra:(g)=>pushNoticiaImprensa('midia', `Escândalo fiscal: ${g.identidade.apelido} é criticado na imprensa por inconsistências na declaração de bens.`) }
+    ]
+  };
+}
 function renderSeguimentoLuto(escolhaInicial){
   // Segunda etapa: como o jogador segue depois do primeiro impacto do luto
   return {
@@ -306,6 +345,18 @@ function sortearEvento(){
   // o arco de ídolo — dá gradação à torcida em vez de um salto binário.
   if(torcidaDivididaDisponivel('debate') && chance(12)) pool.push(gerarEventoTorcidaDebate());
   if(torcidaDivididaDisponivel('cobranca') && chance(12)) pool.push(gerarEventoTorcidaCobranca());
+  // Risco de ostentação: só com índice de estilo alto e sem empresário
+  // experiente/renomado pra cuidar da exposição — consumo de luxo passa a
+  // ter uma contrapartida de risco, não só empurrar popularidade pra cima.
+  {
+    const indiceEstilo = calcularIndiceEstilo();
+    const semProtecao = !GAME.empresarioAtual || (GAME.empresarioAtual !== 'experiente' && GAME.empresarioAtual !== 'renomado');
+    if(indiceEstilo >= 70 && semProtecao){
+      if(chance(6)) pool.push(gerarEventoAssalto());
+      if(chance(6)) pool.push(gerarEventoExtorsao());
+      if(chance(5)) pool.push(gerarEventoEscandaloFiscal());
+    }
+  }
   // Lado obscuro do futebol: raro, no máximo 2 vezes por temporada
   if(ts.eventosObscurosOcorridos < 2 && ts.periodoIndex >= 1 && chance(8)){
     pool.push(pick(EVENTOS_LADO_OBSCURO));

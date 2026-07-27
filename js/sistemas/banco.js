@@ -14,7 +14,11 @@ const INVESTIMENTOS_OPCOES = [
   { id:'cdb90',  nome:'CDB 90 dias',        taxaMensal:0.7, duracaoSemanas:12 },
   { id:'cdb180', nome:'CDB 180 dias',       taxaMensal:0.85, duracaoSemanas:24 },
   { id:'tesouro360', nome:'Tesouro 360 dias', taxaMensal:0.95, duracaoSemanas:48 },
-  { id:'lci720', nome:'LCI Premium 720 dias', taxaMensal:1.0, duracaoSemanas:96 }
+  { id:'lci720', nome:'LCI Premium 720 dias', taxaMensal:1.0, duracaoSemanas:96 },
+  // Único com risco de verdade — taxa sorteada na hora da compra (ver
+  // criarInvestimento) e só revelada no resgate, podendo até dar prejuízo.
+  // Dá uma tensão real de "onde investir" que os outros (renda fixa) não têm.
+  { id:'acoesFii', nome:'Ações / Fundo Imobiliário', taxaMensal:null, duracaoSemanas:24, risco:true, taxaMinMensal:-2, taxaMaxMensal:3.2 }
 ];
 
 // Imposto de renda simples sobre bolsa/salário/patrocínio, aplicado toda
@@ -54,6 +58,41 @@ const EMPRESTIMO_OPCOES = [
   { id:'emp_garantia',nome:'Crédito com Garantia',    maxValor:100000, taxaMensal:2.2, parcelasDisponiveis:[24,36,48,60] }
 ];
 
+/* ------------------------------ SEGURO DE CARREIRA -----------------------------
+   Protege contra o pior cenário físico: uma lesão grave ainda jovem (< 30
+   anos), quando o corpo deveria estar no auge. Prêmio semanal baixo, paga uma
+   indenização em dinheiro se a cobertura for acionada — e se desativa depois
+   de pagar (precisa contratar de novo pra continuar coberto).
+   ========================================================================= */
+const SEGURO_CARREIRA_CUSTO_SEMANAL = 80;
+const SEGURO_CARREIRA_COBERTURA = 150000;
+function contratarSeguroCarreira(){
+  if(GAME.banco.seguroCarreira && GAME.banco.seguroCarreira.ativo) return false;
+  GAME.banco.seguroCarreira = { ativo:true };
+  pushHistorico('Contratou um seguro de carreira contra lesão grave precoce.');
+  salvarJogo();
+  return true;
+}
+function cancelarSeguroCarreira(){
+  if(!GAME.banco.seguroCarreira) return;
+  GAME.banco.seguroCarreira.ativo = false;
+}
+function processarSeguroCarreiraSemanal(){
+  if(!GAME.banco.seguroCarreira || !GAME.banco.seguroCarreira.ativo) return;
+  GAME.carteira = Math.round((GAME.carteira||0) - SEGURO_CARREIRA_CUSTO_SEMANAL);
+}
+// Chamada de checarLesao (lesao.js) quando o grau sorteado é 'Lesão grave' —
+// paga uma vez só, depois desativa (precisa recontratar pra seguir coberto).
+function acionarSeguroCarreiraSeElegivel(){
+  if(!GAME.banco.seguroCarreira || !GAME.banco.seguroCarreira.ativo) return false;
+  if(idadeAtual() >= 30) return false;
+  GAME.banco.seguroCarreira.ativo = false;
+  GAME.carteira = Math.round((GAME.carteira||0) + SEGURO_CARREIRA_COBERTURA);
+  mostrarToast({ icone:'🛡️', titulo:'Seguro de carreira acionado', texto:`Indenização de R$ ${SEGURO_CARREIRA_COBERTURA.toLocaleString('pt-BR')}` });
+  pushNoticia('geral', `O seguro de carreira cobriu a lesão grave: indenização de R$ ${SEGURO_CARREIRA_COBERTURA.toLocaleString('pt-BR')} recebida.`);
+  return true;
+}
+
 /* ------------------------------ POUPANÇA -------------------------------------- */
 function depositarPoupanca(valor){
   valor = Math.round(valor);
@@ -87,13 +126,18 @@ function criarInvestimento(opcaoId, valor){
   valor = Math.round(valor);
   if(!opcao || valor <= 0 || (GAME.carteira||0) < valor) return false;
   GAME.carteira = Math.round(GAME.carteira - valor);
-  GAME.banco.investimentos.push({
+  const investimento = {
     id: 'inv_' + Date.now() + '_' + rand(1000,9999),
     opcaoId, valor,
     semanaInicio: GAME.status.semanaGlobal,
     semanaResgate: GAME.status.semanaGlobal + opcao.duracaoSemanas,
     resgatado: false
-  });
+  };
+  // Investimento de risco: taxa sorteada JÁ na compra e travada — só se sabe
+  // se valeu a pena no resgate, igual mercado de ações de verdade (pode até
+  // dar prejuízo, diferente dos outros, que nunca perdem o principal).
+  if(opcao.risco) investimento.taxaMensalReal = opcao.taxaMinMensal + Math.random()*(opcao.taxaMaxMensal-opcao.taxaMinMensal);
+  GAME.banco.investimentos.push(investimento);
   pushHistorico(`Investiu R$ ${valor.toLocaleString('pt-BR')} em ${opcao.nome}.`);
   salvarJogo();
   return true;
@@ -102,7 +146,8 @@ function valorFinalInvestimento(inv){
   const opcao = INVESTIMENTOS_OPCOES.find(o => o.id === inv.opcaoId);
   if(!opcao) return inv.valor;
   const meses = opcao.duracaoSemanas/4;
-  return Math.round(inv.valor * Math.pow(1 + opcao.taxaMensal/100, meses));
+  const taxa = inv.taxaMensalReal != null ? inv.taxaMensalReal : opcao.taxaMensal;
+  return Math.max(0, Math.round(inv.valor * Math.pow(1 + taxa/100, meses)));
 }
 function podeResgatarInvestimento(inv){
   return !inv.resgatado && GAME.status.semanaGlobal >= inv.semanaResgate;
