@@ -129,7 +129,12 @@ function painelDados(){
 function progressoMetaCarreiraHtml(){
   const p = calcularProgressoMetaCarreira();
   if(!p) return '';
-  return `<div class="spacer">
+  // Bug corrigido: ".spacer" é só um espaçador vazio de altura fixa (12px,
+  // ver style.css), usado em outros lugares como <div class="spacer"></div>
+  // — usá-lo como CONTAINER de conteúdo real fazia o texto/barra transbordar
+  // e ficar coberto pela grade de conquistas logo abaixo. Precisa de um
+  // wrapper de verdade (mesmo padrão ".card" do resto da tela).
+  return `<div class="card">
     <p class="small muted" style="margin-bottom:4px">${p.cumprida ? '✅' : '🎯'} ${escapeHtml(p.tituloDesc)}</p>
     ${barraHtml('Progresso da meta', Math.round(p.atual/p.alvo*100))}
   </div>`;

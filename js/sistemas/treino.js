@@ -10,6 +10,16 @@ const TREINOS = [
 ];
 
 /* ------------------------------ TREINO --------------------------------- */
+// Nunca mostra o número exato (GAME.potencialOculto é literalmente "oculto")
+// — só uma faixa nebulosa de observador de olheiro, arredondada em degraus de
+// 5, o suficiente pra orientar decisão de treino sem entregar o valor real.
+function potencialOcultoFaixaTexto(){
+  const p = GAME.potencialOculto;
+  const ruido = 8;
+  const min = clamp(Math.floor((p-ruido)/5)*5, 1, 99);
+  const max = clamp(Math.ceil((p+ruido)/5)*5, 1, 99);
+  return `${min}-${max}`;
+}
 function renderTreino(){
   if(!GAME.esquemaTatico) GAME.esquemaTatico = '4-3-3';
   app.innerHTML = `
@@ -18,6 +28,7 @@ function renderTreino(){
       <div class="screen-hero-kicker">${escapeHtml(periodoAtualObj().nome)} — Semana ${GAME.temporadaState.semanaNoPeriodo+1}/${periodoAtualObj().semanas}</div>
       <h2>Foco de treino da semana</h2>
       <p class="screen-hero-sub">Energia atual: ${GAME.status.energia}/100</p>
+      <p class="small muted" style="margin-top:6px">🔎 Observadores estimam seu potencial entre <b>${potencialOcultoFaixaTexto()}</b>${infoTipHtml('Uma estimativa nebulosa de olheiro, nunca o número exato — orienta se ainda vale a pena investir pesado em evolução ou se você já está perto do seu teto.')}</p>
     </div>
     <div class="menu-tiles">
       ${TREINOS.map((t,i) => `

@@ -53,19 +53,26 @@ function resolverNivelLance(attr, dificuldade){
 // (ver estatJogador em prepararPartida e aplicarEstatisticaLance).
 // agressividade (do estilo tático do clube, ver modsTaticosClube em
 // dados-base.js): times mais agressivos cometem mais faltas e levam mais cartão.
-function gerarEstatBaseTime(forca, agressividade){
+// ataque/posse (mods táticos do clube, dados-base.js) antes só entravam no
+// posseBase da partida — as próprias estatísticas de fundo (finalizações,
+// escanteios, desarmes) mal escalavam com a tática, então um time "ofensivo"
+// e um "retranqueiro" de mesma força tinham números quase idênticos.
+function gerarEstatBaseTime(forca, agressividade, ataque, posse){
   agressividade = agressividade || 0;
+  ataque = ataque || 0;
+  posse = posse || 0;
   // Faixas próximas da média real de uma partida (por time): ~6-14 finalizações,
   // ~2-6 no alvo, ~3-7 escanteios, ~7-15 faltas, 0-3 impedimentos, ~8-16 desarmes.
   // Escala com a força do time só um pouco (evita times "monstro" com números irreais).
-  const finalizacoes = rand(6,12) + Math.round(forca/28);
+  const finalizacoes = clamp(rand(6,12) + Math.round(forca/28) + Math.round(ataque*0.35), 3, 26);
   const finalizacoesGol = clamp(Math.round(finalizacoes * (0.3 + Math.random()*0.25)), 1, finalizacoes);
   return {
     finalizacoes, finalizacoesGol,
-    escanteios: rand(3,7),
+    escanteios: clamp(rand(3,7) + Math.round((ataque+posse)*0.12), 1, 14),
     faltas: clamp(rand(7,15) + Math.round(agressividade*0.6), 4, 24),
     impedimentos: rand(0,3),
-    desarmes: rand(8,16),
+    // time de posse defende menos (a bola fica mais tempo com ele) — menos desarmes necessários
+    desarmes: clamp(rand(8,16) - Math.round(posse*0.15), 3, 22),
     cartoes: clamp((chance(55) ? rand(1,2) : 0) + (chance(clamp(agressividade*4,0,40)) ? 1 : 0), 0, 5)
   };
 }
@@ -208,7 +215,7 @@ function prepararPartida(contexto){
   // faltas, impedimentos, desarmes, cartões) — base de fundo escalada pela
   // força de cada time; estatJogador acumula em cima disso o que o SEU
   // jogador realmente fizer nos lances (ver aplicarEstatisticaLance).
-  const estatBase = { meu: gerarEstatBaseTime(forcaTime, modsMeu.agressividade), adv: gerarEstatBaseTime(forcaAdversario, modsAdv.agressividade) };
+  const estatBase = { meu: gerarEstatBaseTime(forcaTime, modsMeu.agressividade, modsMeu.ataque, modsMeu.posse), adv: gerarEstatBaseTime(forcaAdversario, modsAdv.agressividade, modsAdv.ataque, modsAdv.posse) };
   const posseBase = clamp(Math.round(50 + (forcaTime-forcaAdversario)/4 + (modsMeu.posse-modsAdv.posse)/2), 28, 72);
   // Acréscimos de cada tempo — base realista (1º tempo costuma ter menos que
   // o 2º) que só CRESCE durante a partida quando uma revisão de VAR acontece
@@ -243,13 +250,34 @@ function prepararPartida(contexto){
   render();
 }
 
+// Contexto do lance (clássico/rival, decisivo no fim do jogo, ou padrão) varia
+// o texto de gol — antes era sempre a mesma frase fixa por perfil, mesmo num
+// clássico decidido aos 89 minutos.
+function textoGolContextual(p, textoPadrao){
+  const minuto = p.minutosLances[p.indiceLance];
+  const decisivo = minuto >= 80;
+  const rival = p.confrontoRival || p.classicoRegional;
+  if(rival && decisivo) return pick([
+    'Nos minutos finais, contra quem mais importava — um gol para entrar pra história!',
+    'Quase no apito final, no jogo mais importante da temporada, você decide!'
+  ]);
+  if(rival) return pick([
+    'Contra o seu maior rival, o gol pesa ainda mais — a torcida explode!',
+    'Justamente contra quem você mais queria vencer — que resposta!'
+  ]);
+  if(decisivo) return pick([
+    'Nos minutos finais, um gol de peso enorme!',
+    'Quase no apito final — que golaço decisivo!'
+  ]);
+  return textoPadrao;
+}
 function resolverEscolhaLance(escolha){
   const p = GAME.temporadaState.partidaEmAndamento;
   const ac = p.acumulado;
   const nivel = resolverNivelLance(escolha.attr, p.dificuldade);
   let texto = '';
   if(escolha.perfil === 'finalizar'){
-    if(nivel==='otimo'){ ac.gols++; ac.golsMinutos.push(p.minutosLances[p.indiceLance]); p.cronologiaGols.push({ id:p.cronologiaGols.length, minuto:p.minutosLances[p.indiceLance], minutoExibido:minutoExibido(p), texto:'Você', nome:'Você' }); texto = 'Bola na rede! Um golaço seu.'; GAME.sociais.moral = clamp(GAME.sociais.moral+4,0,100); }
+    if(nivel==='otimo'){ ac.gols++; ac.golsMinutos.push(p.minutosLances[p.indiceLance]); p.cronologiaGols.push({ id:p.cronologiaGols.length, minuto:p.minutosLances[p.indiceLance], minutoExibido:minutoExibido(p), texto:'Você', nome:'Você' }); texto = textoGolContextual(p, 'Bola na rede! Um golaço seu.'); GAME.sociais.moral = clamp(GAME.sociais.moral+4,0,100); }
     else if(nivel==='bom'){ texto = 'Quase! A bola passou raspando a trave.'; }
     else if(nivel==='neutro'){ texto = 'O goleiro conseguiu encaixar a finalização.'; }
     else if(nivel==='ruim'){ ac.erros++; texto = 'Você chutou muito mal, a torcida reclamou.'; GAME.sociais.moral = clamp(GAME.sociais.moral-3,0,100); }
@@ -266,7 +294,7 @@ function resolverEscolhaLance(escolha){
     else if(nivel==='ruim'){ ac.erros++; texto = 'Passe errado, perdeu a bola numa área perigosa.'; GAME.sociais.moral = clamp(GAME.sociais.moral-3,0,100); }
     else { ac.erros++; texto = 'Errou feio o passe e o adversário quase aproveitou no contra-ataque.'; GAME.sociais.moral = clamp(GAME.sociais.moral-6,0,100); }
   } else if(escolha.perfil === 'driblar'){
-    if(nivel==='otimo'){ ac.gols++; ac.golsMinutos.push(p.minutosLances[p.indiceLance]); p.cronologiaGols.push({ id:p.cronologiaGols.length, minuto:p.minutosLances[p.indiceLance], minutoExibido:minutoExibido(p), texto:'Você', nome:'Você' }); texto = 'Driblou todo mundo e ainda balançou as redes! A torcida foi à loucura.'; GAME.sociais.moral = clamp(GAME.sociais.moral+6,0,100); atualizarRedesSociais(rand(20,60),'elogio'); }
+    if(nivel==='otimo'){ ac.gols++; ac.golsMinutos.push(p.minutosLances[p.indiceLance]); p.cronologiaGols.push({ id:p.cronologiaGols.length, minuto:p.minutosLances[p.indiceLance], minutoExibido:minutoExibido(p), texto:'Você', nome:'Você' }); texto = textoGolContextual(p, 'Driblou todo mundo e ainda balançou as redes! A torcida foi à loucura.'); GAME.sociais.moral = clamp(GAME.sociais.moral+6,0,100); atualizarRedesSociais(rand(20,60),'elogio'); }
     else if(nivel==='bom'){ texto = 'Ótimo drible, mas a jogada não terminou em gol.'; }
     else if(nivel==='neutro'){ texto = 'Tentou o drible, mas a defesa se recompôs a tempo.'; }
     else if(nivel==='ruim'){ ac.erros++; texto = 'Perdeu a bola no drible, torcida vaiou.'; GAME.sociais.moral = clamp(GAME.sociais.moral-4,0,100); }
@@ -754,6 +782,36 @@ function aplicarVariacaoTaticaIntervalo(p, pl){
     p.posturaSegundoTempo = 'cautelosa';
   }
 }
+function mostrarPedidoSaida(p){
+  const slot = document.getElementById('lm-lance-slot');
+  if(!slot) return;
+  const pl = placarAoVivo(p);
+  slot.innerHTML = `
+    <div class="card live-match-lance">
+      <div class="card-title">Time perdendo aos ${minutoExibido(p)}</div>
+      <p class="small muted">${pl.meus} x ${pl.deles} — o técnico olha pro banco e pergunta como você está.</p>
+      <div id="scene-text">O jogo não está indo bem e o cansaço já pesa. Você pede pra sair ou segue em campo tentando virar?</div>
+      <div class="choices">
+        <button class="btn" id="btn-pedir-saida">Pedir pra sair (poupar o físico)</button>
+        <button class="btn btn-primary" id="btn-continuar-em-campo">Continuar em campo</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('btn-pedir-saida').onclick = () => {
+    slot.innerHTML = '';
+    p.substituido = true;
+    p.minutos = p.minutoAtual;
+    adicionarLinhaFeed(`${minutoExibido(p)} — Você pede pra sair, poupando o físico para os próximos jogos.`);
+    ajustarSaudeMental(2);
+    retomarPartidaAoVivo();
+  };
+  document.getElementById('btn-continuar-em-campo').onclick = () => {
+    slot.innerHTML = '';
+    adicionarLinhaFeed(`${minutoExibido(p)} — Você decide continuar em campo, tentando ajudar a virar o jogo.`);
+    GAME.sociais.pressaoPsicologica = clamp(GAME.sociais.pressaoPsicologica + 3, 0, 100);
+    retomarPartidaAoVivo();
+  };
+}
 function mostrarIntervalo(p){
   const slot = document.getElementById('lm-lance-slot');
   if(!slot) return;
@@ -853,6 +911,24 @@ function tickPartidaAoVivo(){
       p.lancePendente = true;
       salvarJogo();
       montarLanceSlotHtml(p.lances[p.indiceLance], p);
+      return;
+    }
+  }
+  // Substituição por decisão do jogador — antes só existia a troca automática
+  // por acúmulo de erros (resolverEscolhaLance, mais abaixo). Titular que
+  // devia jogar os 90min (sem saída planejada), perdendo numa janela realista
+  // de decisão tática (60-75min), ganha a chance de pedir pra sair (poupar
+  // físico/evitar lesão) em vez de só sofrer a decisão do técnico. Só 1x por
+  // partida (pedidoSaidaOferecido).
+  if(!p.pedidoSaidaOferecido && p.status === 'titular' && p.minutos === 90 && !p.substituido
+     && p.minutoAtual >= 60 && p.minutoAtual <= 75){
+    const pl = placarAoVivo(p);
+    if(pl.deles > pl.meus){
+      p.pedidoSaidaOferecido = true;
+      clearInterval(_timerPartidaAoVivo);
+      p.rodando = false;
+      salvarJogo();
+      mostrarPedidoSaida(p);
       return;
     }
   }

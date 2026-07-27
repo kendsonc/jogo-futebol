@@ -403,6 +403,12 @@ function renderSeguimentoEvento(){
       aplicarEfeitos(sg.baseEfeitos);
       if(sg.baseExtra) sg.baseExtra(GAME);
       aplicarEfeitos(esc.efeitos);
+      // Bug corrigido: a escolha da CONTINUAÇÃO do evento nunca chamava seu
+      // próprio `extra` — só o extra da 1ª pergunta (baseExtra) rodava. Isso
+      // fazia, por exemplo, aceitar "Fechar contrato de representação" com um
+      // empresário (gerarEventoEmpresario, liga.js) registrar a escolha no
+      // histórico sem nunca gravar GAME.empresarioAtual de verdade.
+      if(esc.extra) esc.extra(GAME);
       pushHistorico(`Evento (continuação): ${esc.label}`);
       if(sg.eventoId === 'empresario') ts.empresarioOfertado = true;
       ts.seguimentoEvento = null;
