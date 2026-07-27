@@ -70,6 +70,8 @@ function render(){
   // Reparo de saves antigos (de antes de features novas existirem)
   if(!GAME.consequenciasPendentes) GAME.consequenciasPendentes = [];
   if(GAME.clube && !GAME.rival) GAME.rival = gerarRival();
+  if(GAME.clube && !GAME.concorrentesPosicao) GAME.concorrentesPosicao = gerarConcorrentesPosicao();
+  if(!GAME.esquemaTatico) GAME.esquemaTatico = '4-3-3';
   if(!GAME.vidaPessoal) GAME.vidaPessoal = { ultimaAcaoSemana: {} };
   if(GAME.relacionamento === undefined) GAME.relacionamento = null;
   if(!GAME.forma) GAME.forma = { ultimasNotas: [], media: 0, momento: 'regular' };

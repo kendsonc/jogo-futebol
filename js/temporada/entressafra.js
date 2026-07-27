@@ -61,12 +61,19 @@ function clubesMaioresDisponiveis(){
 // Contrato pós-transferência: reancora no patamar do clube de DESTINO em vez de
 // crescer proporcionalmente ao salário do clube antigo (calcularOfertaContrato
 // é pra renovação no mesmo clube — não serve aqui)
-function calcularOfertaTransferencia(clubeDestino){
+// emDisputa: true quando mais de um clube grande está de olho ao mesmo tempo
+// (renderEntressafraTransferencia) — antes cada clube fazia sua oferta
+// isolada, mesmo quando dois estavam competindo pelo mesmo jogador na mesma
+// janela. Um leilão de verdade (rodadas simuladas de lance) exigiria uma
+// tela nova inteira; esse fator já entrega o efeito real (proposta mais
+// alta) sem esse custo de UI.
+function calcularOfertaTransferencia(clubeDestino, emDisputa){
   const s = GAME.stats;
   const valorNormalizado = clamp((Math.log10(Math.max(1,s.valorEstimado)) - 3.5) * 8, -10, 15);
   const desempenho = clamp((s.notaMedia-6)*10 + (GAME.relacoes.diretoria-50)*0.3 + (s.interesseClubes-40)*0.2 + valorNormalizado + reputacaoComercial(), -30, 50);
   const bolsaBaseClube = 200 + clubeDestino.financeiro*9 + clubeDestino.reputacao*4;
-  const novaBolsa = Math.max(150, Math.round(bolsaBaseClube * (1 + desempenho/100)));
+  const fatorDisputa = emDisputa ? 1.15 + Math.random()*0.15 : 1;
+  const novaBolsa = Math.max(150, Math.round(bolsaBaseClube * (1 + desempenho/100) * fatorDisputa));
   const novaExpectativa = desempenho > 15 ? 'Alta' : desempenho > -5 ? 'Moderada' : 'Baixa';
   const novoTipo = novaBolsa >= 1000 ? 'Contrato profissional júnior' : novaBolsa >= 500 ? 'Contrato de base' : 'Bolsa auxílio';
   return { tipo:novoTipo, bolsa:novaBolsa, duracao:12, expectativa:novaExpectativa,
@@ -83,7 +90,53 @@ function calcularValorTransferencia(clubeDestino){
   return Math.round(base * fatorClube / 1000) * 1000;
 }
 
+// Empréstimo esportivo: só oferecido quando a relação com o técnico já está
+// ruim (pouco espaço no clube atual) — vai por 1 temporada pra um clube de
+// tier igual ou menor, com retorno automático garantido na entressafra
+// seguinte (processarRetornoEmprestimoSeNecessario). Reaproveita bem menos
+// máquina que uma transferência definitiva (sem ex-companheiros/pacto de
+// carreira) de propósito: é uma cessão temporária, não o mesmo tipo de evento.
+function clubesDisponiveisEmprestimo(){
+  const meuTier = tierDoClube(GAME.clube);
+  const indiceTier = TIERS_ORDEM.indexOf(meuTier);
+  const candidatos = CLUBES.filter(c => c.id !== GAME.clube.id && TIERS_ORDEM.indexOf(tierDoClube(c)) <= indiceTier);
+  return candidatos.length ? [pick(candidatos)] : [];
+}
+function irParaEmprestimo(clubeDestino){
+  GAME.emprestimoOrigem = { ...GAME.clube };
+  GAME.clube = { id:clubeDestino.id, nome:clubeDestino.nome, cidade:clubeDestino.cidade, uf:clubeDestino.uf,
+    pais:clubeDestino.pais, liga:clubeDestino.liga,
+    divisao:clubeDestino.divisao, estiloJogo:clubeDestino.estiloJogo, nivelBase:clubeDestino.nivelBase,
+    chanceAprovacaoBase:clubeDestino.chanceAprovacaoBase, pressaoTorcida:clubeDestino.pressaoTorcida,
+    oportunidadeJovens:clubeDestino.oportunidadeJovens, financeiro:clubeDestino.financeiro,
+    reputacao:clubeDestino.reputacao, exigenciaPeneira:clubeDestino.exigenciaPeneira,
+    cor1:clubeDestino.cor1, cor2:clubeDestino.cor2 };
+  GAME.contrato.bolsa = Math.round(GAME.contrato.bolsa * 0.85);
+  Som.tocarEfeito('contratoAssinado');
+  trocarTecnico();
+  GAME.elenco = gerarElenco();
+  GAME.concorrentesPosicao = gerarConcorrentesPosicao();
+  GAME.relacoes.elenco = 50; GAME.relacoes.diretoria = 50; GAME.relacoes.torcida = 10;
+  GAME.status.statusElenco = 'Emprestado';
+  mostrarToast({ icone:'📋', titulo:'Empréstimo fechado', texto:`Cedido ao ${clubeDestino.nome} por 1 temporada` });
+  pushNoticiaImprensa('midia', `${GAME.identidade.apelido} é emprestado ao ${clubeDestino.nome} por 1 temporada, em busca de mais minutos em campo.`);
+}
+function processarRetornoEmprestimoSeNecessario(){
+  if(!GAME.emprestimoOrigem) return;
+  const origem = GAME.emprestimoOrigem;
+  const clubeEmprestado = GAME.clube.nome;
+  GAME.clube = origem;
+  GAME.emprestimoOrigem = null;
+  trocarTecnico();
+  GAME.elenco = gerarElenco();
+  GAME.concorrentesPosicao = gerarConcorrentesPosicao();
+  GAME.relacoes.elenco = 50; GAME.relacoes.diretoria = 50; GAME.relacoes.torcida = 25;
+  GAME.status.statusElenco = 'De volta do empréstimo';
+  pushNoticiaImprensa('midia', `Fim do empréstimo: ${GAME.identidade.apelido} retorna ao ${origem.nome} após a passagem pelo ${clubeEmprestado}.`);
+}
+
 function iniciarEntressafra(){
+  processarRetornoEmprestimoSeNecessario();
   GAME.fase = 'entressafra';
   GAME.entressafraState = { etapa:0, ofertaContrato:null };
   salvarJogo();
@@ -241,18 +294,33 @@ function ordenarOpcoesPorMetaCarreira(opcoes){
 }
 function renderEntressafraTransferencia(){
   const opcoes = ordenarOpcoesPorMetaCarreira([...clubesMaioresDisponiveis(), ...clubesInternacionaisDisponiveis()]);
+  const candidatosEmprestimo = (GAME.relacoes.treinador < 35 && !GAME.emprestimoOrigem) ? clubesDisponiveisEmprestimo() : [];
+  const emprestimoTileHtml = candidatosEmprestimo.length ? `
+      <button class="menu-tile" data-i="emprestimo">
+        ${escudoClubeHtml(candidatosEmprestimo[0],50)}
+        <span class="menu-tile-body">
+          <span class="menu-tile-title">Pedir empréstimo ao ${escapeHtml(candidatosEmprestimo[0].nome)}</span>
+          <span class="menu-tile-sub">Relação ruim com o técnico no ${escapeHtml(GAME.clube.nome)} — 1 temporada fora, com retorno garantido</span>
+        </span>
+        <span class="menu-tile-arrow">→</span>
+      </button>` : '';
   if(opcoes.length === 0){
     app.innerHTML = `
       <div class="card">
         <div class="card-title">Mercado</div>
         <div id="scene-text">Nenhum clube maior de olho em você ainda — ao menos por enquanto. É hora de seguir firme e continuar evoluindo no ${GAME.clube.nome}.</div>
+        ${emprestimoTileHtml ? `<div class="menu-tiles">${emprestimoTileHtml}</div>` : ''}
         <div class="choices"><button class="btn btn-primary" id="btn-ent-seguir">Continuar</button></div>
       </div>
     `;
     document.getElementById('btn-ent-seguir').onclick = () => { GAME.entressafraState.etapa = 3; salvarJogo(); render(); };
+    const btnEmp = document.querySelector('[data-i="emprestimo"]');
+    if(btnEmp) btnEmp.onclick = () => { irParaEmprestimo(candidatosEmprestimo[0]); GAME.entressafraState.etapa = 3; salvarJogo(); render(); };
     return;
   }
-  const texto = `Seu bom momento chamou atenção além do ${GAME.clube.nome}. ${opcoes.length>1?'Dois clubes maiores':'Um clube maior'} sinalizaram interesse em te contratar para a próxima temporada.`;
+  const texto = opcoes.length>1
+    ? `Seu bom momento chamou atenção além do ${GAME.clube.nome}. Dois clubes maiores entraram numa disputa direta pela sua contratação — e isso tende a pesar a seu favor na proposta final.`
+    : `Seu bom momento chamou atenção além do ${GAME.clube.nome}. Um clube maior sinalizou interesse em te contratar para a próxima temporada.`;
   app.innerHTML = `
     <div class="screen-hero">
       <div class="screen-hero-kicker">Proposta de Transferência</div>
@@ -277,10 +345,18 @@ function renderEntressafraTransferencia(){
         </span>
         <span class="menu-tile-arrow">→</span>
       </button>
+      ${emprestimoTileHtml}
     </div>
   `;
   document.querySelectorAll('.menu-tile').forEach(btn => {
     btn.onclick = () => {
+      if(btn.dataset.i === 'emprestimo'){
+        irParaEmprestimo(candidatosEmprestimo[0]);
+        GAME.entressafraState.etapa = 3;
+        salvarJogo();
+        render();
+        return;
+      }
       if(btn.dataset.i !== 'ficar'){
         const novoClube = opcoes[parseInt(btn.dataset.i,10)];
         const clubeAntigoNomeTransferencia = GAME.clube ? GAME.clube.nome : null;
@@ -300,7 +376,7 @@ function renderEntressafraTransferencia(){
           oportunidadeJovens:novoClube.oportunidadeJovens, financeiro:novoClube.financeiro,
           reputacao:novoClube.reputacao, exigenciaPeneira:novoClube.exigenciaPeneira,
           cor1:novoClube.cor1, cor2:novoClube.cor2 };
-        const ofertaTransferencia = calcularOfertaTransferencia(novoClube);
+        const ofertaTransferencia = calcularOfertaTransferencia(novoClube, opcoes.length > 1);
         GAME.contrato = { tipo:ofertaTransferencia.tipo, bolsa:ofertaTransferencia.bolsa, duracao:ofertaTransferencia.duracao,
           expectativa:ofertaTransferencia.expectativa, confiancaDiretoria:ofertaTransferencia.confiancaDiretoria };
         const valorTransferencia = calcularValorTransferencia(novoClube);
@@ -314,6 +390,7 @@ function renderEntressafraTransferencia(){
         trocarTecnico();
         GAME.observador = pickExcluindo(NOMES_OBSERVADORES, GAME.observador);
         GAME.elenco = gerarElenco(); // novo clube, novos companheiros de elenco
+        GAME.concorrentesPosicao = gerarConcorrentesPosicao(); // novo clube, novos concorrentes pela vaga
         if(amigoPacto){
           if(chance(55)){
             GAME.elenco.push({ ...amigoPacto, id:'comp_pacto_'+GAME.status.semanaGlobal, pactoCarreira:undefined });
@@ -581,6 +658,7 @@ function avancarParaProximaTemporada(){
 
   evoluirRival();
   evoluirExCompanheiros();
+  evoluirConcorrentesPosicao();
 
   pushNoticia('geral', `Início da Temporada ${GAME.numeroTemporada} — agora com ${idadeAtual()} anos.`);
   iniciarTemporada();

@@ -448,6 +448,23 @@ function calcularProgressoMetaCarreira(){
 const POSICOES = ['Goleiro','Lateral-direito','Lateral-esquerdo','Zagueiro','Volante',
   'Meio-campista','Meia ofensivo','Ponta-direita','Ponta-esquerda','Segundo atacante','Centroavante'];
 
+// Esquema tático preferido do técnico — muda quais posições ganham mais
+// minutos/chance de titularidade (ver bonusEsquemaTaticoPosicao, treino.js).
+// Efeito estatístico puro, sem editor visual de campo (o valor real já é
+// entregue por um seletor simples — um campo tático visual seria a maior
+// peça de trabalho do pacote pra um ganho marginal sobre isso).
+const ESQUEMAS_TATICOS = {
+  '4-4-2': { nome:'4-4-2', desc:'Duplo centroavante, meio mais robusto, sem ponta de ofício.',
+    bonusPorPosicao: { 'Goleiro':0, 'Lateral-direito':1, 'Lateral-esquerdo':1, 'Zagueiro':2, 'Volante':1,
+      'Meio-campista':1, 'Meia ofensivo':-2, 'Ponta-direita':-5, 'Ponta-esquerda':-5, 'Segundo atacante':4, 'Centroavante':5 } },
+  '4-3-3': { nome:'4-3-3', desc:'Ataque pelas pontas, um camisa 9 de referência, meio mais enxuto.',
+    bonusPorPosicao: { 'Goleiro':0, 'Lateral-direito':1, 'Lateral-esquerdo':1, 'Zagueiro':1, 'Volante':-2,
+      'Meio-campista':2, 'Meia ofensivo':0, 'Ponta-direita':5, 'Ponta-esquerda':5, 'Segundo atacante':-3, 'Centroavante':3 } },
+  '3-5-2': { nome:'3-5-2', desc:'Meio-campo lotado, alas em vez de laterais de ofício, sem ponta.',
+    bonusPorPosicao: { 'Goleiro':0, 'Lateral-direito':-4, 'Lateral-esquerdo':-4, 'Zagueiro':2, 'Volante':4,
+      'Meio-campista':5, 'Meia ofensivo':3, 'Ponta-direita':-5, 'Ponta-esquerda':-5, 'Segundo atacante':2, 'Centroavante':2 } }
+};
+
 /* ====================== DATA: DEFINIÇÃO DE ATRIBUTOS =======================
    Todos os atributos vão de 1 a 99. Agrupados por categoria para exibição
    no painel. Os nomes usados aqui (chaves) são os mesmos usados em "mods"

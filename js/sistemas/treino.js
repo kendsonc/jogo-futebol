@@ -11,6 +11,7 @@ const TREINOS = [
 
 /* ------------------------------ TREINO --------------------------------- */
 function renderTreino(){
+  if(!GAME.esquemaTatico) GAME.esquemaTatico = '4-3-3';
   app.innerHTML = `
     ${statusBarHtml()}
     <div class="screen-hero" style="padding:18px 18px 14px">
@@ -30,9 +31,24 @@ function renderTreino(){
         </button>
       `).join('')}
     </div>
+    <div class="card">
+      <div class="card-title">Esquema tático do time${infoTipHtml('Muda quais posições o técnico prioriza na escalação — afeta sua chance de ser titular conforme sua posição.')}</div>
+      <div class="menu-tiles">
+        ${Object.keys(ESQUEMAS_TATICOS).map(k => `
+          <button type="button" class="menu-tile esquema-tile ${k===GAME.esquemaTatico?'sel':''}" data-esquema="${k}">
+            <span class="menu-tile-body">
+              <span class="menu-tile-title">${escapeHtml(ESQUEMAS_TATICOS[k].nome)}</span>
+              <span class="menu-tile-sub">${escapeHtml(ESQUEMAS_TATICOS[k].desc)}</span>
+            </span>
+          </button>`).join('')}
+      </div>
+    </div>
   `;
-  document.querySelectorAll('.menu-tile').forEach(btn => {
+  document.querySelectorAll('.menu-tile[data-i]').forEach(btn => {
     btn.onclick = () => aplicarTreino(TREINOS[parseInt(btn.dataset.i,10)]);
+  });
+  document.querySelectorAll('.esquema-tile').forEach(btn => {
+    btn.onclick = () => { GAME.esquemaTatico = btn.dataset.esquema; salvarJogo(); renderTreino(); };
   });
 }
 
@@ -95,6 +111,16 @@ function prosseguirAposTreino(){
 }
 
 /* ------------------------------ PARTIDA --------------------------------- */
+function bonusEsquemaTaticoPosicao(){
+  const esquema = ESQUEMAS_TATICOS[GAME.esquemaTatico] || ESQUEMAS_TATICOS['4-3-3'];
+  return esquema.bonusPorPosicao[GAME.identidade.posicaoPrincipal] || 0;
+}
+function bonusConcorrenciaPosicao(){
+  const concorrentes = GAME.concorrentesPosicao;
+  if(!concorrentes || !concorrentes.length) return 0;
+  const melhorConcorrente = Math.max(...concorrentes.map(c => c.overall));
+  return clamp((calcularOverall() - melhorConcorrente) * 0.6, -12, 12);
+}
 function decidirEscalacao(){
   if(GAME.lesaoAtual) return 'naoRelacionado'; // lesionado não entra em campo, mas o time joga do mesmo jeito
   const ts = GAME.temporadaState;
@@ -108,11 +134,17 @@ function decidirEscalacao(){
   // direto pra titular, sem nenhuma partida de transição pra retomar ritmo.
   const penalidadeRecondicionamento = (GAME.recondicionamentoSemanas||0) > 0 ? -22 : 0;
   const bonusPerfil = bonusPerfilClubeEscalacao();
+  // Concorrência real pela vaga (clubes.js) — antes disputar a titularidade
+  // era só um número comparado contra ruído aleatório, sem ninguém nomeado do
+  // outro lado. Um concorrente de overall bem maior reduz a chance de ser
+  // titular; você sendo bem melhor que os concorrentes puxa pra cima.
+  const bonusConcorrencia = bonusConcorrenciaPosicao();
+  const bonusEsquema = bonusEsquemaTaticoPosicao();
   // Ruído reduzido de ±15 pra ±9: com ±15, o acaso sozinho já superava
   // qualquer bônus de estilo de técnico ou perfil de clube, deixando essas
   // "personalidades" quase invisíveis no resultado final (ver calcularBonusTecnico,
   // cujo teto subiu de ±8 pra ±12 na mesma mudança, pra pesar de verdade).
-  const score = GAME.relacoes.treinador*0.3 + ts.mediaTreinoRecente*0.3 + GAME.status.energia*0.2 + GAME.atributos.disciplina*0.2 + bonusStatus + bonusForma + bonusTecnico + bonusPerfil + penalidadeRecondicionamento + rand(-9,9);
+  const score = GAME.relacoes.treinador*0.3 + ts.mediaTreinoRecente*0.3 + GAME.status.energia*0.2 + GAME.atributos.disciplina*0.2 + bonusStatus + bonusForma + bonusTecnico + bonusPerfil + bonusConcorrencia + bonusEsquema + penalidadeRecondicionamento + rand(-9,9);
   if(score >= 65) return 'titular';
   if(score >= 38) return 'reserva';
   return 'naoRelacionado';

@@ -178,7 +178,15 @@ function painelRelacoes(){
     <div class="card-title">Círculo do elenco</div>
     ${GAME.elenco.map(c => `<p class="small muted" style="margin-bottom:2px">${c.nome} — ${c.papel}</p>${barraHtml('', c.relacao)}`).join('<div class="spacer" style="height:8px"></div>')}
   </div>` : '';
-  return geral + amigos;
+  const meuOverall = calcularOverall();
+  const concorrencia = (GAME.concorrentesPosicao && GAME.concorrentesPosicao.length) ? `<div class="card">
+    <div class="card-title">Concorrência pela vaga${infoTipHtml('Jogadores nomeados disputando sua posição no time — quanto maior o overall deles em relação ao seu, menor sua chance de ser titular.')}</div>
+    <table style="width:100%;border-collapse:collapse">
+      <tr><td class="small muted">Você</td><td class="small" style="text-align:right"><b>${meuOverall}</b></td></tr>
+      ${GAME.concorrentesPosicao.map(c => `<tr><td class="small muted">${escapeHtml(c.nome)}</td><td class="small" style="text-align:right"><b>${c.overall}</b></td></tr>`).join('')}
+    </table>
+  </div>` : '';
+  return geral + amigos + concorrencia;
 }
 function painelEstatisticas(){
   const s = GAME.stats;

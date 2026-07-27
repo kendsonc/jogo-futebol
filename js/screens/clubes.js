@@ -90,6 +90,30 @@ function gerarElenco(){
   return embaralhados.slice(0,5).map((nome,i) => ({ id:'comp_'+i, nome, papel: PAPEIS_ELENCO[i % PAPEIS_ELENCO.length], relacao:50 }));
 }
 
+// Concorrentes nomeados disputando a MESMA posição do jogador — antes a
+// "concorrência por vaga" só existia como número abstrato dentro de
+// decidirEscalacao (treino.js), sem nenhum nome/overall comparável pra dar a
+// sensação real de disputar o time titular com alguém. Reaproveita o pool de
+// nomes do elenco social, excluindo quem já é "amigo" (gerarElenco) pra não
+// duplicar a mesma pessoa nos dois papéis.
+function gerarConcorrentesPosicao(){
+  const nomesElenco = new Set((GAME.elenco||[]).map(c => c.nome));
+  const disponiveis = NOMES_COMPANHEIROS.filter(n => !nomesElenco.has(n));
+  const embaralhados = [...disponiveis].sort(() => Math.random()-0.5);
+  const meuOverall = calcularOverall();
+  const n = rand(1,2);
+  return embaralhados.slice(0, n).map((nome,i) => ({
+    id: 'concorrente_'+i,
+    nome,
+    overall: clamp(meuOverall + rand(-15,15), 30, 90)
+  }));
+}
+// Chamada 1x por virada de temporada (entressafra.js, junto de evoluirRival)
+// — mesma lógica de ruído com viés leve, sem simular partidas próprias.
+function evoluirConcorrentesPosicao(){
+  (GAME.concorrentesPosicao||[]).forEach(c => { c.overall = clamp(c.overall + rand(-4,5), 30, 95); });
+}
+
 function iniciarPeneira(clube){
   GAME.clube = { id:clube.id, nome:clube.nome, cidade:clube.cidade, uf:clube.uf,
     divisao:clube.divisao, estiloJogo:clube.estiloJogo, nivelBase:clube.nivelBase,
