@@ -660,83 +660,250 @@ function resolverRodadaFinalDasCopas(){
   });
 }
 
-/* ------------------------------ MUNDIAL DE CLUBES -----------------------------
-   Só acontece se você foi campeão da Libertadores OU da Champions League
-   nesta temporada. O "outro lado" (o continente que você não disputou) é
-   resolvido de forma totalmente anônima em segundo plano — representa o
-   campeão daquele torneio no seu mundo, mesmo sem você ter acompanhado.
+/* ------------------------------ MUNDIAL DE CLUBES E COPA DO MUNDO (JOGÁVEIS) ===
+   Antes, os dois eram resolvidos 100% em segundo plano via simularConfrontoMataMata
+   — o motor de lance (resolverNivelLance/LANCES_*) ficava ocioso justamente no
+   clímax internacional da carreira. Agora reaproveitam o mesmo padrão enxuto do
+   amistoso da Seleção (selecao.js: lance a lance, sem relógio ao vivo/VAR, já
+   que são jogos isolados sem tabela) através de um motor compartilhado
+   (prepararConfrontoInternacionalJogavel). Só acontece se você foi campeão da
+   Libertadores OU da Champions League nesta temporada (Mundial) ou se já foi
+   convocado pra Seleção Principal e segue em boa fase, num ano de Copa (a cada
+   4 temporadas). O "outro lado" de qualquer chave (quem você não enfrenta)
+   continua 100% anônimo em segundo plano, como sempre.
    ========================================================================= */
-function disputarMundialDeClubesSeNecessario(){
+function anoDeCopaDoMundo(){ return GAME.numeroTemporada % 4 === 0; }
+
+// Motor de lance compartilhado — usado tanto pro jogo único do Mundial de
+// Clubes quanto por cada rodada da Copa do Mundo em que o jogador está
+// envolvido. tipo: 'mundialClubes' | 'copaDoMundo'.
+function prepararConfrontoInternacionalJogavel(tipo, oponenteNome, forcaOponente){
+  const dificuldade = clamp((forcaOponente||60)*0.65 + rand(-10,10), 15, 95);
+  const posicao = GAME.identidade.posicaoPrincipal;
+  const ehGoleiro = posicao === 'Goleiro';
+  const ehDefensor = POSICOES_DEFENSOR.includes(posicao);
+  const ehMeio = posicao === 'Meio-campista';
+  const pool = ehGoleiro ? LANCES_GOLEIRO : ehDefensor ? LANCES_DEFESA : ehMeio ? [...LANCES_ATAQUE,...LANCES_DEFESA] : LANCES_ATAQUE;
+  const numLances = rand(2,4);
+  const lances = Array.from({length:numLances}, () => pick(pool));
+  const forcaMeuTime = clamp(78 + (calcularOverall()-60)*0.15 + rand(-8,8), 40, 99);
+  const forcaAdv = clamp((forcaOponente||60) + rand(-8,8), 30, 99);
+  GAME.temporadaState.confrontoInternacionalJogavel = {
+    tipo, oponenteNome, dificuldade, lances, indiceLance:0,
+    golsMeuBase: golsPoisson(forcaMeuTime), golsAdvFinal: golsPoisson(forcaAdv),
+    acumulado: { gols:0, assist:0, erros:0, amarelo:0, vermelho:0, defesaImportante:0, eventos:[] }
+  };
+  GAME.temporadaState.preJogoInternacional = null;
+  GAME.temporadaState.subFase = 'internacionalLance';
+  salvarJogo();
+  render();
+}
+function renderPreJogoInternacional(){
+  const info = GAME.temporadaState.preJogoInternacional;
+  const meuNome = info.tipo === 'mundialClubes' ? GAME.clube.nome : 'Brasil';
+  app.innerHTML = `
+    ${statusBarHtml()}
+    <div class="screen-hero hero-marco">
+      <span class="hero-marco-selo">⭐ Marco</span>
+      <div class="screen-hero-kicker">${escapeHtml(info.tituloTela)} — ${escapeHtml(info.subtitulo)}</div>
+      <h1>${escapeHtml(meuNome)} x ${escapeHtml(info.oponenteNome)}</h1>
+      <p class="screen-hero-sub">${info.tipo==='mundialClubes'
+        ? `O ${escapeHtml(GAME.clube.nome)} disputa o título mundial de clubes contra o ${escapeHtml(info.oponenteNome)}, em jogo único.`
+        : `A Seleção Brasileira enfrenta ${escapeHtml(info.oponenteNome)} pela ${escapeHtml(info.subtitulo)} da Copa do Mundo.`}</p>
+    </div>
+    <div class="card center">
+      <div class="choices"><button class="btn btn-primary" id="btn-jogar-internacional">Ir para a partida</button></div>
+    </div>
+  `;
+  document.getElementById('btn-jogar-internacional').onclick = () => prepararConfrontoInternacionalJogavel(info.tipo, info.oponenteNome, info.forcaOponente);
+}
+// Resolução enxuta (mesmo cálculo de resolverEscolhaAmistosoSelecao, selecao.js)
+function resolverEscolhaInternacional(escolha){
+  const c = GAME.temporadaState.confrontoInternacionalJogavel;
+  const ac = c.acumulado;
+  const nivel = resolverNivelLance(escolha.attr, c.dificuldade);
+  let texto = '';
+  if(escolha.perfil === 'finalizar' || escolha.perfil === 'driblar'){
+    if(nivel==='otimo'){ ac.gols++; texto = 'GOL! Você balança as redes!'; }
+    else if(nivel==='bom'){ texto = 'Quase — a bola passou perto do gol adversário.'; }
+    else if(nivel==='ruim' || nivel==='pessimo'){ ac.erros++; texto = 'A jogada não deu certo dessa vez.'; }
+    else texto = 'Lance neutro, sem grande perigo.';
+  } else if(escolha.perfil === 'passar'){
+    if(nivel==='otimo'){ ac.assist++; texto = 'Passe primoroso — seu companheiro só empurra pro gol!'; }
+    else if(nivel==='ruim' || nivel==='pessimo'){ ac.erros++; texto = 'Passe errado, perdeu a bola numa área perigosa.'; }
+    else texto = 'O passe não resultou em nada de decisivo.';
+  } else if(escolha.perfil === 'desarmar' || escolha.perfil === 'defender'){
+    if(nivel==='otimo'){ ac.defesaImportante++; texto = 'Grande intervenção!'; }
+    else if(nivel==='ruim' || nivel==='pessimo'){ ac.erros++; texto = 'Chegou atrasado no lance.'; }
+    else texto = 'Lance resolvido sem sobressaltos.';
+  } else if(escolha.perfil === 'arriscado'){
+    if(nivel==='otimo' || nivel==='bom'){ ac.amarelo++; texto = 'Falta tática — cortou o contra-ataque, levando cartão amarelo.'; }
+    else { ac.erros++; ac.vermelho++; texto = 'Cartão vermelho!'; }
+  } else {
+    texto = (nivel==='ruim' || nivel==='pessimo') ? 'Mesmo com cautela, a bola sobrou mal.' : 'Jogada tranquila, sem sustos.';
+  }
+  ac.eventos.push(texto);
+  c.indiceLance += 1;
+  salvarJogo();
+  return { acabou: c.indiceLance >= c.lances.length };
+}
+function renderConfrontoInternacionalLance(){
+  const c = GAME.temporadaState.confrontoInternacionalJogavel;
+  const lance = c.lances[c.indiceLance];
+  const nomeCompeticao = c.tipo==='mundialClubes' ? 'Mundial de Clubes' : 'Copa do Mundo';
+  const meuNome = c.tipo==='mundialClubes' ? GAME.clube.nome : 'Brasil';
+  app.innerHTML = `
+    ${statusBarHtml()}
+    <div class="card live-match-lance">
+      <div class="card-title">${escapeHtml(meuNome)} x ${escapeHtml(c.oponenteNome)} — ${nomeCompeticao}</div>
+      <p class="small muted">Lance ${c.indiceLance+1} de ${c.lances.length}.</p>
+      <div id="scene-text">${escapeHtml(lance.texto())}</div>
+      <div class="choices">
+        ${lance.escolhas.map((e,i)=>`<button class="btn" data-i="${i}">${escapeHtml(e.label)}</button>`).join('')}
+      </div>
+    </div>
+  `;
+  const botoes = Array.from(document.querySelectorAll('.choices .btn'));
+  botoes.forEach(btn => {
+    btn.onclick = () => {
+      botoes.forEach(b => b.disabled = true);
+      const { acabou } = resolverEscolhaInternacional(lance.escolhas[parseInt(btn.dataset.i, 10)]);
+      if(acabou) finalizarConfrontoInternacionalJogavel(); else render();
+    };
+  });
+}
+function finalizarConfrontoInternacionalJogavel(){
+  const c = GAME.temporadaState.confrontoInternacionalJogavel;
+  const ac = c.acumulado;
+  const golsMeu = c.golsMeuBase + ac.gols + ac.assist;
+  const golsAdv = c.golsAdvFinal;
+  const nota = clamp(6 + ac.gols*0.9 + ac.assist*0.5 + ac.defesaImportante*0.6 - ac.erros*0.5 - ac.amarelo*0.3 - ac.vermelho*1.6 + rand(-3,3)/10, 0, 10);
+  GAME.status.energia = clamp(GAME.status.energia - 15, 0, 100);
+  GAME.status.condicaoFisica = clamp((GAME.status.condicaoFisica!=null?GAME.status.condicaoFisica:90) - 5, 0, 100);
+  aplicarEfeitos({
+    popularidade: ac.gols*3 + ac.assist*2,
+    imagemMidia: nota>=7 ? 3 : 0,
+    moral: nota>=7 ? 5 : (nota<5 ? -4 : 0),
+    pressaoPsicologica: nota<5 ? 4 : 0
+  });
+  const empatou = golsMeu === golsAdv;
+  // pênaltis abstratos numa igualdade — mesma regra já usada em simularConfrontoMataMata
+  let venceu = empatou ? Math.random() < 0.5 : golsMeu > golsAdv;
+
+  if(c.tipo === 'mundialClubes'){
+    GAME.mundialDeClubesUltimoResultado = { oponente:c.oponenteNome, golsMeu, golsOponente:golsAdv, penaltis:empatou, venci:venceu };
+    if(venceu){
+      GAME.statsCareer.titulosCopas.mundialClubes += 1;
+      registrarMarco('Campeão Mundial de Clubes!', `O ${GAME.clube.nome} venceu o Mundial de Clubes na Temporada ${GAME.numeroTemporada}, batendo o ${c.oponenteNome}.`, 'alta');
+      pushNoticiaImprensa('midia', `MUNDIAL! O ${GAME.clube.nome} vence o ${c.oponenteNome} (${golsMeu}x${golsAdv}${empatou?' nos pênaltis':''}) e é campeão mundial de clubes!`);
+      GAME.premiacoesTemporada.push('Campeão Mundial de Clubes');
+    } else {
+      pushNoticia('geral', `O ${GAME.clube.nome} disputou o Mundial de Clubes contra o ${c.oponenteNome}, mas não levou o título (${golsMeu}x${golsAdv}${empatou?' nos pênaltis':''}).`);
+    }
+    GAME.temporadaState.confrontoInternacionalJogavel = null;
+    salvarJogo();
+    iniciarCopaDoMundoOuContinuar();
+    return;
+  }
+
+  // copaDoMundo: traduz vitória/derrota do lance pro vencedor real da chave
+  const p = GAME.temporadaState.confrontoCopaDoMundoJogavel;
+  const cdm = GAME.temporadaState.copaDoMundoJogavel;
+  const vencedor = venceu ? (p.souEuA ? p.a : p.b) : (p.souEuA ? p.b : p.a);
+  const nomeRodada = NOMES_RODADAS_16[cdm.rodadaIdx] || `Rodada ${cdm.rodadaIdx+1}`;
+  if(!venceu){
+    cdm.eliminadoNaFase = nomeRodada;
+    pushNoticiaImprensa('midia', `Copa do Mundo: a Seleção Brasileira encerrou a participação de ${GAME.identidade.apelido} no torneio nesta edição (eliminada na ${nomeRodada}).`);
+  } else {
+    pushNoticia('torcida', `Brasil ${golsMeu}x${golsAdv}${empatou?' (pênaltis)':''} contra ${c.oponenteNome} — ${GAME.identidade.apelido} e a Seleção avançam na Copa do Mundo!`);
+  }
+  GAME.temporadaState.confrontoInternacionalJogavel = null;
+  GAME.temporadaState.confrontoCopaDoMundoJogavel = null;
+  const vencedores = [...p.vencedoresParciais, vencedor];
+  salvarJogo();
+  concluirRodadaCopaDoMundo(vencedores);
+}
+
+// Mundial de Clubes: retorna true se a chamada pausou o fluxo (foi pra tela
+// de jogo) — quem chama (finalizarTemporada) NÃO deve continuar o resto do
+// fim de temporada nesse caso; a continuação acontece dentro de
+// finalizarConfrontoInternacionalJogavel, depois que o jogo termina.
+function iniciarMundialDeClubesSeNecessario(){
   GAME.mundialDeClubesUltimoResultado = null;
   const copas = GAME.temporadaState.copas || {};
   const venceuLibertadores = !!(copas.libertadores && copas.libertadores.campeao && copas.libertadores.campeao.souEu);
   const venceuChampions = !!(copas.championsLeague && copas.championsLeague.campeao && copas.championsLeague.campeao.souEu);
-  if(!venceuLibertadores && !venceuChampions) return;
+  if(!venceuLibertadores && !venceuChampions) return false;
   const oponente = venceuLibertadores
     ? simularCampeaoAnonimo(clubesParticipantesChampionsAnonimo())
     : simularCampeaoAnonimo(clubesParticipantesLibertadoresAnonimo());
-  const meuClube = { ...GAME.clube, souEu:true };
-  const r = simularConfrontoMataMata(meuClube, oponente, bonusFormaJogador(), 0);
-  const venci = r.vencedor === 'A';
-  GAME.mundialDeClubesUltimoResultado = { oponente: oponente.nome, golsMeu:r.golsA, golsOponente:r.golsB, penaltis:r.penaltis, venci };
-  if(venci){
-    GAME.statsCareer.titulosCopas.mundialClubes += 1;
-    registrarMarco('Campeão Mundial de Clubes!', `O ${GAME.clube.nome} venceu o Mundial de Clubes na Temporada ${GAME.numeroTemporada}, batendo o ${oponente.nome}.`, 'alta');
-    pushNoticiaImprensa('midia', `MUNDIAL! O ${GAME.clube.nome} vence o ${oponente.nome} (${r.golsA}x${r.golsB}${r.penaltis?' nos pênaltis':''}) e é campeão mundial de clubes!`);
-    GAME.premiacoesTemporada.push('Campeão Mundial de Clubes');
-  } else {
-    pushNoticia('geral', `O ${GAME.clube.nome} disputou o Mundial de Clubes contra o ${oponente.nome}, mas não levou o título (${r.golsA}x${r.golsB}${r.penaltis?' nos pênaltis':''}).`);
-  }
+  GAME.temporadaState.preJogoInternacional = { tipo:'mundialClubes', tituloTela:'Mundial de Clubes', subtitulo:'Grande Final', oponenteNome:oponente.nome, forcaOponente:oponente.reputacao };
+  GAME.temporadaState.subFase = 'preJogoInternacional';
+  salvarJogo();
+  render();
+  return true;
 }
 
-/* ------------------------------ COPA DO MUNDO --------------------------------
-   A cada 4 temporadas, se você já foi convocado pra Seleção Principal alguma
-   vez na carreira e segue em boa fase, participa da campanha — resolvida
-   inteira de uma vez (é um evento de meio de carreira, não um confronto por
-   semana), no mesmo espírito abstrato de verificarConvocacaoSelecao().
-   ========================================================================= */
-function anoDeCopaDoMundo(){ return GAME.numeroTemporada % 4 === 0; }
-function disputarCopaDoMundoSeNecessario(){
+// Copa do Mundo: chave inteira resolvida rodada a rodada, pausando toda vez
+// que o confronto envolve o jogador (mesmo padrão de avancarRodadaCopa, só
+// que sem persistir em GAME.temporadaState.copas — é um evento pontual, não
+// uma copa de clube recorrente). Se não for ano de Copa, ou o jogador não
+// estiver elegível, cai direto pro resto do fim de temporada.
+function iniciarCopaDoMundoOuContinuar(){
   GAME.copaDoMundoUltimoResultado = null;
-  if(!anoDeCopaDoMundo()) return;
+  if(!anoDeCopaDoMundo()){ finalizarSequenciaFimDeTemporada(); return; }
   const jaFoiConvocado = GAME.statsCareer.convocacoes.some(c => c.categoria==='principal');
-  if(!(jaFoiConvocado && GAME.stats.notaMedia >= 6.5)) return;
-
+  if(!(jaFoiConvocado && GAME.stats.notaMedia >= 6.5)){ finalizarSequenciaFimDeTemporada(); return; }
   const participantes = selecoesParticipantesCopaDoMundo();
-  let chave = sortearChave(participantes);
-  let restante = participantes;
-  const historico = [];
-  let rodadaIdx = 0;
-  while(restante.length > 1){
-    const vencedores = [];
-    let meuResultado = null;
-    chave.forEach(([a,b]) => {
-      const souEuA = !!a.souEu, souEuB = !!b.souEu;
-      const bonus = (souEuA||souEuB) ? bonusFormaJogador() : 0;
-      const r = simularConfrontoMataMata(a, b, souEuA?bonus:0, souEuB?bonus:0);
-      const vencedor = r.vencedor==='A' ? a : b;
-      vencedores.push(vencedor);
-      if(souEuA||souEuB) meuResultado = { adversario: souEuA?b.nome:a.nome, golsMeu: souEuA?r.golsA:r.golsB, golsAdversario: souEuA?r.golsB:r.golsA, penaltis:r.penaltis, venceu: !!vencedor.souEu };
-    });
-    historico.push({ nomeRodada: NOMES_RODADAS_16[rodadaIdx] || `Rodada ${rodadaIdx+1}`, meuResultado });
-    restante = vencedores;
-    rodadaIdx++;
-    if(restante.length === 1) break;
-    chave = [];
-    for(let i=0;i<vencedores.length;i+=2) chave.push([vencedores[i], vencedores[i+1]]);
+  GAME.temporadaState.copaDoMundoJogavel = { chaveAtual: sortearChave(participantes), rodadaIdx:0, eliminadoNaFase:null };
+  avancarRodadaCopaDoMundoJogavel();
+}
+function avancarRodadaCopaDoMundoJogavel(){
+  const cdm = GAME.temporadaState.copaDoMundoJogavel;
+  const bonus = bonusFormaJogador();
+  const vencedores = [];
+  let parJogador = null;
+  cdm.chaveAtual.forEach(([a,b]) => {
+    const souEuA = !!a.souEu, souEuB = !!b.souEu;
+    if((souEuA||souEuB) && !parJogador){ parJogador = { a, b, souEuA }; return; }
+    const r = simularConfrontoMataMata(a, b, souEuA?bonus:0, souEuB?bonus:0);
+    vencedores.push(r.vencedor==='A' ? a : b);
+  });
+  if(parJogador){
+    const adversario = parJogador.souEuA ? parJogador.b : parJogador.a;
+    const nomeRodada = NOMES_RODADAS_16[cdm.rodadaIdx] || `Rodada ${cdm.rodadaIdx+1}`;
+    GAME.temporadaState.confrontoCopaDoMundoJogavel = { ...parJogador, vencedoresParciais:vencedores };
+    GAME.temporadaState.preJogoInternacional = { tipo:'copaDoMundo', tituloTela:'Copa do Mundo', subtitulo:nomeRodada, oponenteNome:adversario.nome, forcaOponente:adversario.forca };
+    GAME.temporadaState.subFase = 'preJogoInternacional';
+    salvarJogo();
+    render();
+    return;
   }
-  const euCampeao = !!restante[0].souEu;
-  GAME.copaDoMundoUltimoResultado = { historico, euCampeao, temporada: GAME.numeroTemporada };
-  const faseEliminado = (historico.find(h => h.meuResultado && !h.meuResultado.venceu) || {}).nomeRodada || null;
-  GAME.statsCareer.copasDoMundo.push({ temporada: GAME.numeroTemporada, campeao: euCampeao, eliminadoNaFase: euCampeao ? null : faseEliminado });
+  concluirRodadaCopaDoMundo(vencedores);
+}
+function concluirRodadaCopaDoMundo(vencedores){
+  const cdm = GAME.temporadaState.copaDoMundoJogavel;
+  if(vencedores.length === 1){ finalizarCopaDoMundoJogavel(vencedores[0]); return; }
+  const proximaChave = [];
+  for(let i=0;i<vencedores.length;i+=2) proximaChave.push([vencedores[i], vencedores[i+1]]);
+  cdm.chaveAtual = proximaChave;
+  cdm.rodadaIdx += 1;
+  salvarJogo();
+  avancarRodadaCopaDoMundoJogavel();
+}
+function finalizarCopaDoMundoJogavel(campeao){
+  const cdm = GAME.temporadaState.copaDoMundoJogavel;
+  const euCampeao = !!campeao.souEu;
+  GAME.copaDoMundoUltimoResultado = { euCampeao, temporada: GAME.numeroTemporada };
+  GAME.statsCareer.copasDoMundo.push({ temporada: GAME.numeroTemporada, campeao: euCampeao, eliminadoNaFase: euCampeao ? null : cdm.eliminadoNaFase });
   if(euCampeao){
     GAME.statsCareer.titulosCopas.copaDoMundo += 1;
     registrarMarco('Campeão do Mundo!', `Convocado e campeão da Copa do Mundo com a Seleção Brasileira na Temporada ${GAME.numeroTemporada}.`, 'alta');
     pushNoticiaImprensa('midia', `CAMPEÃO DO MUNDO! O Brasil vence a Copa do Mundo e ${GAME.identidade.apelido} celebra o título com a Seleção.`);
     GAME.premiacoesTemporada.push('Campeão da Copa do Mundo');
-  } else {
-    pushNoticiaImprensa('midia', `Copa do Mundo: a Seleção Brasileira encerrou a participação de ${GAME.identidade.apelido} no torneio nesta edição (eliminada na ${faseEliminado||'fase de grupos'}).`);
   }
+  GAME.temporadaState.copaDoMundoJogavel = null;
+  finalizarSequenciaFimDeTemporada();
 }
 
 /* ------------------------------ BOLA DE OURO ---------------------------------

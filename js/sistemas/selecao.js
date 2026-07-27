@@ -1,12 +1,13 @@
 /* ============================== AMISTOSO DA SELEÇÃO (JOGÁVEL) ==================
-   Antes, convocação pra Seleção era só um número abstrato e a Copa do Mundo era
-   inteiramente simulada (disputarCopaDoMundoSeNecessario, copas.js) — nenhuma
-   partida da Seleção era jogável. Aqui, quem já foi convocado alguma vez na
-   carreira (GAME.statsCareer.convocacoes) recebe, de vez em quando, um amistoso
+   Antes, convocação pra Seleção era só um número abstrato — nenhuma partida da
+   Seleção era jogável. Aqui, quem já foi convocado alguma vez na carreira
+   (GAME.statsCareer.convocacoes) recebe, de vez em quando, um amistoso
    internacional de verdade: reaproveita resolverNivelLance/LANCES_* (mesmo
    "motor" de decisão de partida.js), mas com um fluxo mais simples — sem
    relógio ao vivo/VAR — porque é um jogo isolado, sem tabela nem calendário,
    e "meu time" aqui é a Seleção, não o clube (por isso não usa GAME.clube).
+   Copa do Mundo e Mundial de Clubes reaproveitam esse mesmo padrão enxuto
+   (prepararConfrontoInternacionalJogavel, copas.js), que também é jogável.
    ========================================================================= */
 function elegivelParaAmistosoSelecao(){
   const ts = GAME.temporadaState;

@@ -103,6 +103,13 @@ function render(){
     GAME.temporadaState.subFase = 'partidaAoVivo';
     salvarJogo();
   }
+  // Mundial de Clubes/Copa do Mundo jogáveis (copas.js) podem pausar bem no
+  // meio de finalizarTemporada() (fim-temporada.js), quando GAME.fase JÁ virou
+  // 'fim' — sem essa checagem antes do dispatch por fase, essas duas telas
+  // nunca apareceriam (cairiam direto no relatório de fim de temporada).
+  const subFaseInternacional = GAME.temporadaState && GAME.temporadaState.subFase;
+  if(subFaseInternacional === 'preJogoInternacional') return renderPreJogoInternacional();
+  if(subFaseInternacional === 'internacionalLance') return renderConfrontoInternacionalLance();
   if(GAME.fase === 'historia') return renderHistoriaPassado();
   if(GAME.fase === 'clubes') return renderSelecaoClubes();
   if(GAME.fase === 'peneira') return renderPeneira();

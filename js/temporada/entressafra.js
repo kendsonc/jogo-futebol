@@ -509,6 +509,37 @@ const REFLEXOES_DOCUMENTARIO = [
   (g)=>`Olhando pra trás, é fácil entender por que esse instante marcou a trajetória de ${g.identidade.apelido}.`,
   (g)=>`Quem acompanhou de perto lembra bem do clima daquele momento na carreira de ${g.identidade.apelido}.`
 ];
+// Pós-carreira jogável (versão enxuta): antes o jogo literalmente acabava na
+// tela de "começar de novo" — nenhum caminho depois de pendurar as chuteiras.
+// Cada opção é só 1 narrativa + 2 escolhas (não é um mini-loop de temporadas
+// simuladas), suficiente pra fechar a lacuna sem virar um pacote de telas
+// novo inteiro. Reaproveita o capítulo final do documentário já existente.
+const POS_CARREIRA_OPCOES = [
+  { id:'tecnico', icone:'🎓', nome:'Virar Técnico',
+    texto:'Depois de pendurar as chuteiras, veio um convite: assumir o banco de um time da base no interior. É um caminho novo, mas o gramado nunca deixou de ser sua casa.',
+    escolhas:[
+      { label:'Aceitar o desafio e seguir no futebol como técnico', epilogo:(g)=>`${g.identidade.apelido} encerrou a carreira de jogador e assumiu o banco como técnico, iniciando um novo capítulo dentro do futebol.` },
+      { label:'Recusar e se afastar dos gramados por enquanto', epilogo:(g)=>`${g.identidade.apelido} preferiu tirar um tempo longe dos gramados antes de decidir o próximo passo.` }
+    ] },
+  { id:'comentarista', icone:'🎙️', nome:'Virar Comentarista',
+    texto:'Uma emissora esportiva liga oferecendo um espaço fixo de comentarista — a chance de continuar no futebol falando sobre o jogo, não jogando mais.',
+    escolhas:[
+      { label:'Aceitar o convite e virar voz da televisão', epilogo:(g)=>`${g.identidade.apelido} aceitou o convite e virou uma voz conhecida nas transmissões de futebol.` },
+      { label:'Recusar, sem paciência pra virar figura de estúdio', epilogo:(g)=>`${g.identidade.apelido} recusou o convite, preferindo manter distância dos holofotes da televisão.` }
+    ] },
+  { id:'empresario', icone:'🤝', nome:'Virar Empresário',
+    texto:'Anos de carreira renderam contatos e experiência de sobra — virar empresário de jovens promessas parece um caminho natural pra continuar no futebol, só que do outro lado da mesa.',
+    escolhas:[
+      { label:'Abrir a própria agência e representar novos talentos', epilogo:(g)=>`${g.identidade.apelido} abriu a própria agência, passando a representar a nova geração de jogadores.` },
+      { label:'Deixar essa vida pra trás, sem vontade de negociar contratos', epilogo:(g)=>`${g.identidade.apelido} decidiu deixar o mundo dos contratos pra trás, sem entrar pra esse lado do futebol.` }
+    ] },
+  { id:'dirigente', icone:'🏛️', nome:'Virar Dirigente',
+    texto:'Com o patrimônio construído ao longo da carreira, surge a chance de investir e opinar nos bastidores do clube que marcou sua trajetória.',
+    escolhas:[
+      { label:'Investir no clube e assumir um cargo na diretoria', epilogo:(g)=>`${g.identidade.apelido} investiu no clube que marcou sua carreira e assumiu um cargo na diretoria.` },
+      { label:'Guardar o dinheiro e ficar de fora dos bastidores', epilogo:(g)=>`${g.identidade.apelido} preferiu guardar o patrimônio construído e ficar de fora dos bastidores do futebol.` }
+    ] }
+];
 function renderAposentadoria(){
   const legado = LEGADOS[GAME.legadoFinal];
   const s = GAME.statsCareer;
@@ -545,6 +576,31 @@ function renderAposentadoria(){
         <div id="scene-text">${escapeHtml(m.descricao)}</div>
         <p class="small muted spacer">${escapeHtml(pick(REFLEXOES_DOCUMENTARIO)(GAME))}</p>
       </div>`;
+  } else if(GAME.posCarreiraEscolhida && !GAME.posCarreiraResolvida){
+    const op = POS_CARREIRA_OPCOES.find(o => o.id === GAME.posCarreiraEscolhida);
+    corpoHtml = `
+      <div class="screen-hero">
+        <div class="screen-hero-kicker">Pós-carreira</div>
+        <h1>${op.icone} ${escapeHtml(op.nome)}</h1>
+      </div>
+      <div class="card">
+        <div id="scene-text">${escapeHtml(op.texto)}</div>
+        <div class="choices">
+          ${op.escolhas.map((e,i) => `<button class="btn" data-e="${i}">${escapeHtml(e.label)}</button>`).join('')}
+        </div>
+      </div>`;
+  } else if(GAME.posCarreira){
+    corpoHtml = `
+      <div class="screen-hero hero-marco">
+        <span class="hero-marco-selo">⭐ Epílogo</span>
+        <div class="screen-hero-kicker">Depois dos gramados</div>
+        <h1>${escapeHtml(GAME.identidade.apelido)}</h1>
+      </div>
+      <div class="card"><div id="scene-text">${escapeHtml(GAME.posCarreira.texto)}</div></div>
+      <div class="btn-row" style="max-width:360px">
+        <button class="btn" id="btn-ver-painel-aposentadoria">Ver painel completo</button>
+        <button class="btn btn-primary" id="btn-nova-carreira-aposentadoria">Começar nova carreira</button>
+      </div>`;
   } else {
     corpoHtml = `
       <div class="screen-hero">
@@ -556,6 +612,18 @@ function renderAposentadoria(){
         <div class="card-title">Legado</div>
         <p>${s.convocacoes.length ? `Convocações: ${s.convocacoes.map(c=>escapeHtml(c.nome)).join(', ')}` : 'Nunca foi convocado para uma seleção nacional.'}</p>
         <p>${s.clubesPassados.length ? `Clubes defendidos: ${s.clubesPassados.map(c=>escapeHtml(c.nome)).join(', ')}` : ''}</p>
+      </div>
+      <div class="card">
+        <div class="card-title">E agora?</div>
+        <p class="small muted" style="margin-bottom:10px">A carreira de jogador acabou, mas dá pra continuar no futebol de outro jeito.</p>
+        <div class="menu-tiles">
+          ${POS_CARREIRA_OPCOES.map(op => `
+            <button class="menu-tile" data-poscarreira="${op.id}">
+              <span class="menu-tile-icon">${op.icone}</span>
+              <span class="menu-tile-body"><span class="menu-tile-title">${escapeHtml(op.nome)}</span></span>
+              <span class="menu-tile-arrow">→</span>
+            </button>`).join('')}
+        </div>
       </div>
       <div class="btn-row" style="max-width:360px">
         <button class="btn" id="btn-ver-painel-aposentadoria">Ver painel completo</button>
@@ -580,6 +648,21 @@ function renderAposentadoria(){
   if(btnPainel) btnPainel.onclick = abrirPainel;
   const btnNovaCarreira = document.getElementById('btn-nova-carreira-aposentadoria');
   if(btnNovaCarreira) btnNovaCarreira.onclick = () => { apagarSave(); renderCriacaoPersonagem(); };
+  document.querySelectorAll('[data-poscarreira]').forEach(btn => {
+    btn.onclick = () => { GAME.posCarreiraEscolhida = btn.dataset.poscarreira; salvarJogo(); render(); };
+  });
+  document.querySelectorAll('[data-e]').forEach(btn => {
+    btn.onclick = () => {
+      const op = POS_CARREIRA_OPCOES.find(o => o.id === GAME.posCarreiraEscolhida);
+      const escolha = op.escolhas[parseInt(btn.dataset.e,10)];
+      const texto = escolha.epilogo(GAME);
+      GAME.posCarreira = { caminho: op.id, texto };
+      GAME.posCarreiraResolvida = true;
+      registrarMarco(`Pós-carreira: ${op.nome}`, texto, 'alta');
+      salvarJogo();
+      render();
+    };
+  });
 }
 
 // Antes, o único sinal de idade no corpo era o corte binário de aposentadoria

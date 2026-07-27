@@ -157,8 +157,26 @@ function finalizarTemporada(){
   // Mundial de Clubes; convocação + ano de Copa do Mundo habilita a seleção;
   // todos os títulos da temporada juntos entram no crivo da Bola de Ouro).
   resolverRodadaFinalDasCopas();
-  disputarMundialDeClubesSeNecessario();
-  disputarCopaDoMundoSeNecessario();
+  // Mundial de Clubes e Copa do Mundo agora são JOGÁVEIS (motor de lance
+  // próprio, copas.js) — cada um pode pausar o fluxo aqui pra mostrar uma
+  // tela de jogo, retomando o restante desta função (Bola de Ouro em diante,
+  // ver finalizarSequenciaFimDeTemporada) só depois que o jogador terminar.
+  // Se nenhum dos dois for elegível nesta temporada, cai direto no restante
+  // sem pausa nenhuma — mesmo comportamento de antes.
+  iniciarMundialDeClubesSeNecessario() || iniciarCopaDoMundoOuContinuar();
+}
+
+// Continuação de finalizarTemporada() depois que Mundial de Clubes e Copa do
+// Mundo (se aplicáveis) já foram jogados — extraído pra poder ser chamado de
+// dois pontos diferentes: direto (nenhum dos dois é elegível nesta
+// temporada) ou depois de finalizarConfrontoInternacionalJogavel (copas.js).
+function finalizarSequenciaFimDeTemporada(){
+  // Se Mundial de Clubes/Copa do Mundo rodaram, o subFase ainda pode estar
+  // apontando pra tela de jogo internacional — sem limpar aqui, o novo
+  // dispatch de router.js (que checa subFase ANTES da fase, pra essas duas
+  // telas conseguirem aparecer com GAME.fase já em 'fim') tentaria renderizar
+  // a tela de jogo de novo em loop, em vez de cair no relatório de temporada.
+  if(GAME.temporadaState) GAME.temporadaState.subFase = null;
   calcularMelhorDoMundoSeElegivel();
   // Cena dedicada de gala só quando VOCÊ vence (renderGalaBolaDeOuro, copas.js)
   // — intercepta o fluxo de render() (router.js) antes do relatório comum.
