@@ -218,6 +218,105 @@ function gerarEventoCriseCasamento(){
   };
 }
 
+/* ============================== VIDA PESSOAL ADULTA ============================
+   Antes, a riqueza de vida pessoal (namoro, bullying, primeiro dinheiro) só
+   existia na fase adolescente — o vácuo era grande na vida adulta, que ficava
+   dependente quase só do casamento. Filho (marco só uma vez por carreira) e
+   um amigo recorrente de fora do futebol preenchem parte dessa lacuna.
+   ========================================================================= */
+const NOMES_FILHOS = ['Bento','Laura','Théo','Alice','Davi','Manuela','Gael','Helena','Noah','Cecília'];
+function gerarEventoPedidoFilho(){
+  const g = GAME;
+  if(!g.relacionamento || !g.relacionamento.casado) return null;
+  if((g.relacionamento.semanasCasado||0) < 40) return null;
+  if(g.relacionamento.filhos && g.relacionamento.filhos.length) return null;
+  const nome = g.relacionamento.nome;
+  return {
+    id:'vidapessoal_pedido_filho', categoria:'vidaPessoal',
+    texto:(g)=>`Numa noite tranquila em casa, ${nome} toca num assunto que os dois vinham adiando: "Já pensou em a gente ter um filho?"`,
+    retrato:()=>({ nome, papel:'parceiro', genero:g.relacionamento.genero }),
+    escolhas:[
+      { label:'Topar de coração, é a hora certa', efeitos:{moral:6, saudeMental:4, tracos:{humilde:1}},
+        extra:(g)=>{
+          const nomeFilho = pick(NOMES_FILHOS);
+          g.relacionamento.filhos = [{ nome:nomeFilho, semanas:0 }];
+          registrarMarco('Chegada de um filho', `${g.identidade.apelido} e ${nome} deram as boas-vindas a ${nomeFilho}.`, 'alta');
+        } },
+      { label:'Dizer que a carreira ainda pede foco total agora', efeitos:{pressaoPsicologica:2},
+        extra:(g)=>{ g.relacionamento.relacao = clamp(g.relacionamento.relacao-4,0,100); } }
+    ]
+  };
+}
+// Flavor leve do filho crescendo — sem escolhas de peso, só marca presença
+// na vida pessoal adulta de vez em quando.
+function gerarEventoFilhoCrescendo(){
+  const g = GAME;
+  if(!g.relacionamento || !g.relacionamento.filhos || !g.relacionamento.filhos.length) return null;
+  const filho = g.relacionamento.filhos[0];
+  filho.semanas = (filho.semanas||0) + 1;
+  const idadeAproxAnos = Math.floor(filho.semanas/52);
+  const textos = idadeAproxAnos < 1 ? [
+    `${filho.nome} deu os primeiros passos em casa hoje — você quase perdeu o momento por causa da agenda de jogos, mas chegou a tempo.`
+  ] : [
+    `${filho.nome} pediu pra ir ver você jogar de pertinho — a torcida mais fiel que existe.`,
+    `${filho.nome} apareceu chutando uma bola pela casa toda, imitando você. Tem gente nova pro futebol nessa família.`
+  ];
+  return {
+    id:'vidapessoal_filho_crescendo', categoria:'vidaPessoal',
+    texto:(g)=>pick(textos),
+    escolhas:[
+      { label:'Aproveitar o momento com a família', efeitos:{moral:3, saudeMental:2} },
+      { label:'Registrar e voltar pro foco da rotina', efeitos:{moral:1} }
+    ]
+  };
+}
+
+/* ---------------------------- AMIGO DE FORA DO FUTEBOL ---------------------------
+   Um único amigo recorrente sem nenhuma ligação com o futebol — contraponto
+   à vida inteira girando em torno do CT/clube.
+   ========================================================================= */
+function garantirAmigoForaFutebol(){
+  if(!GAME.amigoForaFutebol) GAME.amigoForaFutebol = { nome: pick(NOMES_COMPANHEIROS), relacao: 55 };
+  return GAME.amigoForaFutebol;
+}
+const SITUACOES_AMIGO_FORA_FUTEBOL = [
+  (amigo) => ({
+    id:'amigo_fora_futebol_visita', categoria:'vidaPessoal',
+    texto:(g)=>`${amigo.nome}, seu amigo de infância que nunca ligou pra futebol, aparece de surpresa: "Vim só te ver, cara. Faz tempo que a gente não troca uma ideia sem falar de jogo."`,
+    escolhas:[
+      { label:'Separar um tempo de verdade pra colocar o papo em dia', efeitos:{moral:4, saudeMental:3},
+        extra:(g)=>{ amigo.relacao = clamp(amigo.relacao+10,0,100); } },
+      { label:'Receber bem, mas com pressa por causa da rotina', efeitos:{},
+        extra:(g)=>{ amigo.relacao = clamp(amigo.relacao-3,0,100); } }
+    ]
+  }),
+  (amigo) => ({
+    id:'amigo_fora_futebol_desabafo', categoria:'vidaPessoal',
+    texto:(g)=>`${amigo.nome} liga meio na dele: "Perdi o emprego essa semana. Não é sobre dinheiro, só queria desabafar com alguém que não é do meio do futebol."`,
+    escolhas:[
+      { label:'Ouvir com atenção e se colocar à disposição', efeitos:{moral:2, tracos:{humilde:1}},
+        extra:(g)=>{ amigo.relacao = clamp(amigo.relacao+12,0,100); } },
+      { label:'Dar uma força rápida, mas seguir a rotina corrida', efeitos:{},
+        extra:(g)=>{ amigo.relacao = clamp(amigo.relacao+2,0,100); } }
+    ]
+  }),
+  (amigo) => ({
+    id:'amigo_fora_futebol_lembra_origem', categoria:'vidaPessoal',
+    texto:(g)=>`Tomando um café, ${amigo.nome} solta, rindo: "Ainda bem que tem gente que te conhece de antes da fama, hein? Pra te lembrar de onde você veio."`,
+    escolhas:[
+      { label:'Concordar — essa amizade é rara e vale muito', efeitos:{moral:3, saudeMental:2, tracos:{humilde:1}},
+        extra:(g)=>{ amigo.relacao = clamp(amigo.relacao+8,0,100); } },
+      { label:'Rir e mudar de assunto rápido', efeitos:{},
+        extra:(g)=>{ amigo.relacao = clamp(amigo.relacao+1,0,100); } }
+    ]
+  })
+];
+function gerarEventoAmigoForaFutebol(){
+  const amigo = garantirAmigoForaFutebol();
+  const situacao = pick(SITUACOES_AMIGO_FORA_FUTEBOL)(amigo);
+  return { id: situacao.id, categoria: situacao.categoria, retrato: () => ({ nome: amigo.nome, papel: 'amigo' }), texto: situacao.texto, escolhas: situacao.escolhas };
+}
+
 // Antes, o check-in era 1 texto fixo repetido ~30x numa carreira longa (só o
 // número da família mudava). Agora varia por faixa de saúde mental
 // (statusSaudeMentalLabel, efeitos.js) — 2 textos por faixa — e, em crise

@@ -345,6 +345,14 @@ function sortearEvento(){
   // o arco de ídolo — dá gradação à torcida em vez de um salto binário.
   if(torcidaDivididaDisponivel('debate') && chance(12)) pool.push(gerarEventoTorcidaDebate());
   if(torcidaDivididaDisponivel('cobranca') && chance(12)) pool.push(gerarEventoTorcidaCobranca());
+  // Vida pessoal adulta: filho (marco único), ele crescendo, e um amigo de
+  // fora do futebol — antes esse período da vida (pós-adolescência) era bem
+  // mais pobre em eventos do que a fase de adolescente.
+  if(GAME.relacionamento && GAME.relacionamento.casado){
+    if(chance(4)){ const evtFilho = gerarEventoPedidoFilho(); if(evtFilho) pool.push(evtFilho); }
+    if(chance(10)){ const evtCresce = gerarEventoFilhoCrescendo(); if(evtCresce) pool.push(evtCresce); }
+  }
+  if(idadeAtual() > 19 && chance(10)) pool.push(gerarEventoAmigoForaFutebol());
   // Risco de ostentação: só com índice de estilo alto e sem empresário
   // experiente/renomado pra cuidar da exposição — consumo de luxo passa a
   // ter uma contrapartida de risco, não só empurrar popularidade pra cima.
@@ -368,9 +376,32 @@ function sortearEvento(){
   // Evita repetir os últimos eventos vistos (inclusive de temporadas anteriores)
   const recentes = GAME.eventosRecentesIds || [];
   const poolFiltrado = pool.filter(e => !recentes.includes(e.id));
-  const escolhido = pick(poolFiltrado.length ? poolFiltrado : pool);
+  let poolFinal = poolFiltrado.length ? poolFiltrado : pool;
+  // Ritmo dramático: depois de 2 eventos PESADOS seguidos (luto, crise,
+  // ostentação...), prioriza um evento leve se houver algum disponível — sem
+  // isso, o sorteio uniforme podia emendar tragédia em cima de tragédia.
+  const tonsRecentes = GAME.eventosRecentesTom || [];
+  if(tonsRecentes.length >= 2 && tonsRecentes[0] === 'pesado' && tonsRecentes[1] === 'pesado'){
+    const leves = poolFinal.filter(e => tomEvento(e) === 'leve');
+    if(leves.length) poolFinal = leves;
+  }
+  const escolhido = pick(poolFinal);
   GAME.eventosRecentesIds = [escolhido.id, ...recentes].slice(0, 12);
+  GAME.eventosRecentesTom = [tomEvento(escolhido), ...tonsRecentes].slice(0, 3);
   return escolhido;
+}
+// Classificação simplificada de "peso" narrativo — não cobre 100% dos ~150
+// eventos, só os notoriamente pesados (luto por categoria + uma lista de ids
+// conhecidos). Tudo que não está listado é tratado como leve/neutro, o que é
+// uma aproximação razoável (a maioria dos eventos do jogo É leve/cotidiano).
+const IDS_EVENTOS_PESADOS = new Set([
+  'familia_crise', 'familia_distanciamento_retorno', 'adol_bullying',
+  'relacionamento_crise_casamento', 'ostentacao_assalto', 'ostentacao_extorsao',
+  'ostentacao_escandalo_fiscal', 'saude_mental_ignorada_agrava'
+]);
+function tomEvento(evt){
+  if(evt.categoria === 'luto') return 'pesado';
+  return IDS_EVENTOS_PESADOS.has(evt.id) ? 'pesado' : 'leve';
 }
 
 function renderEvento(){

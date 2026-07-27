@@ -150,3 +150,18 @@ const FLAVOR_CLASSICO_REGIONAL = [
   (c)=>`Jogo contra o ${c.adversario} tem outro clima, todo mundo na cidade vai comentar amanhã.`,
   (c)=>`Clássico local contra o ${c.adversario}: hoje vale além dos três pontos, vale prestígio na cidade inteira.`
 ];
+
+// Adendo à fala do intervalo quando a relação com o técnico está muito alta
+// ou muito baixa (GAME.relacoes.treinador) — antes as 90 falas-base eram
+// sempre as mesmas, mesmo pra um técnico com quem você tem ótima relação ou
+// está em atrito sério. Não substitui a fala principal, só complementa.
+const FLAVOR_TECNICO_RELACAO_BOA = [
+  (g)=>`E uma coisa eu quero que fique clara, ${g.identidade.apelido}: do jeito que a gente confia um no outro, esse grupo vai longe.`,
+  (g)=>`${g.identidade.apelido}, você sabe que pode contar comigo em qualquer situação — essa confiança é dos dois lados.`,
+  (g)=>`Gosto de trabalhar com jogador do seu tipo, ${g.identidade.apelido}. Essa parceria nossa está dando certo.`
+];
+const FLAVOR_TECNICO_RELACAO_RUIM = [
+  (g)=>`E ${g.identidade.apelido}... precisamos alinhar melhor as coisas depois desse jogo. Do jeito que está, não dá.`,
+  (g)=>`Não vou fingir que está tudo bem entre a gente, ${g.identidade.apelido}. Mas agora é hora de jogar — resolvemos isso depois.`,
+  (g)=>`${g.identidade.apelido}, sabe que nosso papo anda tenso. Espero que em campo isso não atrapalhe.`
+];

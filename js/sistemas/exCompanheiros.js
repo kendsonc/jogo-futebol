@@ -150,6 +150,68 @@ const SITUACOES_EX_COMPANHEIRO = [
       { label: 'Mandar só uma mensagem particular de parabéns', efeitos: { moral:2 },
         extra: (g) => { ex.relacao = clamp(ex.relacao + 5, 0, 100); } }
     ]
+  }),
+  // ---------- Situações adicionais (expandindo de 4 pra 10, pra não saturar
+  // em carreiras longas com dezenas de reaparições do mesmo punhado de cenas) ----------
+  (ex) => ({
+    id: 'ex_companheiro_padrinho',
+    texto: (g) => `${ex.nome} liga emocionado(a): "Vou casar ano que vem e quero muito que você seja padrinho/madrinha. Topa?"`,
+    escolhas: [
+      { label: 'Aceitar na hora, emocionado(a)', efeitos: { moral:5, relacaoFamilia:2, tracos:{humilde:1} },
+        extra: (g) => { ex.relacao = clamp(ex.relacao + 14, 0, 100); registrarMarco('Padrinho/madrinha de casamento', `${g.identidade.apelido} aceitou ser padrinho/madrinha do casamento de ${ex.nome}.`, 'media'); } },
+      { label: 'Agradecer, mas dizer que a agenda de jogos pode atrapalhar', efeitos: {},
+        extra: (g) => { ex.relacao = clamp(ex.relacao - 2, 0, 100); } }
+    ]
+  }),
+  (ex) => ({
+    id: 'ex_companheiro_pendurou_chuteiras',
+    texto: (g) => `Notícia nas redes: ${ex.nome} anunciou a aposentadoria dos gramados e vai virar comentarista de um canal esportivo.`,
+    escolhas: [
+      { label: 'Mandar mensagem de carinho pela nova fase', efeitos: { moral:2 },
+        extra: (g) => { ex.relacao = clamp(ex.relacao + 6, 0, 100); ex.aposentado = true; } },
+      { label: 'Só curtir a publicação, sem mais', efeitos: {},
+        extra: (g) => { ex.relacao = clamp(ex.relacao + 1, 0, 100); ex.aposentado = true; } }
+    ]
+  }),
+  (ex) => ({
+    id: 'ex_companheiro_indicacao',
+    texto: (g) => `${ex.nome} manda mensagem direto ao ponto: "Fiquei sem clube. Você conhece alguém que possa me dar uma chance? Uma indicação seu pesa muito."`,
+    escolhas: [
+      { label: 'Fazer a indicação com o seu nome', efeitos: { relacaoDiretoria:-2 },
+        extra: (g) => { ex.relacao = clamp(ex.relacao + 12, 0, 100); pushNoticia('geral', `${g.identidade.apelido} indicou ${ex.nome} para o departamento de futebol do ${g.clube.nome}.`); } },
+      { label: 'Dizer que não é o momento de arriscar o próprio nome', efeitos: {},
+        extra: (g) => { ex.relacao = clamp(ex.relacao - 6, 0, 100); } }
+    ]
+  }),
+  (ex) => ({
+    id: 'ex_companheiro_disputa_selecao',
+    texto: (g) => `A comissão técnica da Seleção vaza um "boca a boca": você e ${ex.nome} disputam a mesma vaga na próxima convocação.`,
+    escolhas: [
+      { label: 'Torcer pelo melhor, seja você ou ele(a)', efeitos: { saudeMental:3, tracos:{humilde:1} },
+        extra: (g) => { ex.relacao = clamp(ex.relacao + 5, 0, 100); } },
+      { label: 'Sentir uma competitividade forte, sem admitir pra ninguém', efeitos: { pressaoPsicologica:4, tracos:{confiante:1} },
+        extra: (g) => { ex.relacao = clamp(ex.relacao - 4, 0, 100); } }
+    ]
+  }),
+  (ex) => ({
+    id: 'ex_companheiro_critica_publica',
+    texto: (g) => `Em uma entrevista, ${ex.nome} comenta sobre você: "A gente já foi próximo, mas hoje eu jogaria diferente do que ele(a) joga." A frase viraliza.`,
+    escolhas: [
+      { label: 'Responder com humor, sem levar a mal', efeitos: { popularidade:3, tracos:{descontraido:1} },
+        extra: (g) => { ex.relacao = clamp(ex.relacao - 2, 0, 100); } },
+      { label: 'Ficar magoado(a) e esfriar o contato', efeitos: { pressaoPsicologica:3, tracos:{serio:1} },
+        extra: (g) => { ex.relacao = clamp(ex.relacao - 12, 0, 100); } }
+    ]
+  }),
+  (ex) => ({
+    id: 'ex_companheiro_evento_beneficente',
+    texto: (g) => `${ex.nome} está organizando um jogo beneficente pra ajudar o CT onde vocês começaram juntos e convida você a participar.`,
+    escolhas: [
+      { label: 'Topar na hora e ajudar a divulgar', efeitos: { popularidade:4, imagemMidia:3, tracos:{humilde:1} },
+        extra: (g) => { ex.relacao = clamp(ex.relacao + 10, 0, 100); pushNoticiaImprensa('midia', `${g.identidade.apelido} e ${ex.nome} organizam jogo beneficente para o CT onde começaram juntos.`); } },
+      { label: 'Doar um valor, mas não participar pessoalmente', efeitos: { carteira:-500 },
+        extra: (g) => { ex.relacao = clamp(ex.relacao + 4, 0, 100); } }
+    ]
   })
 ];
 function gerarEventoMensagemExCompanheiro(){

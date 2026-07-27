@@ -759,6 +759,12 @@ function gerarDialogoIntervalo(p, pl){
   if(flavorCopa) extras.push(flavorCopa);
   const hist = GAME.statsCareer.confrontosHistorico && GAME.statsCareer.confrontosHistorico[p.adversario];
   if(hist) extras.push(gerarFlavorHistorico(hist, p.adversario));
+  // Relação com o técnico (muito boa ou muito ruim) vira um adendo na fala —
+  // antes as 90 falas-base ignoravam completamente esse número, mesmo o jogo
+  // já rastreando ele o tempo todo.
+  const relTreinador = GAME.relacoes.treinador;
+  if(relTreinador >= 80) extras.push(pick(FLAVOR_TECNICO_RELACAO_BOA)(GAME));
+  else if(relTreinador <= 20) extras.push(pick(FLAVOR_TECNICO_RELACAO_RUIM)(GAME));
 
   if(extras.length) texto += ' ' + extras.join(' ');
   return texto;
