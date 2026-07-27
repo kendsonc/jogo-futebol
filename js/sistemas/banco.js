@@ -6,12 +6,47 @@
 
 const TAXA_POUPANCA_MENSAL = 0.5; // % ao mês — aprox. poupança real brasileira
 
+// Taxas mais realistas que a versão anterior (chegava a 1.5%/mês composto no
+// LCI, o que rendia patrimônio sem teto ao longo de uma carreira de 15-20
+// temporadas). Ainda generoso o bastante pra valer a pena investir, sem virar
+// máquina de dinheiro infinito.
 const INVESTIMENTOS_OPCOES = [
-  { id:'cdb90',  nome:'CDB 90 dias',        taxaMensal:0.9, duracaoSemanas:12 },
-  { id:'cdb180', nome:'CDB 180 dias',       taxaMensal:1.1, duracaoSemanas:24 },
-  { id:'tesouro360', nome:'Tesouro 360 dias', taxaMensal:1.3, duracaoSemanas:48 },
-  { id:'lci720', nome:'LCI Premium 720 dias', taxaMensal:1.5, duracaoSemanas:96 }
+  { id:'cdb90',  nome:'CDB 90 dias',        taxaMensal:0.7, duracaoSemanas:12 },
+  { id:'cdb180', nome:'CDB 180 dias',       taxaMensal:0.85, duracaoSemanas:24 },
+  { id:'tesouro360', nome:'Tesouro 360 dias', taxaMensal:0.95, duracaoSemanas:48 },
+  { id:'lci720', nome:'LCI Premium 720 dias', taxaMensal:1.0, duracaoSemanas:96 }
 ];
+
+// Imposto de renda simples sobre bolsa/salário/patrocínio, aplicado toda
+// semana em concluirTickSemanal (liga.js) — antes o dinheiro entrava 100%
+// bruto, sem teto, o que somado a juros compostos sem risco inflava o
+// patrimônio de forma artificial numa carreira longa.
+const FAIXAS_IMPOSTO_RENDA = [
+  { ateRendaMensal: 3000,     aliquota: 0 },
+  { ateRendaMensal: 10000,    aliquota: 0.12 },
+  { ateRendaMensal: 30000,    aliquota: 0.20 },
+  { ateRendaMensal: Infinity, aliquota: 0.27 }
+];
+function calcularAliquotaImpostoRenda(rendaMensalEstimada){
+  const faixa = FAIXAS_IMPOSTO_RENDA.find(f => rendaMensalEstimada <= f.ateRendaMensal);
+  return faixa ? faixa.aliquota : 0.27;
+}
+
+// Soma tudo que o jogador tem (carteira, poupança, investimentos pelo valor
+// de resgate estimado, carros e imóveis pelo valor pago) menos o que deve
+// (saldo devedor de empréstimos ativos) — antes esses números só existiam
+// espalhados em coleções separadas, sem nenhum "patrimônio líquido" único.
+function calcularPatrimonioLiquido(){
+  const carteira = GAME.carteira || 0;
+  const poupanca = GAME.banco.poupanca || 0;
+  const investimentos = (GAME.banco.investimentos||[]).filter(i => !i.resgatado)
+    .reduce((soma,i) => soma + valorFinalInvestimento(i), 0);
+  const carros = (GAME.garagem||[]).reduce((soma,c) => soma + (c.valorPago||0), 0);
+  const imoveis = (GAME.imoveisComprados||[]).reduce((soma,i) => soma + (i.valorPago||0), 0);
+  const dividas = (GAME.banco.emprestimos||[]).filter(e => !e.quitado)
+    .reduce((soma,e) => soma + (e.saldoDevedor||0), 0);
+  return Math.round(carteira + poupanca + investimentos + carros + imoveis - dividas);
+}
 
 const EMPRESTIMO_OPCOES = [
   { id:'emp_rapido',  nome:'Empréstimo Rápido',       maxValor:5000,   taxaMensal:5.0, parcelasDisponiveis:[6,12] },

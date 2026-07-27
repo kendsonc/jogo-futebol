@@ -90,6 +90,8 @@ function render(){
     if(!GAME.statsCareer.copasDoMundo) GAME.statsCareer.copasDoMundo = [];
     if(!GAME.statsCareer.confrontosHistorico) GAME.statsCareer.confrontosHistorico = {};
     if(!GAME.statsCareer.clubesIdolo) GAME.statsCareer.clubesIdolo = [];
+    if(GAME.statsCareer.maiorTransferencia == null) GAME.statsCareer.maiorTransferencia = 0;
+    if(!GAME.statsCareer.duelosRival) GAME.statsCareer.duelosRival = { vitorias:0, derrotas:0 };
   }
   if(GAME.qualificacoesProximaTemporada === undefined) GAME.qualificacoesProximaTemporada = null;
   if(GAME.temporadaState && !GAME.temporadaState.copas) GAME.temporadaState.copas = {};

@@ -316,7 +316,9 @@ function concluirTickSemanal(){
   const rendaPatrociniosImagem = GAME.patrociniosImagem ? Object.values(GAME.patrociniosImagem).reduce((soma,p) => soma + p.valorMensal/4, 0) : 0;
   const ganhoSemanal = (GAME.contrato.bolsa||0)/4 + (GAME.patrocinioAtual ? GAME.patrocinioAtual.valorMensal/4 : 0) + rendaPatrociniosImagem;
   const comissao = GAME.empresarioAtual ? (GAME.empresarioComissao||10)/100 : 0;
-  GAME.carteira = Math.round((GAME.carteira||0) + ganhoSemanal * (1 - comissao));
+  const ganhoAposComissao = ganhoSemanal * (1 - comissao);
+  const aliquotaImposto = calcularAliquotaImpostoRenda(ganhoAposComissao * 4);
+  GAME.carteira = Math.round((GAME.carteira||0) + ganhoAposComissao * (1 - aliquotaImposto));
   // Central de Carreira: juros da poupança, parcelas de empréstimo e
   // condomínio/IPTU de imóveis são processados no mesmo tick semanal.
   processarJurosPoupancaSemanal();

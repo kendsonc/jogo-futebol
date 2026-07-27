@@ -150,13 +150,13 @@ function wireShoppingButtons(){
   const body = document.getElementById('shopping-body');
   if(!body) return;
   body.querySelectorAll('[data-comprar-roupa]').forEach(b => b.onclick = () => {
-    if(comprarRoupa(b.dataset.comprarRoupa)){ atualizarCarteiraStatusBar(); renderShoppingBody(); } else alert('Saldo insuficiente na carteira.');
+    if(comprarRoupa(b.dataset.comprarRoupa)){ atualizarCarteiraStatusBar(); renderShoppingBody(); } else avisar('Saldo insuficiente na carteira.');
   });
   body.querySelectorAll('[data-comprar-tenis]').forEach(b => b.onclick = () => {
-    if(comprarTenis(b.dataset.comprarTenis)){ atualizarCarteiraStatusBar(); renderShoppingBody(); } else alert('Saldo insuficiente na carteira.');
+    if(comprarTenis(b.dataset.comprarTenis)){ atualizarCarteiraStatusBar(); renderShoppingBody(); } else avisar('Saldo insuficiente na carteira.');
   });
   body.querySelectorAll('[data-comprar-relogio]').forEach(b => b.onclick = () => {
-    if(comprarRelogio(b.dataset.comprarRelogio)){ atualizarCarteiraStatusBar(); renderShoppingBody(); } else alert('Saldo insuficiente na carteira.');
+    if(comprarRelogio(b.dataset.comprarRelogio)){ atualizarCarteiraStatusBar(); renderShoppingBody(); } else avisar('Saldo insuficiente na carteira.');
   });
 }
 
@@ -188,11 +188,13 @@ function wireGaragemButtons(){
     const modeloId = btn.dataset.comprarcarro;
     const sel = carroSelecaoTemp[modeloId];
     if(comprarCarro(modeloId, sel)){ delete carroSelecaoTemp[modeloId]; atualizarCarteiraStatusBar(); renderGaragemBody(); }
-    else alert('Saldo insuficiente na carteira.');
+    else avisar('Saldo insuficiente na carteira.');
   });
   body.querySelectorAll('[data-vender-carro]').forEach(btn => btn.onclick = () => {
-    if(bemEstaEmpenhado('carro', btn.dataset.venderCarro)){ alert('Esse carro está dado como garantia de um empréstimo — quite o empréstimo antes de vender.'); return; }
-    if(confirm('Vender este carro por 80% do valor pago?')){ venderCarro(btn.dataset.venderCarro); atualizarCarteiraStatusBar(); renderGaragemBody(); }
+    if(bemEstaEmpenhado('carro', btn.dataset.venderCarro)){ avisar('Esse carro está dado como garantia de um empréstimo — quite o empréstimo antes de vender.'); return; }
+    confirmarAcao({ titulo:'Vender carro', texto:'Vender este carro por 80% do valor pago?', textoConfirmar:'Vender' }).then(ok => {
+      if(ok){ venderCarro(btn.dataset.venderCarro); atualizarCarteiraStatusBar(); renderGaragemBody(); }
+    });
   });
 }
 
@@ -251,11 +253,13 @@ function renderImoveisBody(){
     <div class="shop-grid">${disponiveisHtml}</div>
   `;
   body.querySelectorAll('[data-comprar-imovel]').forEach(b => b.onclick = () => {
-    if(comprarImovel(b.dataset.comprarImovel)){ atualizarCarteiraStatusBar(); renderImoveisBody(); } else alert('Saldo insuficiente na carteira.');
+    if(comprarImovel(b.dataset.comprarImovel)){ atualizarCarteiraStatusBar(); renderImoveisBody(); } else avisar('Saldo insuficiente na carteira.');
   });
   body.querySelectorAll('[data-vender-imovel]').forEach(b => b.onclick = () => {
-    if(bemEstaEmpenhado('imovel', b.dataset.venderImovel)){ alert('Esse imóvel está dado como garantia de um empréstimo — quite o empréstimo antes de vender.'); return; }
-    if(confirm('Vender este imóvel por 92% do valor pago?')){ venderImovel(b.dataset.venderImovel); atualizarCarteiraStatusBar(); renderImoveisBody(); }
+    if(bemEstaEmpenhado('imovel', b.dataset.venderImovel)){ avisar('Esse imóvel está dado como garantia de um empréstimo — quite o empréstimo antes de vender.'); return; }
+    confirmarAcao({ titulo:'Vender imóvel', texto:'Vender este imóvel por 92% do valor pago?', textoConfirmar:'Vender' }).then(ok => {
+      if(ok){ venderImovel(b.dataset.venderImovel); atualizarCarteiraStatusBar(); renderImoveisBody(); }
+    });
   });
   body.querySelectorAll('[data-alugar-imovel]').forEach(b => b.onclick = () => {
     alugarImovel(b.dataset.alugarImovel); renderImoveisBody();
@@ -346,7 +350,8 @@ function renderBancoBody(){
   }).join('') : '<p class="small muted">Nenhum empréstimo ativo.</p>';
 
   body.innerHTML = `
-    <p class="small muted" style="margin-bottom:10px">Carteira: <b>R$ ${Math.round(GAME.carteira||0).toLocaleString('pt-BR')}</b></p>
+    <p class="small muted" style="margin-bottom:2px">Carteira: <b>R$ ${Math.round(GAME.carteira||0).toLocaleString('pt-BR')}</b></p>
+    <p class="small muted" style="margin-bottom:10px">Patrimônio líquido total (carteira + poupança + investimentos + bens − dívidas): <b>R$ ${calcularPatrimonioLiquido().toLocaleString('pt-BR')}</b></p>
     ${GAME.banco.restricaoCredito ? `<p class="badge bad" style="display:block;margin-bottom:10px">🚫 Crédito restrito: saldo negativo por tempo demais. Regularize a carteira para voltar a pegar empréstimos.</p>` : ''}
     <div class="card">
       <div class="card-title">Poupança (rende ${TAXA_POUPANCA_MENSAL}% ao mês)</div>
@@ -385,11 +390,11 @@ function wireBancoButtons(){
   const btnSacar = document.getElementById('btn-sacar-poupanca');
   if(btnDepositar) btnDepositar.onclick = () => {
     const v = Number(inputPoupanca.value);
-    if(depositarPoupanca(v)){ atualizarCarteiraStatusBar(); renderBancoBody(); } else alert('Valor inválido ou saldo insuficiente na carteira.');
+    if(depositarPoupanca(v)){ atualizarCarteiraStatusBar(); renderBancoBody(); } else avisar('Valor inválido ou saldo insuficiente na carteira.');
   };
   if(btnSacar) btnSacar.onclick = () => {
     const v = Number(inputPoupanca.value);
-    if(sacarPoupanca(v)){ atualizarCarteiraStatusBar(); renderBancoBody(); } else alert('Valor inválido ou saldo insuficiente na poupança.');
+    if(sacarPoupanca(v)){ atualizarCarteiraStatusBar(); renderBancoBody(); } else avisar('Valor inválido ou saldo insuficiente na poupança.');
   };
   body.querySelectorAll('[data-abrir-invest]').forEach(b => b.onclick = () => {
     bancoFormAberto = { tipo:'invest', opcaoId: b.dataset.abrirInvest };
@@ -419,12 +424,12 @@ function wireBancoButtons(){
   if(btnConfirmarInvest) btnConfirmarInvest.onclick = () => {
     const v = Number(document.getElementById('input-invest-valor').value);
     if(criarInvestimento(bancoFormAberto.opcaoId, v)){ bancoFormAberto = null; atualizarCarteiraStatusBar(); renderBancoBody(); }
-    else alert('Valor inválido ou saldo insuficiente na carteira.');
+    else avisar('Valor inválido ou saldo insuficiente na carteira.');
   };
   const btnConfirmarEmprestimo = document.getElementById('btn-confirmar-emprestimo');
   if(btnConfirmarEmprestimo) btnConfirmarEmprestimo.onclick = () => {
     const v = Number(document.getElementById('input-emprestimo-valor').value);
     if(pedirEmprestimo(bancoFormAberto.opcaoId, v, bancoFormAberto.parcelas, bancoFormAberto.garantia)){ bancoFormAberto = null; atualizarCarteiraStatusBar(); renderBancoBody(); }
-    else alert('Valor inválido (acima do limite ou do valor do bem em garantia?) ou parcelas inválidas.');
+    else avisar('Valor inválido (acima do limite ou do valor do bem em garantia?) ou parcelas inválidas.');
   };
 }

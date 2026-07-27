@@ -38,8 +38,12 @@ function abrirPainel(){
     b.onclick = () => { painelAbaAtiva = b.dataset.aba; overlay.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active'); renderPainelBody(); };
   });
   document.getElementById('btn-fechar-painel').onclick = fecharPainel;
-  document.getElementById('btn-salvar-manual').onclick = () => { salvarJogo(); alert('Carreira salva!'); };
-  document.getElementById('btn-apagar-carreira').onclick = () => { if(confirm('Apagar toda a carreira atual?')){ apagarSave(); fecharPainel(); render(); } };
+  document.getElementById('btn-salvar-manual').onclick = () => { salvarJogo(); avisar('Carreira salva!'); };
+  document.getElementById('btn-apagar-carreira').onclick = () => {
+    confirmarAcao({ titulo:'Apagar carreira', texto:'Apagar toda a carreira atual? Essa ação não pode ser desfeita.', textoConfirmar:'Apagar', perigoso:true }).then(ok => {
+      if(ok){ apagarSave(); fecharPainel(); render(); }
+    });
+  };
 }
 function fecharPainel(){ const o = document.getElementById('panel-overlay'); if(o) o.remove(); }
 
@@ -261,6 +265,7 @@ function painelRival(){
         <tr><td class="small muted">Assistências na carreira</td><td class="small" style="text-align:right"><b>${(GAME.statsCareer?GAME.statsCareer.assistencias:0)+GAME.stats.assistencias}</b> x <b>${r.statsCareer.assistencias}</b></td></tr>
         <tr><td class="small muted">Títulos</td><td class="small" style="text-align:right"><b>${meusTitulos}</b> x <b>${r.statsCareer.titulos}</b></td></tr>
         <tr><td class="small muted">Temporadas</td><td class="small" style="text-align:right"><b>${GAME.numeroTemporada}</b> x <b>${r.statsCareer.temporadas}</b></td></tr>
+        <tr><td class="small muted">Duelos diretos (confrontos em campo)</td><td class="small" style="text-align:right"><b>${(GAME.statsCareer.duelosRival?GAME.statsCareer.duelosRival.vitorias:0)}</b> x <b>${(GAME.statsCareer.duelosRival?GAME.statsCareer.duelosRival.derrotas:0)}</b></td></tr>
       </table>
     </div>`;
   })();

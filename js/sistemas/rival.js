@@ -167,8 +167,15 @@ function gerarConfrontoRival(nota, golsJogador){
   const meuScoreDuelo = (nota!=null?nota:6)*2 + (golsJogador||0)*3 + rand(-3,3);
   const scoreRival = (rivalBrilhou ? 13 : 7) + rand(-3,3);
   const venceuDuelo = meuScoreDuelo >= scoreRival;
+  // Placar de confrontos diretos acumulado — antes cada duelo era resolvido e
+  // esquecido, sem nenhum retrospecto de carreira contra o rival pra puxar em
+  // manchete futura (é exatamente o tipo de detalhe que a imprensa de um jogo
+  // de referência bate na cara do jogador antes de um confronto direto).
+  if(!GAME.statsCareer.duelosRival) GAME.statsCareer.duelosRival = { vitorias:0, derrotas:0 };
+  if(venceuDuelo) GAME.statsCareer.duelosRival.vitorias++; else GAME.statsCareer.duelosRival.derrotas++;
+  const dr = GAME.statsCareer.duelosRival;
   pushNoticiaImprensa('midia', venceuDuelo
-    ? `Duelo direto: ${GAME.identidade.apelido} levou a melhor sobre ${r.nome} no confronto de hoje.`
-    : `Duelo direto: ${r.nome} se saiu melhor que ${GAME.identidade.apelido} no confronto de hoje.`);
+    ? `Duelo direto: ${GAME.identidade.apelido} levou a melhor sobre ${r.nome} no confronto de hoje — retrospecto direto agora ${dr.vitorias} a ${dr.derrotas} a seu favor.`
+    : `Duelo direto: ${r.nome} se saiu melhor que ${GAME.identidade.apelido} no confronto de hoje — retrospecto direto agora ${dr.derrotas} a ${dr.vitorias} a favor de ${r.nome}.`);
   return { rivalBrilhou, venceuDuelo };
 }

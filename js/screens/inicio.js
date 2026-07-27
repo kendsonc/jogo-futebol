@@ -52,7 +52,11 @@ function renderStart(){
   const bc = document.getElementById('btn-continuar');
   if(bc) bc.onclick = () => { carregarJogo(); render(); };
   const ba = document.getElementById('btn-apagar');
-  if(ba) ba.onclick = () => { if(confirm('Tem certeza que deseja apagar o save atual?')){ apagarSave(); render(); } };
+  if(ba) ba.onclick = () => {
+    confirmarAcao({ titulo:'Apagar save', texto:'Tem certeza que deseja apagar o save atual? Essa ação não pode ser desfeita.', textoConfirmar:'Apagar', perigoso:true }).then(ok => {
+      if(ok){ apagarSave(); render(); }
+    });
+  };
 }
 
 /* ============================== TELA: CRIAÇÃO DE PERSONAGEM ================ */
@@ -263,7 +267,7 @@ function renderCriacaoPersonagem(){
       aparencia: criacaoAparencia,
       heredeiroDe: heredeiroSelecionado
     };
-    if(!dados.nomeCompleto || !dados.apelido || !dados.cidade){ alert('Preencha todos os campos obrigatórios.'); return; }
+    if(!dados.nomeCompleto || !dados.apelido || !dados.cidade){ avisar('Preencha todos os campos obrigatórios.'); return; }
     criarNovoJogador(dados);
     render();
   };

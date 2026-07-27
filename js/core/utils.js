@@ -9,13 +9,17 @@ function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
 function rand(min, max){ return Math.floor(Math.random()*(max-min+1))+min; }
 function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 function chance(pct){ return Math.random()*100 < pct; }
-// Gols de uma "força" ofensiva (0-100) via aproximação de Poisson simples,
-// usado tanto na sua partida quanto nos jogos simulados da rodada da liga
+// Gols de uma "força" ofensiva (0-100) via Poisson de verdade (algoritmo de
+// Knuth, produto de uniformes contra e^-lambda) — antes era uma aproximação
+// binomial em 6 tentativas independentes, que saturava em no máximo 6 gols
+// e tinha variância menor que um Poisson real. Usado tanto na sua partida
+// quanto nos jogos simulados da rodada da liga.
 function golsPoisson(forca){
-  const lambda = clamp(forca/38, 0.2, 3.5);
-  let n = 0;
-  for(let i=0;i<6;i++){ if(chance(lambda/6*100)) n++; }
-  return n;
+  const lambda = clamp(forca/45, 0.2, 3.5);
+  const limite = Math.exp(-lambda);
+  let k = 0, p = 1;
+  do { k++; p *= Math.random(); } while(p > limite);
+  return k - 1;
 }
 // Hash simples e estável de string -> inteiro >=0. Usado sempre que algo
 // precisa de uma escolha "aleatória" que na verdade tem que ser sempre a

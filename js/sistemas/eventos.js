@@ -234,7 +234,12 @@ function eventoBateComResultado(id){
 }
 function sortearEvento(){
   const ts = GAME.temporadaState;
-  const pool = [...EVENTOS_RECORRENTES, ...EVENTOS_ADOLESCENTE, ...EVENTOS_EQUIPE, ...EVENTOS_CLUBE]
+  // EVENTOS_ADOLESCENTE (prova de escola, primeiro dinheiro, bullying etc.)
+  // são escritos para um garoto de 16-17 anos recém-chegado ao CT — sem esse
+  // corte de idade, um veterano de 30+ anos podia sortear "sua prova de
+  // escola essa semana" no meio de uma carreira de uma década.
+  const eventosJovem = idadeAtual() <= 19 ? EVENTOS_ADOLESCENTE : [];
+  const pool = [...EVENTOS_RECORRENTES, ...eventosJovem, ...EVENTOS_EQUIPE, ...EVENTOS_CLUBE]
     .filter(e => eventoBateComResultado(e.id));
   if(GAME.elenco && GAME.elenco.length){
     pool.push(...EVENTOS_AMIZADE.map(gerador => gerador()));

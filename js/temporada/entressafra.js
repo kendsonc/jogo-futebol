@@ -66,6 +66,16 @@ function calcularOfertaTransferencia(clubeDestino){
     confiancaDiretoria: clamp(50 + Math.round(desempenho/4), 10, 95) };
 }
 
+// Valor pago pelo clube de DESTINO ao clube de origem — antes nenhum dinheiro
+// trocava de mãos numa transferência (GAME.clube só era sobrescrito), o que
+// tirava toda a narrativa de "recorde do clube"/"maior venda da história"
+// que é o coração da economia de um jogo de carreira.
+function calcularValorTransferencia(clubeDestino){
+  const base = Math.max(50000, GAME.stats.valorEstimado || 0);
+  const fatorClube = clamp(0.7 + clubeDestino.financeiro/100 * 0.6, 0.7, 1.5);
+  return Math.round(base * fatorClube / 1000) * 1000;
+}
+
 function iniciarEntressafra(){
   GAME.fase = 'entressafra';
   GAME.entressafraState = { etapa:0, ofertaContrato:null };
@@ -283,6 +293,12 @@ function renderEntressafraTransferencia(){
         const ofertaTransferencia = calcularOfertaTransferencia(novoClube);
         GAME.contrato = { tipo:ofertaTransferencia.tipo, bolsa:ofertaTransferencia.bolsa, duracao:ofertaTransferencia.duracao,
           expectativa:ofertaTransferencia.expectativa, confiancaDiretoria:ofertaTransferencia.confiancaDiretoria };
+        const valorTransferencia = calcularValorTransferencia(novoClube);
+        if(GAME.statsCareer.maiorTransferencia == null) GAME.statsCareer.maiorTransferencia = 0;
+        const recordeTransferencia = valorTransferencia > GAME.statsCareer.maiorTransferencia;
+        if(recordeTransferencia) GAME.statsCareer.maiorTransferencia = valorTransferencia;
+        pushNoticiaImprensa('midia', `${novoClube.nome} paga R$ ${valorTransferencia.toLocaleString('pt-BR')} por ${GAME.identidade.apelido}, vindo do ${clubeAntigoNomeTransferencia}.`);
+        if(recordeTransferencia && valorTransferencia >= 500000) registrarMarco('Recorde pessoal de transferência', `Maior valor de transferência da carreira: R$ ${valorTransferencia.toLocaleString('pt-BR')}, para o ${novoClube.nome}.`, 'media');
         Som.tocarEfeito('contratoAssinado');
         trocarTecnico();
         GAME.observador = pickExcluindo(NOMES_OBSERVADORES, GAME.observador);
