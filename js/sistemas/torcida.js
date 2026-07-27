@@ -92,6 +92,48 @@ function gerarEventoBoicoteTorcida(){
   };
 }
 
+/* ============================== TORCIDA DIVIDIDA ================================
+   Antes, a torcida ia direto de "número sem rosto" (< 85) pro arco de ídolo
+   (>= 85), sem nenhuma gradação no meio — uma torcida "cética mas dando
+   chance" nunca tinha voz própria. Esses 2 eventos leves (dúvida/cobrança)
+   preenchem a faixa intermediária, com o mesmo padrão de flag em GAME.clube
+   (reseta sozinho a cada transferência).
+   ========================================================================= */
+const LIMIAR_TORCIDA_DIVIDIDA_MIN = 50;
+const LIMIAR_TORCIDA_DIVIDIDA_MAX = 64;
+function torcidaDivididaDisponivel(chave){
+  if(!GAME.clube) return false;
+  if(!GAME.clube.arcoTorcidaDivididaEventos) GAME.clube.arcoTorcidaDivididaEventos = {};
+  return GAME.relacoes.torcida >= LIMIAR_TORCIDA_DIVIDIDA_MIN && GAME.relacoes.torcida <= LIMIAR_TORCIDA_DIVIDIDA_MAX
+    && !GAME.clube.arcoTorcidaDivididaEventos[chave];
+}
+function gerarEventoTorcidaDebate(){
+  return {
+    id:'torcida_dividida_debate', categoria:'torcida',
+    texto:(g)=>`Nas redes, a torcida do ${g.clube.nome} está dividida sobre você: uns defendem, outros cobram mais entrega. Um perfil grande de torcedores organizados abre uma enquete perguntando se você "veste a camisa" de verdade.`,
+    escolhas:[
+      { label:'Responder publicamente, defendendo seu trabalho', efeitos:{relacaoTorcida:5, popularidade:2, pressaoPsicologica:2, tracos:{confiante:1}},
+        extra:(g)=>{ g.clube.arcoTorcidaDivididaEventos.debate = true; } },
+      { label:'Deixar o campo responder, sem entrar na discussão', efeitos:{relacaoTorcida:1, tracos:{serio:1}},
+        extra:(g)=>{ g.clube.arcoTorcidaDivididaEventos.debate = true; } },
+      { label:'Publicar um pedido de paciência e compreensão', efeitos:{relacaoTorcida:3, moral:2, tracos:{humilde:1}},
+        extra:(g)=>{ g.clube.arcoTorcidaDivididaEventos.debate = true; } }
+    ]
+  };
+}
+function gerarEventoTorcidaCobranca(){
+  return {
+    id:'torcida_dividida_cobranca', categoria:'torcida',
+    texto:(g)=>`Um grupo da torcida organizada do ${g.clube.nome} pendura uma faixa discreta cobrando "mais entrega em campo" — nada hostil, mas o recado ficou claro pra quem estava no estádio.`,
+    escolhas:[
+      { label:'Levar a cobrança como incentivo', efeitos:{relacaoTorcida:4, confianca:3, tracos:{humilde:1}},
+        extra:(g)=>{ g.clube.arcoTorcidaDivididaEventos.cobranca = true; } },
+      { label:'Ignorar e seguir no seu próprio ritmo', efeitos:{relacaoTorcida:-1, tracos:{serio:1}},
+        extra:(g)=>{ g.clube.arcoTorcidaDivididaEventos.cobranca = true; } }
+    ]
+  };
+}
+
 // Chamada ANTES de trocar de clube (entressafra.js, no fluxo de transferência)
 // — precisa do nome do clube ANTIGO e do valor de relacoes.torcida de ANTES
 // do reset pra 15, senão a despedida nunca teria contexto pra avaliar.

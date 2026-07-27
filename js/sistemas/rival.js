@@ -56,6 +56,26 @@ function evoluirRival(){
   else if(r.overall < meuOverall - 6) r.trajetoria = 'em baixa';
   else r.trajetoria = 'parelha à sua';
   gerarNoticiaComparativaRival(trajetoriaAnterior);
+  considerarSucessaoRival();
+}
+
+// Antes só existia UM rival pra carreira inteira — numa carreira de 15+
+// temporadas isso é estranho (colegas de geração já teriam encerrado
+// carreira havia anos). Depois de tempo suficiente de rivalidade, com uma
+// chance por temporada (não é automático — a passagem de bastão não deveria
+// acontecer sempre no mesmo ano exato), o rival original "se aposenta" e uma
+// nova geração assume o posto, reaproveitando 100% da estrutura de gerarRival.
+const TEMPORADAS_PARA_SUCESSAO_RIVAL = 12;
+function considerarSucessaoRival(){
+  const r = GAME.rival;
+  if(!r || r.statsCareer.temporadas < TEMPORADAS_PARA_SUCESSAO_RIVAL || !chance(30)) return;
+  const rivalAntigo = r.nome;
+  GAME.rival = gerarRival();
+  GAME.rival.overall = clamp(calcularOverall() + rand(-10, 4), 30, 65);
+  GAME.rival.trajetoria = 'nova geração';
+  GAME.statsCareer.duelosRival = { vitorias:0, derrotas:0 };
+  pushNoticiaImprensa('midia', `Nova geração: com ${rivalAntigo} em fim de carreira, ${GAME.rival.nome} surge como o novo nome a disputar espaço com ${GAME.identidade.apelido}.`);
+  registrarMarco('Passagem de bastão', `${rivalAntigo} deu lugar a ${GAME.rival.nome} como o grande rival da sua geração.`, 'media');
 }
 
 // Antes eram só 3 templates fixos, repetidos ao pé da letra ao longo de 10+

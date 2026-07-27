@@ -5,24 +5,64 @@
 // "Vida Pessoal" saiu daqui e virou modal próprio (❤️ Vida, barra de status) —
 // esta aba é só leitura/consulta; tudo que altera a carreira (gasta/rende
 // carteira) fica acessível direto na barra, sem precisar abrir o Painel.
-const PAINEL_ABAS = ['dados','status','atributos','relacoes','estatisticas','contrato','social','noticias','historico','objetivos','agenda','rival','calendario','tabela','copas'];
 const PAINEL_LABELS = {
   dados:'Dados', status:'Status', atributos:'Atributos', relacoes:'Relações',
   estatisticas:'Estatísticas', contrato:'Contrato', social:'Redes Sociais', noticias:'Notícias',
-  historico:'Histórico', objetivos:'Objetivos', agenda:'Agenda', rival:'Rival', calendario:'Calendário', tabela:'Classificação', copas:'Copas'
+  historico:'Histórico', objetivos:'Objetivos', conquistas:'Conquistas', agenda:'Agenda', rival:'Rival',
+  calendario:'Calendário', tabela:'Classificação', copas:'Copas'
 };
+// 15 abas soltas, todas no mesmo nível, viravam uma parede de texto quebrando
+// linha (principalmente em mobile). Agrupadas em 4 categorias com um segundo
+// nível de navegação — a lista de abas "de verdade" continua vindo daqui
+// (PAINEL_GRUPOS), não existe mais um PAINEL_ABAS solto.
+const PAINEL_GRUPOS = {
+  perfil: { nome:'Perfil', abas:['dados','status','atributos','relacoes'] },
+  carreira: { nome:'Carreira', abas:['estatisticas','contrato','objetivos','conquistas','historico'] },
+  clube: { nome:'Clube', abas:['agenda','calendario','tabela','copas','rival'] },
+  social: { nome:'Social', abas:['social','noticias'] }
+};
+function grupoDaAba(aba){
+  return Object.keys(PAINEL_GRUPOS).find(g => PAINEL_GRUPOS[g].abas.includes(aba)) || 'perfil';
+}
 let painelAbaAtiva = 'dados';
+let painelGrupoAtivo = grupoDaAba(painelAbaAtiva);
+
+function painelTabsHtml(){
+  return `
+    <div class="tabs tabs-grupo">${Object.keys(PAINEL_GRUPOS).map(g=>`<button class="tab-btn ${g===painelGrupoAtivo?'active':''}" data-grupo="${g}">${PAINEL_GRUPOS[g].nome}</button>`).join('')}</div>
+    <div class="tabs">${PAINEL_GRUPOS[painelGrupoAtivo].abas.map(a=>`<button class="tab-btn ${a===painelAbaAtiva?'active':''}" data-aba="${a}">${PAINEL_LABELS[a]}</button>`).join('')}</div>
+  `;
+}
+function wirePainelTabs(overlay){
+  overlay.querySelectorAll('[data-grupo]').forEach(b => {
+    b.onclick = () => {
+      painelGrupoAtivo = b.dataset.grupo;
+      painelAbaAtiva = PAINEL_GRUPOS[painelGrupoAtivo].abas[0];
+      document.getElementById('panel-tabs-slot').innerHTML = painelTabsHtml();
+      wirePainelTabs(overlay);
+      renderPainelBody();
+    };
+  });
+  overlay.querySelectorAll('[data-aba]').forEach(b => {
+    b.onclick = () => {
+      painelAbaAtiva = b.dataset.aba;
+      overlay.querySelectorAll('[data-aba]').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      renderPainelBody();
+    };
+  });
+}
 
 function abrirPainel(){
   document.querySelectorAll('.central-overlay').forEach(o => o.remove());
-  const overlay = el(`<div id="panel-overlay"></div>`);
+  const overlay = el(`<div id="panel-overlay" role="dialog" aria-modal="true" aria-label="Painel do Jogador"></div>`);
   overlay.innerHTML = `
     <div id="panel-modal">
       <div class="panel-header">
         <div style="display:flex;align-items:center;gap:10px">${GAME.clube ? escudoClubeHtml(GAME.clube, 36) : ''}<h2>Painel do Jogador</h2></div>
         <button class="btn btn-small" id="btn-fechar-painel">Fechar ✕</button>
       </div>
-      <div class="tabs">${PAINEL_ABAS.map(a=>`<button class="tab-btn ${a===painelAbaAtiva?'active':''}" data-aba="${a}">${PAINEL_LABELS[a]}</button>`).join('')}</div>
+      <div id="panel-tabs-slot">${painelTabsHtml()}</div>
       <div id="panel-body"></div>
       <div class="spacer"></div>
       <div class="row">
@@ -34,9 +74,7 @@ function abrirPainel(){
   document.body.appendChild(overlay);
   overlay.addEventListener('click', (e) => { if(e.target === overlay) fecharPainel(); });
   renderPainelBody();
-  overlay.querySelectorAll('.tab-btn').forEach(b => {
-    b.onclick = () => { painelAbaAtiva = b.dataset.aba; overlay.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active'); renderPainelBody(); };
-  });
+  wirePainelTabs(overlay);
   document.getElementById('btn-fechar-painel').onclick = fecharPainel;
   document.getElementById('btn-salvar-manual').onclick = () => { salvarJogo(); avisar('Carreira salva!'); };
   document.getElementById('btn-apagar-carreira').onclick = () => {
@@ -44,6 +82,7 @@ function abrirPainel(){
       if(ok){ apagarSave(); fecharPainel(); render(); }
     });
   };
+  ativarFocoModal(overlay, document.getElementById('btn-fechar-painel'), fecharPainel);
 }
 function fecharPainel(){ const o = document.getElementById('panel-overlay'); if(o) o.remove(); }
 
@@ -54,7 +93,8 @@ function renderPainelBody(){
     dados: painelDados, status: painelStatus, atributos: painelAtributos,
     relacoes: painelRelacoes, estatisticas: painelEstatisticas, contrato: painelContrato,
     social: painelSocial, noticias: painelNoticias, historico: painelHistorico, objetivos: painelObjetivos,
-    agenda: painelAgenda, rival: painelRival, calendario: painelCalendario, tabela: painelTabela, copas: painelCopas
+    conquistas: painelConquistas, agenda: painelAgenda, rival: painelRival, calendario: painelCalendario,
+    tabela: painelTabela, copas: painelCopas
   };
   body.innerHTML = fns[painelAbaAtiva]();
 }
@@ -216,15 +256,42 @@ function painelNoticias(){
   return GAME.noticias.map(n => `<div class="news-item ${n.tipo}"><span class="news-tag">${n.tipo} • semana ${n.semana}</span>${escapeHtml(n.texto)}</div>`).join('');
 }
 function painelHistorico(){
-  const marcos = GAME.memorial || [];
-  const blocoMemorial = marcos.length ? `<div class="card">
-    <div class="card-title">⭐ Memorial da Carreira</div>
-    ${marcos.map(m => `<p>⭐ <b>${escapeHtml(m.titulo)}</b> <span class="small muted">(Temporada ${m.temporada})</span><br><span class="small muted">${escapeHtml(m.descricao)}</span></p>`).join('<hr style="border-color:#232b3a;margin:8px 0">')}
-  </div>` : '';
   const log = GAME.historico.length
     ? `<div class="card">${GAME.historico.map(h => `<p class="small">• (sem ${h.semana}) ${escapeHtml(h.texto)}</p>`).join('')}</div>`
     : `<div class="card muted">Nenhuma decisão registrada ainda.</div>`;
-  return blocoMemorial + log;
+  return log;
+}
+// Antes o "Memorial da Carreira" era uma lista de texto corrido dentro do
+// Histórico, misturado com o log bruto de toda escolha — os dados de
+// conquista (GAME.memorial, títulos, meta de carreira) já eram bons, só a
+// apresentação era pobre. Agora ganha aba própria em formato de galeria.
+function painelConquistas(){
+  const s = GAME.statsCareer;
+  const resumoTitulos = `<div class="card">
+    <div class="card-title">Títulos na carreira</div>
+    <div class="stat-tile-grid">
+      ${statTileHtml('🏆', s.titulos, 'Ligas/Divisões')}
+      ${statTileHtml('🏆', s.titulosCopas.copaBrasil, 'Copa do Brasil')}
+      ${statTileHtml('🏆', s.titulosCopas.libertadores, 'Libertadores')}
+      ${statTileHtml('🏆', s.titulosCopas.championsLeague, 'Champions League')}
+      ${statTileHtml('🏆', s.titulosCopas.mundialClubes, 'Mundial de Clubes')}
+      ${statTileHtml('🏆', s.titulosCopas.copaDoMundo, 'Copa do Mundo')}
+      ${statTileHtml('👑', s.titulosCopas.bolaDeOuro, 'Bola de Ouro')}
+    </div>
+  </div>`;
+  const marcos = (GAME.memorial || []).slice().reverse();
+  const galeria = marcos.length ? `<div class="conquista-grid">
+    ${marcos.map(m => `
+      <div class="conquista-card ${m.importancia==='alta'?'alta':''}">
+        <span class="conquista-icone">${m.importancia==='alta'?'🏆':'⭐'}</span>
+        <div>
+          <p class="conquista-titulo">${escapeHtml(m.titulo)}</p>
+          <p class="small muted" style="margin-bottom:2px">Temporada ${m.temporada}</p>
+          <p class="small">${escapeHtml(m.descricao)}</p>
+        </div>
+      </div>`).join('')}
+  </div>` : `<div class="card muted">Nenhuma conquista registrada ainda — elas aparecem aqui conforme sua carreira avança.</div>`;
+  return resumoTitulos + progressoMetaCarreiraHtml() + galeria;
 }
 function painelObjetivos(){
   return `<div class="card">${GAME.objetivos.map(o => {

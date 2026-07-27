@@ -302,6 +302,10 @@ function sortearEvento(){
   if(arcoIdoloDisponivel('manifesto') && chance(12)) pool.push(gerarEventoManifestoOrganizada());
   if(arcoIdoloDisponivel('videoApoio') && chance(12)) pool.push(gerarEventoVideoApoioTorcida());
   { const seq = sequenciaAtual(); if(arcoIdoloDisponivel('boicote') && seq.tipo === 'derrota' && seq.tamanho >= 2 && chance(20)) pool.push(gerarEventoBoicoteTorcida()); }
+  // Torcida dividida: faixa intermediária (50-64) entre "número sem rosto" e
+  // o arco de ídolo — dá gradação à torcida em vez de um salto binário.
+  if(torcidaDivididaDisponivel('debate') && chance(12)) pool.push(gerarEventoTorcidaDebate());
+  if(torcidaDivididaDisponivel('cobranca') && chance(12)) pool.push(gerarEventoTorcidaCobranca());
   // Lado obscuro do futebol: raro, no máximo 2 vezes por temporada
   if(ts.eventosObscurosOcorridos < 2 && ts.periodoIndex >= 1 && chance(8)){
     pool.push(pick(EVENTOS_LADO_OBSCURO));

@@ -9,7 +9,7 @@ function criarModalCentral(id, titulo){
   // só um modal por vez — fecha qualquer outro central ou o Painel antigo que esteja aberto
   document.querySelectorAll('.central-overlay').forEach(o => o.remove());
   fecharPainel();
-  const overlay = el(`<div id="${id}-overlay" class="central-overlay"></div>`);
+  const overlay = el(`<div id="${id}-overlay" class="central-overlay" role="dialog" aria-modal="true" aria-label="${escapeHtml(titulo)}"></div>`);
   overlay.innerHTML = `
     <div class="panel-modal-shell">
       <div class="panel-header">
@@ -20,8 +20,11 @@ function criarModalCentral(id, titulo){
       <div id="${id}-body"></div>
     </div>`;
   document.body.appendChild(overlay);
-  overlay.addEventListener('click', (e) => { if(e.target === overlay) overlay.remove(); });
-  overlay.querySelector('[data-fechar-central]').onclick = () => overlay.remove();
+  const fechar = () => overlay.remove();
+  overlay.addEventListener('click', (e) => { if(e.target === overlay) fechar(); });
+  const btnFechar = overlay.querySelector('[data-fechar-central]');
+  btnFechar.onclick = fechar;
+  ativarFocoModal(overlay, btnFechar, fechar);
   return overlay;
 }
 function atualizarCarteiraStatusBar(){
