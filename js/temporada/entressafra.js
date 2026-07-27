@@ -12,12 +12,19 @@ const OBJETIVOS_TEMPORADA_SEGUINTE = [
   { id:'cuidarSaudeMental', titulo:'Encerrar a temporada com a saúde mental estável (acima de 50)', recompensa:{moral:6} }
 ];
 
+// Reputação comercial (mídia/popularidade) nunca influenciava proposta de
+// clube — só de patrocínio pessoal. Peso pequeno de propósito: desempenho
+// em campo continua dominando a fórmula, mas um jogador com marketing
+// pessoal forte deveria valer um pouco mais pro departamento comercial.
+function reputacaoComercial(){
+  return (GAME.sociais.imagemMidia-50)*0.06 + (GAME.sociais.popularidade-50)*0.04;
+}
 function calcularOfertaContrato(){
   const s = GAME.stats, c = GAME.contrato;
   // valorEstimado é normalizado em escala log antes de somar — a escala bruta (milhares/milhões)
   // não pode ser somada direto a uma fórmula que trabalha em 0-100
   const valorNormalizado = clamp((Math.log10(Math.max(1,s.valorEstimado)) - 3.5) * 8, -10, 15);
-  const desempenho = clamp((s.notaMedia-6)*10 + (GAME.relacoes.diretoria-50)*0.3 + (s.interesseClubes-40)*0.2 + valorNormalizado, -30, 50);
+  const desempenho = clamp((s.notaMedia-6)*10 + (GAME.relacoes.diretoria-50)*0.3 + (s.interesseClubes-40)*0.2 + valorNormalizado + reputacaoComercial(), -30, 50);
   const bolsaBase = c.bolsa > 0 ? c.bolsa : 300;
   // financeiro do clube só pesa no crescimento (não na base), pra não compor exponencialmente a cada renovação
   const fatorFinanceiro = clamp(0.85 + (GAME.clube.financeiro-50)/100*0.5, 0.7, 1.3);
@@ -57,7 +64,7 @@ function clubesMaioresDisponiveis(){
 function calcularOfertaTransferencia(clubeDestino){
   const s = GAME.stats;
   const valorNormalizado = clamp((Math.log10(Math.max(1,s.valorEstimado)) - 3.5) * 8, -10, 15);
-  const desempenho = clamp((s.notaMedia-6)*10 + (GAME.relacoes.diretoria-50)*0.3 + (s.interesseClubes-40)*0.2 + valorNormalizado, -30, 50);
+  const desempenho = clamp((s.notaMedia-6)*10 + (GAME.relacoes.diretoria-50)*0.3 + (s.interesseClubes-40)*0.2 + valorNormalizado + reputacaoComercial(), -30, 50);
   const bolsaBaseClube = 200 + clubeDestino.financeiro*9 + clubeDestino.reputacao*4;
   const novaBolsa = Math.max(150, Math.round(bolsaBaseClube * (1 + desempenho/100)));
   const novaExpectativa = desempenho > 15 ? 'Alta' : desempenho > -5 ? 'Moderada' : 'Baixa';

@@ -323,6 +323,21 @@ function estaEmPartidaAoVivo(){
 // acima do histórico comum (js/ui/painel.js, painelHistorico). Marcos de
 // importância "alta" fora de partida também ganham um toast + som — dentro
 // de partida, fica só registrado (o feed ao vivo já narra o que importa).
+// Memória leve de episódios nomeados — antes a imprensa/eventos só olhavam
+// o estado ATUAL (traço dominante, sequência recente), nunca um episódio
+// específico de temporadas atrás. Guarda só o essencial (tag pra achar de
+// volta, resposta dada, traço da escolha, clube e temporada da época) — não
+// cresce sem limite numa carreira de 15+ temporadas (só os ~40 mais recentes).
+function registrarMemoriaNarrativa(tag, resposta, tom){
+  if(!GAME.memoriaNarrativa) GAME.memoriaNarrativa = [];
+  GAME.memoriaNarrativa.push({
+    id: 'mem_' + GAME.status.semanaGlobal + '_' + rand(1000,9999),
+    tag, resposta, tom,
+    temporada: GAME.numeroTemporada,
+    clube: GAME.clube ? GAME.clube.nome : null
+  });
+  if(GAME.memoriaNarrativa.length > 40) GAME.memoriaNarrativa.shift();
+}
 function registrarMarco(titulo, descricao, importancia){
   if(!GAME.memorial) GAME.memorial = [];
   GAME.memorial.push({ titulo, descricao, temporada: GAME.numeroTemporada, importancia });

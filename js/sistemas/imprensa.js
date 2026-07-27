@@ -78,6 +78,15 @@ const PERGUNTAS_COLETIVA_BASE = [
    `prioridade:true` têm chance garantida de entrar quando elegíveis
    (ver gerarColetiva). `resposta` é função pra variar a citação exata.
    ========================================================================= */
+function encontrarMemoriaContradicaoContrato(){
+  if(!GAME.clube) return null;
+  return (GAME.memoriaNarrativa||[]).find(m => m.tag==='contrato_futuro' && m.tom==='humilde' && !m.contradicaoResolvida && m.clube && m.clube !== GAME.clube.nome);
+}
+function marcarMemoriaContradicaoResolvida(){
+  const mem = encontrarMemoriaContradicaoContrato();
+  if(mem) mem.contradicaoResolvida = true;
+}
+
 const PERGUNTAS_COLETIVA_EXPANSAO = [
 
   // ---------- CONTRATO / RENOVAÇÃO ----------
@@ -132,6 +141,7 @@ const PERGUNTAS_COLETIVA_EXPANSAO = [
         ]) },
       { label:'Provocar dizendo que busca um desafio maior', tom:'rebelde',
         efeito:{popularidade:5, relacaoDiretoria:-9, pressaoPsicologica:6},
+        extra:(g)=>agendarConsequencia('diretoria_reavaliacao_contrato', rand(4,8), {}, 'A diretoria pode querer conversar sobre aquela declaração.'),
         resposta:(g)=>pick([
           `"Todo jogador sonha em disputar coisas maiores. Se a hora chegar, não vou fugir dela."`,
           `"Não escondo que quero voar mais alto. Espero que o clube entenda isso."`
@@ -747,6 +757,7 @@ const PERGUNTAS_COLETIVA_EXPANSAO = [
     escolhas:[
       { label:'Assumir o rótulo com orgulho', tom:'rebelde',
         efeito:{popularidade:5, relacaoDiretoria:-4},
+        extra:(g)=>agendarConsequencia('imprensa_cobranca_polemica', rand(3,6), {}, 'A imprensa pode cobrar aquela fala polêmica se as coisas não derem certo.'),
         resposta:(g)=>pick([
           `"Prefiro ser autêntico a ser morno. Se incomoda alguém, problema é de quem se incomoda."`,
           `"Cabeça-quente é rótulo de quem não entende paixão. Eu jogo assim, ponto."`
@@ -758,6 +769,28 @@ const PERGUNTAS_COLETIVA_EXPANSAO = [
           `"Não gosto do rótulo, mas entendo de onde vem. Quero mostrar outro lado."`
         ]) }
     ] },
+  // ---------- CONTRADIÇÃO COM MEMÓRIA PASSADA (prioridade) ----------
+  // Antes, nenhuma pergunta fazia referência cruzada a uma resposta antiga —
+  // cada coletiva era uma ilha. Essa aproveita GAME.memoriaNarrativa
+  // (registrada automaticamente em toda pergunta de prioridade) pra cobrar
+  // uma contradição real: prometeu ficar, saiu mesmo assim.
+  { id:'contrato_promessa_quebrada', prioridade:true,
+    aplicavel: ()=> !!encontrarMemoriaContradicaoContrato(),
+    pergunta: (j)=> {
+      const mem = encontrarMemoriaContradicaoContrato();
+      return `Na Temporada ${mem.temporada}, você disse em coletiva: ${mem.resposta} Mas acabou saindo do ${mem.clube} mesmo assim. Como explica a contradição?`;
+    },
+    escolhas:[
+      { label:'Assumir que as coisas mudaram e pedir compreensão', tom:'humilde',
+        efeito:{popularidade:3},
+        extra:(g)=>marcarMemoriaContradicaoResolvida(),
+        resposta:(g)=>`"Falei aquilo com o coração na época. Mas o futebol muda rápido, e surgiu uma oportunidade que eu não podia recusar."` },
+      { label:'Dizer que a imprensa exagera o peso de uma frase de ocasião', tom:'confiante',
+        efeito:{imagemMidia:-3, popularidade:2},
+        extra:(g)=>marcarMemoriaContradicaoResolvida(),
+        resposta:(g)=>`"Vocês pegam uma frase de contexto e viram manchete. Faz parte do jogo, mas não muda nada do que eu penso."` }
+    ] },
+
   { id:'reputacao_humilde', prioridade:true,
     aplicavel: ()=> tracoDominante() === 'humilde',
     pergunta: (j)=> pick([
@@ -840,6 +873,10 @@ function renderColetivaImprensa(){
       // resposta pode ser string fixa (perguntas antigas) ou function(g)=>pick([...])
       // (perguntas novas, com variação de texto pra não repetir a citação exata)
       const respostaTexto = typeof escolha.resposta === 'function' ? escolha.resposta(GAME) : escolha.resposta;
+      // Só perguntas "prioridade" (contexto raro/importante) viram memória —
+      // gravar toda pergunta genérica de resultado deixaria a memória cheia
+      // de ruído sem nenhum episódio realmente marcante pra puxar de volta depois.
+      if(pergunta.prioridade) registrarMemoriaNarrativa(pergunta.id, respostaTexto, escolha.tom);
       pushHistorico(`Coletiva de imprensa: ${respostaTexto}`);
       col.indice += 1;
       if(col.indice >= col.perguntas.length){

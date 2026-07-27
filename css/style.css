@@ -370,6 +370,22 @@
   .conquista-icone { font-size: 22px; line-height: 1; flex-shrink: 0; }
   .conquista-titulo { font-weight: 700; font-size: 13.5px; margin-bottom: 2px; }
 
+  /* ===================== TOOLTIP CUSTOMIZADO (glossário contextual) ===================== */
+  .info-tip {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 14px; height: 14px; border-radius: 50%; background: var(--surface-2);
+    border: 1px solid var(--border); color: var(--text-faint); font-size: 10px;
+    cursor: help; position: relative; margin-left: 4px; vertical-align: middle;
+  }
+  .info-tip:hover .info-tip-bubble, .info-tip:focus .info-tip-bubble { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
+  .info-tip-bubble {
+    position: absolute; bottom: 120%; left: 50%; transform: translateX(-50%) translateY(4px);
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 6px 9px; font-size: 11.5px; color: var(--text); width: 200px; text-align: left;
+    opacity: 0; visibility: hidden; transition: opacity .15s ease, transform .15s ease;
+    box-shadow: 0 8px 20px -6px rgba(0,0,0,.5); z-index: 20; line-height: 1.4;
+  }
+
   /* ===================== MODAL (PAINEL OVERLAY) ===================== */
   #panel-overlay {
     position: fixed; inset: 0; background: rgba(4,6,10,.8);

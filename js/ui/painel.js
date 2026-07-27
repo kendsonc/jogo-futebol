@@ -149,7 +149,7 @@ function painelStatus(){
     <p class="small muted">${statusSaudeMentalLabel()}</p>
     ${barraHtml('Cuidado com o corpo', GAME.cuidadoFisico!=null?GAME.cuidadoFisico:50, (GAME.cuidadoFisico||50)<35?'danger':(GAME.cuidadoFisico||50)<55?'warn':undefined, '💪')}
     <p class="small muted">Reflete o quanto você tem cuidado do corpo fora de campo (sono, recuperação, hábitos) — quanto mais baixo, maior a chance de lesão.</p>
-    <p class="spacer"><b>Status no elenco:</b> ${s.statusElenco}</p>
+    <p class="spacer"><b>Status no elenco:</b> ${s.statusElenco}${infoTipHtml('Sua posição informal na hierarquia do elenco — evolui com desempenho, relação com o técnico e tempo de casa. Não decide sozinho quem joga, mas pesa na escalação.')}</p>
     ${GAME.forma && GAME.forma.ultimasNotas.length ? `<p class="small muted">Forma recente: <b>${escapeHtml(GAME.forma.momento)}</b> (média das últimas ${GAME.forma.ultimasNotas.length} notas: ${GAME.forma.media.toFixed(1)})</p>` : ''}
     ${GAME.historicoLesoesTotal ? `<p class="small muted">Histórico de lesões na carreira: ${GAME.historicoLesoesTotal}</p>` : ''}
     ${GAME.lesaoAtual ? `<p class="badge bad">Lesionado: ${GAME.lesaoAtual.tipo} (${GAME.lesaoAtual.semanasRestantes} sem.)</p>` : ''}
@@ -158,7 +158,8 @@ function painelStatus(){
 function painelAtributos(){
   const grupo = (titulo, lista) => `<div class="card"><div class="card-title">${titulo}</div><div class="attr-grid">${lista.map(([k,nome])=>barraHtml(nome, GAME.atributos[k], 'info')).join('')}</div></div>`;
   const overallCard = `<div class="card center"><p style="font-size:32px;margin-bottom:2px"><b>${calcularOverall()}</b></p><p class="muted small">OVERALL (${GAME.identidade.posicaoPrincipal})</p></div>`;
-  return overallCard + grupo('Técnicos', ATRIBUTOS_DEF.tecnicos) + grupo('Físicos', ATRIBUTOS_DEF.fisicos) + grupo('Mentais', ATRIBUTOS_DEF.mentais)
+  return overallCard + grupo('Técnicos', ATRIBUTOS_DEF.tecnicos) + grupo('Físicos', ATRIBUTOS_DEF.fisicos)
+    + grupo(`Mentais${infoTipHtml('Pesam diretamente na resolução dos lances de partida, principalmente sob pressão psicológica alta ou em decisões de risco.')}`, ATRIBUTOS_DEF.mentais)
     + `<div class="card"><div class="card-title">Sociais / Reputação</div><div class="attr-grid">${SOCIAIS_DEF.map(([k,nome])=>barraHtml(nome, GAME.sociais[k]!==undefined?GAME.sociais[k]:GAME.relacoes[k])).join('')}</div></div>`;
 }
 function painelRelacoes(){
@@ -200,7 +201,7 @@ function painelEstatisticas(){
       ${statTileHtml('🏅', s.melhorEmCampo, 'Melhor em campo')}
     </div>
     <p class="small muted" style="margin-top:8px">Valor de mercado estimado: <b>R$ ${s.valorEstimado.toLocaleString('pt-BR')}</b></p>
-    ${barraHtml('Interesse de clubes', s.interesseClubes)}
+    ${barraHtml('Interesse de clubes', s.interesseClubes, undefined, undefined, 'Quanto maior, mais chance de propostas de clubes maiores na próxima entressafra — sobe com boas notas e gols/assistências.')}
   </div>`
   + (GAME.statsCareer ? `<div class="card">
     <div class="card-title">Carreira (temporadas anteriores)</div>

@@ -265,7 +265,8 @@ function gerarEventoCheckinVidaPessoal(){
     escolhas.push({ label:'Procurar apoio psicológico o quanto antes', efeitos:{ saudeMental:8, pressaoPsicologica:-6, tracos:{humilde:1} },
       extra:(g)=>{ pushNoticia('geral', `${g.identidade.apelido} decidiu buscar apoio psicológico depois de reconhecer que não estava bem.`); } });
   } else {
-    escolhas.push({ label: 'Seguir focado 100% na carreira por agora', efeitos: { atributos: { disciplina: 1 }, saudeMental: -2, tracos: { serio: 1 } } });
+    escolhas.push({ label: 'Seguir focado 100% na carreira por agora', efeitos: { atributos: { disciplina: 1 }, saudeMental: -2, tracos: { serio: 1 } },
+      extra: (g) => { if(faixa==='sobrecarregado' || faixa==='sofrimento') agendarConsequencia('saude_mental_ignorada_agrava', rand(4,7), {}, 'Ignorar o próprio bem-estar pode cobrar um preço mais alto.'); } });
   }
   return {
     id: 'checkin_vida_pessoal', categoria: 'vidaPessoal',

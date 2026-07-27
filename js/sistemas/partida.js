@@ -33,7 +33,12 @@ function resolverNivelLance(attr, dificuldade){
   const valor = GAME.atributos[attr] || 45;
   // pressão psicológica pesa aqui pra não ficar um número só escrito e nunca sentido em jogo
   const penalidadePressao = (GAME.sociais.pressaoPsicologica-50)*0.06;
-  const score = valor - dificuldade*0.45 - penalidadePressao + rand(-22,22);
+  // Moral/confiança eram só "saída" (subiam/desciam em resposta a resultados)
+  // e nunca retroalimentavam nada — um jogador em baixa moral jogava
+  // estatisticamente igual a um em alta. Peso pequeno de propósito (não é
+  // pra dominar o resultado do lance, só fazer a fase psicológica ser sentida).
+  const bonusEstadoEmocional = (GAME.sociais.moral-50)*0.05 + (GAME.sociais.confianca-50)*0.05;
+  const score = valor - dificuldade*0.45 - penalidadePressao + bonusEstadoEmocional + rand(-22,22);
   if(score >= 42) return 'otimo';
   if(score >= 18) return 'bom';
   if(score >= -8) return 'neutro';
@@ -154,7 +159,13 @@ function prepararPartida(contexto){
   // a esse placar-base (resolverEscolhaLance), então o placar exibido a cada
   // lance é sempre exatamente o placar real até aquele minuto.
   const penalidadeViagem = mandante ? 0 : clamp((distanciaKm||300)/350, 0, 5);
-  const forcaTime = clamp(GAME.clube.nivelBase + (GAME.relacoes.elenco-50)*0.2 + (GAME.temporadaState.mediaTreinoRecente-50)*0.15 + (mandante?4:-2-penalidadeViagem) + modsMeu.ataque - modsAdv.defesa + rand(-12,12), 15, 95);
+  // Química de elenco (relacoes.elenco) tinha peso baixo demais pra ser
+  // sentido (0.2) — eventos de vestiário (crise, vínculo forte) mexem nesse
+  // número o jogo inteiro sem quase nenhum efeito real na força do time.
+  // Moral entra aqui pela primeira vez também: um time em baixa geral
+  // (moral ruim de verdade) jogava exatamente igual a um time animado.
+  const qualidadeAmbienteElenco = (GAME.relacoes.elenco-50)*0.35 + (GAME.sociais.moral-50)*0.12;
+  const forcaTime = clamp(GAME.clube.nivelBase + qualidadeAmbienteElenco + (GAME.temporadaState.mediaTreinoRecente-50)*0.15 + (mandante?4:-2-penalidadeViagem) + modsMeu.ataque - modsAdv.defesa + rand(-12,12), 15, 95);
   const forcaAdversario = clamp((oponente ? oponente.reputacao*0.6 + oponente.nivelBase*0.3 : GAME.clube.reputacao*0.6) + (mandante?-2:4) + modsAdv.ataque - modsMeu.defesa + rand(-15,20), 15, 95);
   const golsTimeBase = golsPoisson(forcaTime); // gols do time SEM contar os seus (somados depois)
   const golsAdversarioFinal = golsPoisson(forcaAdversario); // adversário não é afetado pelos seus lances

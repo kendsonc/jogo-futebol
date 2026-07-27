@@ -109,5 +109,48 @@ const RESOLVEDORES_CONSEQUENCIA = {
         { label: 'Ignorar e seguir treinando no limite', efeitos: { atributos: { [ctx.atributo]: -2 }, cuidadoFisico: -4, tracos: { rebelde: 1 } } }
       ]
     };
+  },
+
+  // Gatilho: coletiva de imprensa (imprensa.js), pergunta 'reputacao_cabeca_quente',
+  // escolha "Assumir o rótulo com orgulho" — só cobra de verdade se o próximo
+  // resultado real vier ruim (senão a fala polêmica passa batida, como na vida real).
+  imprensa_cobranca_polemica: () => {
+    const u = ultimoResultado();
+    if(!u || u.tipo !== 'derrota') return null;
+    return {
+      id: 'imprensa_cobranca_polemica', categoria: 'midia',
+      texto: (g) => `Depois daquela fala polêmica há um tempo, a imprensa não perdoa a derrota de hoje: "Cadê a confiança toda que ele dizia ter?"`,
+      escolhas: [
+        { label: 'Assumir que errou no tom, mas manter a postura', efeitos: { imagemMidia: -2, tracos: { serio: 1 } } },
+        { label: 'Dobrar a aposta e provocar de novo', efeitos: { imagemMidia: -5, popularidade: 3, relacaoDiretoria: -4, tracos: { rebelde: 1 } } }
+      ]
+    };
+  },
+
+  // Gatilho: coletiva de imprensa, pergunta 'sondagem_grande_clube', escolha
+  // "Provocar dizendo que busca um desafio maior" — a diretoria não esquece.
+  diretoria_reavaliacao_contrato: () => ({
+    id: 'diretoria_reavaliacao_contrato', categoria: 'diretoria',
+    texto: (g) => `Um dirigente do ${g.clube.nome} te chama numa sala reservada: "Aquela fala sobre buscar um desafio maior pegou mal aqui dentro. Precisamos alinhar expectativas."`,
+    escolhas: [
+      { label: 'Reafirmar comprometimento com o clube', efeitos: { relacaoDiretoria: 8, tracos: { humilde: 1 } } },
+      { label: 'Manter a postura e dizer que foi sincero', efeitos: { relacaoDiretoria: -5, popularidade: 2, tracos: { confiante: 1 } } }
+    ]
+  }),
+
+  // Gatilho: check-in de vida pessoal (vidapessoal.js), escolha "Seguir focado
+  // 100%" enquanto a saúde mental já estava sobrecarregada/em sofrimento —
+  // ignorar um alerta cedo tem preço maior mais na frente, não é de graça.
+  saude_mental_ignorada_agrava: () => {
+    if(GAME.status.saudeMental >= 40) return null; // já melhorou sozinho nesse meio tempo
+    return {
+      id: 'saude_mental_ignorada_agrava', categoria: 'vidaPessoal',
+      texto: (g) => `Você tentou seguir só "no foco", mas o corpo e a cabeça cobram a conta — noites mal dormidas, irritação fácil, um cansaço que descanso nenhum resolve.`,
+      escolhas: [
+        { label: 'Reconhecer que precisa de ajuda de verdade', efeitos: { saudeMental: 10, pressaoPsicologica: -8, tracos: { humilde: 1 } },
+          extra: (g) => pushNoticia('geral', `${g.identidade.apelido} decidiu buscar apoio psicológico depois de uma fase difícil.`) },
+        { label: 'Continuar empurrando com a própria força', efeitos: { saudeMental: -6, atributos: { disciplina: 1 }, tracos: { serio: 1 } } }
+      ]
+    };
   }
 };
