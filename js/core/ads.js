@@ -25,7 +25,7 @@
    individuais depois, se quiser relatório de receita por posição.
    ========================================================================= */
 const AD_CLIENT_ID = 'ca-pub-1959719427487568'; // Publisher ID real da conta
-const AD_SLOT_ID = '0000000000'; // TODO: ID do bloco de anúncios (Google AdSense > Anúncios > Por bloco de anúncios)
+const AD_SLOT_ID = '6765830262'; // Bloco "Modo Carreira - Anúncio Geral" (Google AdSense > Anúncios > Por bloco de anúncios)
 
 // Google não permite ficar recarregando o mesmo espaço com frequência alta
 // demais (política de "refresh" de anúncio) — esse intervalo mínimo protege
