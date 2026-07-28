@@ -277,7 +277,11 @@ function sortearEvento(){
   // são escritos para um garoto de 16-17 anos recém-chegado ao CT — sem esse
   // corte de idade, um veterano de 30+ anos podia sortear "sua prova de
   // escola essa semana" no meio de uma carreira de uma década.
-  const eventosJovem = idadeAtual() <= 19 ? EVENTOS_ADOLESCENTE : [];
+  // "Pressão de bebida" (adol_pressao_bebida) só entra no sorteio a partir dos
+  // 18 anos — os demais eventos de EVENTOS_ADOLESCENTE seguem liberados desde os 16.
+  const eventosJovem = idadeAtual() <= 19
+    ? EVENTOS_ADOLESCENTE.filter(e => e.id !== 'adol_pressao_bebida' || idadeAtual() >= 18)
+    : [];
   // Contexto de origem (CONTEXTOS_INICIAIS, dados-base.js): eventos exclusivos
   // só entram no sorteio pra quem escolheu aquele arquétipo na criação, e só
   // enquanto jovem (mesmo corte de EVENTOS_ADOLESCENTE).
@@ -373,9 +377,14 @@ function sortearEvento(){
       if(chance(5)) pool.push(gerarEventoEscandaloFiscal());
     }
   }
-  // Lado obscuro do futebol: raro, no máximo 2 vezes por temporada
+  // Lado obscuro do futebol: raro, no máximo 2 vezes por temporada.
+  // "Esquema de apostas" (obscuro_aposta_informacao) só entra no sorteio a
+  // partir dos 18 anos — os demais eventos de EVENTOS_LADO_OBSCURO seguem liberados.
   if(ts.eventosObscurosOcorridos < 2 && ts.periodoIndex >= 1 && chance(8)){
-    pool.push(pick(EVENTOS_LADO_OBSCURO));
+    const elegiveisObscuro = idadeAtual() >= 18
+      ? EVENTOS_LADO_OBSCURO
+      : EVENTOS_LADO_OBSCURO.filter(e => e.id !== 'obscuro_aposta_informacao');
+    pool.push(pick(elegiveisObscuro));
   }
   // Luto: no máximo 1 vez por temporada, chance bem baixa
   if(!ts.lutoOcorrido && ts.periodoIndex >= 1 && chance(4)){
