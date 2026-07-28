@@ -76,6 +76,16 @@ function clubesMaioresDisponiveis(){
 // janela. Um leilão de verdade (rodadas simuladas de lance) exigiria uma
 // tela nova inteira; esse fator já entrega o efeito real (proposta mais
 // alta) sem esse custo de UI.
+// Luva: bônus de assinatura pago de uma vez só (separado do salário mensal).
+// Nem toda proposta tem — clubes maiores/com mais dinheiro, ou disputando o
+// jogador com outro clube ao mesmo tempo, são bem mais propensos a oferecer.
+function sortearLuvaTransferencia(clubeDestino, emDisputa){
+  const chanceLuva = clamp((emDisputa ? 45 : 15) + (clubeDestino.financeiro-50)*0.5 + (clubeDestino.reputacao-50)*0.3, 5, 85);
+  if(!chance(chanceLuva)) return 0;
+  const base = Math.max(20000, (GAME.stats.valorEstimado||20000) * 0.25);
+  const fator = 0.6 + Math.random()*0.8;
+  return Math.round(base * fator * (clubeDestino.financeiro/60) / 1000) * 1000;
+}
 function calcularOfertaTransferencia(clubeDestino, emDisputa){
   const s = GAME.stats;
   const valorNormalizado = clamp((Math.log10(Math.max(1,s.valorEstimado)) - 3.5) * 8, -10, 15);
@@ -85,8 +95,10 @@ function calcularOfertaTransferencia(clubeDestino, emDisputa){
   const novaBolsa = Math.max(150, Math.round(bolsaBaseClube * (1 + desempenho/100) * fatorDisputa));
   const novaExpectativa = desempenho > 15 ? 'Alta' : desempenho > -5 ? 'Moderada' : 'Baixa';
   const novoTipo = novaBolsa >= 1000 ? 'Contrato profissional júnior' : novaBolsa >= 500 ? 'Contrato de base' : 'Bolsa auxílio';
+  const clausulaPadrao = Math.round(Math.max(50000, (s.valorEstimado||50000) * 1.5) / 1000) * 1000;
   return { tipo:novoTipo, bolsa:novaBolsa, duracao:12, expectativa:novaExpectativa,
-    confiancaDiretoria: clamp(50 + Math.round(desempenho/4), 10, 95) };
+    confiancaDiretoria: clamp(50 + Math.round(desempenho/4), 10, 95),
+    clausulaRescisao: clausulaPadrao, luva: sortearLuvaTransferencia(clubeDestino, !!emDisputa) };
 }
 
 // Valor pago pelo clube de DESTINO ao clube de origem — antes nenhum dinheiro
@@ -163,7 +175,11 @@ function renderEntressafra(){
   const st = GAME.entressafraState;
   if(st.etapa === 0) return renderEntressafraRecap();
   if(st.etapa === 1) return renderEntressafraContrato();
-  if(st.etapa === 2) return renderEntressafraTransferencia();
+  if(st.etapa === 2){
+    if(st.negociacaoTransferencia) return renderNegociacaoTransferencia();
+    if(st.ofertaTransferenciaAtual) return renderOfertaTransferenciaDetalhe();
+    return renderEntressafraTransferencia();
+  }
   return renderEntressafraFinal();
 }
 
@@ -334,10 +350,19 @@ function renderEntressafraTransferencia(){
         <div class="card-title">Mercado</div>
         <div id="scene-text">Nenhum clube maior de olho em você ainda — ao menos por enquanto. É hora de seguir firme e continuar evoluindo no ${GAME.clube.nome}.</div>
         ${emprestimoTileHtml ? `<div class="menu-tiles">${emprestimoTileHtml}</div>` : ''}
-        <div class="choices"><button class="btn btn-primary" id="btn-ent-seguir">Continuar</button></div>
+        <div class="choices">
+          <button class="btn" id="btn-ent-pedir-transferencia">Pedir para ser negociado</button>
+          <button class="btn btn-primary" id="btn-ent-seguir">Continuar</button>
+        </div>
       </div>
     `;
     document.getElementById('btn-ent-seguir').onclick = () => { GAME.entressafraState.etapa = 3; salvarJogo(); render(); };
+    document.getElementById('btn-ent-pedir-transferencia').onclick = () => {
+      const clube = tentarPedirTransferencia();
+      salvarJogo();
+      if(clube) abrirOfertaTransferencia(clube, false);
+      else render();
+    };
     const btnEmp = document.querySelector('[data-i="emprestimo"]');
     if(btnEmp) btnEmp.onclick = () => { irParaEmprestimo(candidatosEmprestimo[0]); GAME.entressafraState.etapa = 3; salvarJogo(); render(); };
     return;
@@ -383,72 +408,255 @@ function renderEntressafraTransferencia(){
       }
       if(btn.dataset.i !== 'ficar'){
         const novoClube = opcoes[parseInt(btn.dataset.i,10)];
-        const clubeAntigoNomeTransferencia = GAME.clube ? GAME.clube.nome : null;
-        const clubeAntigoIdTransferencia = GAME.clube ? GAME.clube.id : null;
-        const torcidaAntigaTransferencia = GAME.relacoes.torcida;
-        // Companheiro com pacto de carreira (gerarEventoPactoCarreira,
-        // exCompanheiros.js) sai do elenco ANTES do sweep genérico abaixo —
-        // senão preservarExCompanheirosNaTransferencia já o levaria pra um
-        // clube aleatório, sem chance nenhuma de cumprir o pacto de verdade.
-        const amigoPacto = GAME.elenco ? GAME.elenco.find(c => c.pactoCarreira === true) : null;
-        if(amigoPacto) GAME.elenco = GAME.elenco.filter(c => c !== amigoPacto);
-        preservarExCompanheirosNaTransferencia(); // antes de trocar GAME.clube/elenco — precisa do clube ANTIGO
-        GAME.clube = { id:novoClube.id, nome:novoClube.nome, cidade:novoClube.cidade, uf:novoClube.uf,
-          pais:novoClube.pais, liga:novoClube.liga,
-          divisao:novoClube.divisao, estiloJogo:novoClube.estiloJogo, nivelBase:novoClube.nivelBase,
-          chanceAprovacaoBase:novoClube.chanceAprovacaoBase, pressaoTorcida:novoClube.pressaoTorcida,
-          oportunidadeJovens:novoClube.oportunidadeJovens, financeiro:novoClube.financeiro,
-          reputacao:novoClube.reputacao, exigenciaPeneira:novoClube.exigenciaPeneira,
-          cor1:novoClube.cor1, cor2:novoClube.cor2, temporadasAqui:1 };
-        const ofertaTransferencia = calcularOfertaTransferencia(novoClube, opcoes.length > 1);
-        GAME.contrato = { tipo:ofertaTransferencia.tipo, bolsa:ofertaTransferencia.bolsa, duracao:ofertaTransferencia.duracao,
-          expectativa:ofertaTransferencia.expectativa, confiancaDiretoria:ofertaTransferencia.confiancaDiretoria };
-        const valorTransferencia = calcularValorTransferencia(novoClube);
-        if(GAME.statsCareer.maiorTransferencia == null) GAME.statsCareer.maiorTransferencia = 0;
-        const recordeTransferencia = valorTransferencia > GAME.statsCareer.maiorTransferencia;
-        if(recordeTransferencia) GAME.statsCareer.maiorTransferencia = valorTransferencia;
-        pushNoticiaImprensa('midia', `${novoClube.nome} paga R$ ${valorTransferencia.toLocaleString('pt-BR')} por ${GAME.identidade.apelido}, vindo do ${clubeAntigoNomeTransferencia}.`);
-        if(recordeTransferencia && valorTransferencia >= 500000) registrarMarco('Recorde pessoal de transferência', `Maior valor de transferência da carreira: R$ ${valorTransferencia.toLocaleString('pt-BR')}, para o ${novoClube.nome}.`, 'media');
-        Som.tocarEfeito('contratoAssinado');
-        mostrarToast({ icone:'✍️', titulo:'Novo clube!', texto:`Transferido para o ${novoClube.nome} por R$ ${valorTransferencia.toLocaleString('pt-BR')}` });
-        trocarTecnico();
-        GAME.observador = pickExcluindo(NOMES_OBSERVADORES, GAME.observador);
-        GAME.elenco = gerarElenco(); // novo clube, novos companheiros de elenco
-        GAME.elencoParesConflito = gerarParesConflitoElenco(GAME.elenco);
-        GAME.concorrentesPosicao = gerarConcorrentesPosicao(); // novo clube, novos concorrentes pela vaga
-        avaliarDisputaCobradorOficial();
-        if(amigoPacto){
-          if(chance(55)){
-            GAME.elenco.push({ ...amigoPacto, id:'comp_pacto_'+GAME.status.semanaGlobal, pactoCarreira:undefined });
-            pushNoticiaImprensa('midia', `Pacto cumprido: ${amigoPacto.nome} também assina com o ${novoClube.nome}, reunindo a dupla no mesmo elenco.`);
-            registrarMarco('Pacto de carreira cumprido', `${GAME.identidade.apelido} e ${amigoPacto.nome} conseguiram ser negociados juntos para o ${novoClube.nome}.`, 'media');
-          } else {
-            if(!GAME.exCompanheiros) GAME.exCompanheiros = [];
-            const clubeConsolo = pick(CLUBES.filter(cl => cl.id !== novoClube.id));
-            if(clubeConsolo){
-              GAME.exCompanheiros.push({
-                id:'ex_pacto_'+Date.now()+'_'+rand(1000,9999), nomeOriginal:amigoPacto.nome, nome:amigoPacto.nome,
-                relacao: clamp(amigoPacto.relacao-40, 0, 100),
-                clubeConheceuId: clubeAntigoIdTransferencia, clubeConheceuNome: clubeAntigoNomeTransferencia,
-                clubeId: clubeConsolo.id, clubeNome: clubeConsolo.nome,
-                overall: clamp(calcularOverall() + rand(-10,10), 30, 90)
-              });
-            }
-            pushNoticia('geral', `Pacto quebrado: o ${novoClube.nome} não quis contar com ${amigoPacto.nome}, que segue a carreira em outro lugar — a amizade esfriou depois disso.`);
-          }
-        }
-        despedidaDaTorcidaAntesDaTransferencia(clubeAntigoNomeTransferencia, torcidaAntigaTransferencia);
-        GAME.relacoes.elenco = 50; GAME.relacoes.diretoria = 50; GAME.relacoes.torcida = 15;
-        GAME.status.statusElenco = 'Novo reforço';
-        pushNoticia('midia', `${GAME.identidade.apelido} é anunciado como novo reforço do ${novoClube.nome} (${novoClube.divisao})!`);
-        GAME.statsCareer.clubesPassados.push({ nome: novoClube.nome, internacional: novoClube.divisao==='Internacional', temporada: GAME.numeroTemporada });
-        if(novoClube.divisao === 'Internacional') registrarMarco('Rumo à Europa', `Transferência para o ${novoClube.nome} (${novoClube.liga}, ${novoClube.pais}) na Temporada ${GAME.numeroTemporada}.`, 'alta');
+        abrirOfertaTransferencia(novoClube, opcoes.length > 1);
+        return;
       }
       GAME.entressafraState.etapa = 3;
       salvarJogo();
       render();
     };
   });
+}
+
+// Abre a tela de detalhe (salário/duração/luva) de uma proposta de
+// transferência — chamado tanto ao clicar num clube candidato quanto quando
+// "Pedir para ser negociado" dá certo (tentarPedirTransferencia).
+function abrirOfertaTransferencia(novoClube, emDisputa){
+  const oferta = calcularOfertaTransferencia(novoClube, emDisputa);
+  GAME.entressafraState.ofertaTransferenciaAtual = { clube: novoClube, emDisputa: !!emDisputa, ...oferta };
+  salvarJogo();
+  render();
+}
+
+function renderOfertaTransferenciaDetalhe(){
+  const st = GAME.entressafraState;
+  const o = st.ofertaTransferenciaAtual;
+  const c = o.clube;
+  app.innerHTML = `
+    <div class="screen-hero">
+      <div class="screen-hero-kicker">Proposta de Transferência</div>
+      <h1>${escapeHtml(c.nome)} quer te contratar</h1>
+      <p class="screen-hero-sub">${escapeHtml(localClube(c))} — ${escapeHtml(PERFIL_CLUBE_BLURB[perfilClube(c)])}</p>
+    </div>
+    <div class="card">
+      <div class="stat-tile-grid">
+        ${statTileHtml('📄', o.tipo, 'Tipo de contrato')}
+        ${statTileHtml('💵', `R$ ${Number(o.bolsa).toLocaleString('pt-BR')}`, 'Bolsa/salário mensal')}
+        ${statTileHtml('📆', `${o.duracao} meses`, 'Duração')}
+        ${statTileHtml('📈', o.expectativa, 'Expectativa do clube')}
+      </div>
+      ${o.luva > 0 ? `<p class="small spacer"><b>Luva de assinatura:</b> R$ ${Number(o.luva).toLocaleString('pt-BR')} (paga de uma vez, na assinatura)${infoTipHtml('Bônus único, separado do salário mensal — cai direto na sua carteira ao assinar.')}</p>` : `<p class="small muted spacer">Este clube não está oferecendo luva de assinatura.</p>`}
+      <p class="small muted">Cláusula de rescisão: <b>R$ ${Number(o.clausulaRescisao||0).toLocaleString('pt-BR')}</b></p>
+      <div class="choices">
+        <button class="btn btn-primary" id="btn-oferta-aceitar">Aceitar proposta</button>
+        <button class="btn" id="btn-oferta-negociar">Negociar termos</button>
+        <button class="btn" id="btn-oferta-recusar">Recusar e continuar no ${escapeHtml(GAME.clube.nome)}</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('btn-oferta-aceitar').onclick = () => {
+    confirmarTransferencia(c, o, o.emDisputa);
+  };
+  document.getElementById('btn-oferta-negociar').onclick = () => {
+    iniciarNegociacaoTransferencia(c, o);
+  };
+  document.getElementById('btn-oferta-recusar').onclick = () => {
+    GAME.entressafraState.ofertaTransferenciaAtual = null;
+    salvarJogo();
+    render();
+  };
+}
+
+/* ---------------------- NEGOCIAÇÃO DE TRANSFERÊNCIA (multi-rodada) ---------
+   Espelha a negociação de renovação de contrato (iniciarNegociacaoContrato/
+   renderEntressafraContrato/resolverRodadaNegociacao) contra o dirigente do
+   clube COMPRADOR, em vez do clube atual — mesmas rodadas/humor, ações
+   adaptadas ao contexto de quem está tentando te contratar.
+   ------------------------------------------------------------------------- */
+function iniciarNegociacaoTransferencia(clube, oferta){
+  GAME.entressafraState.negociacaoTransferencia = {
+    clube, dirigente: pick(NOMES_DIRIGENTES),
+    bolsa: oferta.bolsa, duracao: oferta.duracao, luva: oferta.luva, expectativa: oferta.expectativa,
+    tipo: oferta.tipo, confiancaDiretoria: oferta.confiancaDiretoria, clausulaRescisao: oferta.clausulaRescisao,
+    humor: clamp(55 + (GAME.stats.notaMedia-6)*6 + rand(-8,8), 5, 95),
+    rodada: 0
+  };
+  salvarJogo();
+  render();
+}
+
+function renderNegociacaoTransferencia(){
+  const n = GAME.entressafraState.negociacaoTransferencia;
+  const ultimaRodada = n.rodada >= 3;
+  const introducao = n.rodada === 0
+    ? `${n.dirigente}, do ${n.clube.nome}, liga pra você.\n\n— Queremos muito acertar sua contratação. Nossa proposta inicial é R$ ${n.bolsa.toLocaleString('pt-BR')} por mês, ${n.duracao} meses${n.luva>0 ? `, com luva de R$ ${n.luva.toLocaleString('pt-BR')}`:''}. Topa conversar os termos?`
+    : `${n.dirigente} está ${humorDirigenteLabel(n.humor)}.\n\n— Nossa proposta agora: R$ ${n.bolsa.toLocaleString('pt-BR')}/mês, ${n.duracao} meses${n.luva>0 ? `, luva de R$ ${n.luva.toLocaleString('pt-BR')}`:''}.`;
+  const escolhas = [
+    { label:'Aceitar os termos atuais', acao:'aceitar' },
+    ...(!ultimaRodada ? [
+      { label:'Pedir um aumento no salário', acao:'pedir_aumento' },
+      { label:'Pedir um contrato mais longo', acao:'pedir_prazo' },
+      { label:'Pedir uma luva de assinatura (ou aumentá-la)', acao:'pedir_luva' },
+      { label:'Destacar seus números da temporada', acao:'destacar_stats' },
+      ...(GAME.empresarioAtual ? [{ label:'Deixar seu empresário conduzir a conversa', acao:'usar_empresario' }] : [])
+    ] : [])
+  ];
+  app.innerHTML = `
+    <div class="card">
+      <div class="card-title">Negociação com o ${escapeHtml(n.clube.nome)} ${n.rodada>0 ? `— rodada ${n.rodada+1}` : ''}</div>
+      <div id="scene-text">${escapeHtml(introducao).replace(/\n/g,'<br>')}</div>
+      <div class="choices">${escolhas.map((e,i)=>`<button class="btn ${e.acao==='aceitar'?'btn-primary':''}" data-i="${i}">${escapeHtml(e.label)}</button>`).join('')}</div>
+    </div>
+  `;
+  document.querySelectorAll('.choices .btn').forEach(btn => {
+    btn.onclick = () => {
+      const esc = escolhas[parseInt(btn.dataset.i,10)];
+      resolverRodadaNegociacaoTransferencia(esc.acao);
+    };
+  });
+}
+
+function resolverRodadaNegociacaoTransferencia(acao){
+  const n = GAME.entressafraState.negociacaoTransferencia;
+  const clube = n.clube;
+  const fecharComTermosAtuais = () => {
+    const oferta = { tipo:n.tipo, bolsa:n.bolsa, duracao:n.duracao, expectativa:n.expectativa,
+      confiancaDiretoria:n.confiancaDiretoria, clausulaRescisao:n.clausulaRescisao, luva:n.luva };
+    GAME.entressafraState.negociacaoTransferencia = null;
+    confirmarTransferencia(clube, oferta, n.emDisputa);
+  };
+  if(acao === 'aceitar') return fecharComTermosAtuais();
+  if(acao === 'pedir_aumento'){
+    const chanceSucesso = clamp(n.humor*0.7 + (GAME.stats.notaMedia-6)*8, 5, 90);
+    if(chance(chanceSucesso)){ n.bolsa = Math.round(n.bolsa*1.15); n.humor = clamp(n.humor-4,0,100); }
+    else { n.humor = clamp(n.humor-14,0,100); }
+  } else if(acao === 'pedir_prazo'){
+    const chanceSucesso = clamp(n.humor*0.8, 5, 90);
+    if(chance(chanceSucesso)){ n.duracao += 6; n.humor = clamp(n.humor-2,0,100); }
+    else { n.humor = clamp(n.humor-8,0,100); }
+  } else if(acao === 'pedir_luva'){
+    const chanceSucesso = clamp(n.humor*0.6 + (GAME.stats.notaMedia-6)*6, 5, 85);
+    if(chance(chanceSucesso)){
+      const acrescimo = Math.round(Math.max(15000, (GAME.stats.valorEstimado||15000)*0.15) / 1000) * 1000;
+      n.luva = (n.luva||0) + acrescimo;
+      n.humor = clamp(n.humor-6,0,100);
+    } else { n.humor = clamp(n.humor-16,0,100); }
+  } else if(acao === 'destacar_stats'){
+    const boaTemporada = GAME.stats.notaMedia >= 6.8 || GAME.stats.gols+GAME.stats.assistencias >= 6;
+    if(boaTemporada){ n.bolsa = Math.round(n.bolsa*1.12); n.humor = clamp(n.humor+10,0,100); }
+    else { n.humor = clamp(n.humor-16,0,100); }
+  } else if(acao === 'usar_empresario'){
+    const tipo = GAME.empresarioAtual;
+    if(tipo === 'experiente'){ n.bolsa = Math.round(n.bolsa*1.2); n.humor = clamp(n.humor+5,0,100); }
+    else if(tipo === 'amigoFamilia'){ n.bolsa = Math.round(n.bolsa*1.08); n.humor = clamp(n.humor+3,0,100); }
+    else if(tipo === 'oportunista'){ if(chance(50)){ n.bolsa = Math.round(n.bolsa*1.3); n.humor = clamp(n.humor-5,0,100); } else { n.humor = clamp(n.humor-20,0,100); } }
+    else { if(chance(40)){ n.bolsa = Math.round(n.bolsa*1.15); } else { n.humor = clamp(n.humor-15,0,100); } }
+  }
+  n.rodada += 1;
+  if(n.humor <= 0){
+    n.bolsa = Math.round(n.bolsa*0.9);
+    mostrarToast({ icone:'📝', titulo:'Negociação esfriou', texto:`Termos piores que o esperado com o ${clube.nome}` });
+    return fecharComTermosAtuais();
+  }
+  if(n.rodada > 3) return fecharComTermosAtuais();
+  salvarJogo();
+  render();
+}
+
+// Comita de fato a transferência (troca de clube, elenco, pacto de carreira,
+// recorde de valor, notícias) — reaproveitado tanto pelo aceite direto quanto
+// pelo aceite após a negociação de termos, com a oferta final já resolvida.
+function confirmarTransferencia(novoClube, oferta, emDisputa){
+  const clubeAntigoNomeTransferencia = GAME.clube ? GAME.clube.nome : null;
+  const clubeAntigoIdTransferencia = GAME.clube ? GAME.clube.id : null;
+  const torcidaAntigaTransferencia = GAME.relacoes.torcida;
+  // Companheiro com pacto de carreira (gerarEventoPactoCarreira,
+  // exCompanheiros.js) sai do elenco ANTES do sweep genérico abaixo —
+  // senão preservarExCompanheirosNaTransferencia já o levaria pra um
+  // clube aleatório, sem chance nenhuma de cumprir o pacto de verdade.
+  const amigoPacto = GAME.elenco ? GAME.elenco.find(c => c.pactoCarreira === true) : null;
+  if(amigoPacto) GAME.elenco = GAME.elenco.filter(c => c !== amigoPacto);
+  preservarExCompanheirosNaTransferencia(); // antes de trocar GAME.clube/elenco — precisa do clube ANTIGO
+  GAME.clube = { id:novoClube.id, nome:novoClube.nome, cidade:novoClube.cidade, uf:novoClube.uf,
+    pais:novoClube.pais, liga:novoClube.liga,
+    divisao:novoClube.divisao, estiloJogo:novoClube.estiloJogo, nivelBase:novoClube.nivelBase,
+    chanceAprovacaoBase:novoClube.chanceAprovacaoBase, pressaoTorcida:novoClube.pressaoTorcida,
+    oportunidadeJovens:novoClube.oportunidadeJovens, financeiro:novoClube.financeiro,
+    reputacao:novoClube.reputacao, exigenciaPeneira:novoClube.exigenciaPeneira,
+    cor1:novoClube.cor1, cor2:novoClube.cor2, temporadasAqui:1 };
+  GAME.contrato = { tipo:oferta.tipo, bolsa:oferta.bolsa, duracao:oferta.duracao,
+    expectativa:oferta.expectativa, confiancaDiretoria:oferta.confiancaDiretoria, clausulaRescisao:oferta.clausulaRescisao };
+  if(oferta.luva > 0){
+    GAME.carteira = (GAME.carteira||0) + oferta.luva;
+    mostrarToast({ icone:'💰', titulo:'Luva recebida', texto:`R$ ${Number(oferta.luva).toLocaleString('pt-BR')} na sua conta` });
+  }
+  const valorTransferencia = calcularValorTransferencia(novoClube);
+  if(GAME.statsCareer.maiorTransferencia == null) GAME.statsCareer.maiorTransferencia = 0;
+  const recordeTransferencia = valorTransferencia > GAME.statsCareer.maiorTransferencia;
+  if(recordeTransferencia) GAME.statsCareer.maiorTransferencia = valorTransferencia;
+  pushNoticiaImprensa('midia', `${novoClube.nome} paga R$ ${valorTransferencia.toLocaleString('pt-BR')} por ${GAME.identidade.apelido}, vindo do ${clubeAntigoNomeTransferencia}.`);
+  if(recordeTransferencia && valorTransferencia >= 500000) registrarMarco('Recorde pessoal de transferência', `Maior valor de transferência da carreira: R$ ${valorTransferencia.toLocaleString('pt-BR')}, para o ${novoClube.nome}.`, 'media');
+  Som.tocarEfeito('contratoAssinado');
+  mostrarToast({ icone:'✍️', titulo:'Novo clube!', texto:`Transferido para o ${novoClube.nome} por R$ ${valorTransferencia.toLocaleString('pt-BR')}` });
+  trocarTecnico();
+  GAME.observador = pickExcluindo(NOMES_OBSERVADORES, GAME.observador);
+  GAME.elenco = gerarElenco(); // novo clube, novos companheiros de elenco
+  GAME.elencoParesConflito = gerarParesConflitoElenco(GAME.elenco);
+  GAME.concorrentesPosicao = gerarConcorrentesPosicao(); // novo clube, novos concorrentes pela vaga
+  avaliarDisputaCobradorOficial();
+  if(amigoPacto){
+    if(chance(55)){
+      GAME.elenco.push({ ...amigoPacto, id:'comp_pacto_'+GAME.status.semanaGlobal, pactoCarreira:undefined });
+      pushNoticiaImprensa('midia', `Pacto cumprido: ${amigoPacto.nome} também assina com o ${novoClube.nome}, reunindo a dupla no mesmo elenco.`);
+      registrarMarco('Pacto de carreira cumprido', `${GAME.identidade.apelido} e ${amigoPacto.nome} conseguiram ser negociados juntos para o ${novoClube.nome}.`, 'media');
+    } else {
+      if(!GAME.exCompanheiros) GAME.exCompanheiros = [];
+      const clubeConsolo = pick(CLUBES.filter(cl => cl.id !== novoClube.id));
+      if(clubeConsolo){
+        GAME.exCompanheiros.push({
+          id:'ex_pacto_'+Date.now()+'_'+rand(1000,9999), nomeOriginal:amigoPacto.nome, nome:amigoPacto.nome,
+          relacao: clamp(amigoPacto.relacao-40, 0, 100),
+          clubeConheceuId: clubeAntigoIdTransferencia, clubeConheceuNome: clubeAntigoNomeTransferencia,
+          clubeId: clubeConsolo.id, clubeNome: clubeConsolo.nome,
+          overall: clamp(calcularOverall() + rand(-10,10), 30, 90)
+        });
+      }
+      pushNoticia('geral', `Pacto quebrado: o ${novoClube.nome} não quis contar com ${amigoPacto.nome}, que segue a carreira em outro lugar — a amizade esfriou depois disso.`);
+    }
+  }
+  despedidaDaTorcidaAntesDaTransferencia(clubeAntigoNomeTransferencia, torcidaAntigaTransferencia);
+  GAME.relacoes.elenco = 50; GAME.relacoes.diretoria = 50; GAME.relacoes.torcida = 15;
+  GAME.status.statusElenco = 'Novo reforço';
+  pushNoticia('midia', `${GAME.identidade.apelido} é anunciado como novo reforço do ${novoClube.nome} (${novoClube.divisao})!`);
+  GAME.statsCareer.clubesPassados.push({ nome: novoClube.nome, internacional: novoClube.divisao==='Internacional', temporada: GAME.numeroTemporada });
+  if(novoClube.divisao === 'Internacional') registrarMarco('Rumo à Europa', `Transferência para o ${novoClube.nome} (${novoClube.liga}, ${novoClube.pais}) na Temporada ${GAME.numeroTemporada}.`, 'alta');
+  GAME.entressafraState.ofertaTransferenciaAtual = null;
+  GAME.entressafraState.negociacaoTransferencia = null;
+  GAME.entressafraState.etapa = 3;
+  salvarJogo();
+  render();
+}
+
+// Iniciativa do próprio jogador de pedir pra ser negociado, quando nenhum
+// clube maior se manifestou sozinho ainda — chance real, mas menor que o
+// gatilho automático (clubesMaioresDisponiveis), e sair errado custa um
+// pouco de relação com a diretoria atual (não é bem-vista essa conversa).
+function tentarPedirTransferencia(){
+  const chanceSucesso = clamp((GAME.stats.interesseClubes-30) + (GAME.stats.notaMedia-6)*8, 5, 65);
+  if(chance(chanceSucesso)){
+    const meuTier = tierDoClube(GAME.clube);
+    const indiceTier = TIERS_ORDEM.indexOf(meuTier);
+    const candidatos = CLUBES.filter(c => c.id !== GAME.clube.id && c.reputacao > GAME.clube.reputacao - 6
+        && TIERS_ORDEM.indexOf(tierDoClube(c)) <= indiceTier + 1);
+    const clube = candidatos.length ? pick(candidatos) : null;
+    if(clube){
+      mostrarToast({ icone:'📣', titulo:'Interesse desperto!', texto:`${clube.nome} topou conversar sobre uma possível transferência.` });
+      return clube;
+    }
+  }
+  GAME.relacoes.diretoria = clamp(GAME.relacoes.diretoria - 6, 0, 100);
+  mostrarToast({ icone:'🤷', titulo:'Sem sucesso', texto:'Nenhum clube topou por enquanto — e a diretoria não gostou muito de ouvir isso.' });
+  return null;
 }
 
 // Média dos atributos físicos (velocidade/aceleração/força/resistência/

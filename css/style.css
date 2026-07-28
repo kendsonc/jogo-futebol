@@ -166,6 +166,12 @@
   }
   .btn:hover { background: linear-gradient(180deg, #202940, #1b2233); border-color: #3d5271; transform: translateY(-2px); box-shadow: 0 10px 22px -6px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.08); }
   .btn:active { transform: translateY(0); box-shadow: inset 0 2px 6px rgba(0,0,0,.3); }
+  /* Antes um botão desabilitado (ex: Fisioterapia intensiva sem saldo) ficava
+     visualmente IDÊNTICO a um habilitado — sem nenhum feedback do porquê o
+     clique não fazia nada, parecia bug. Agora fica visivelmente apagado, com
+     cursor de bloqueio, e sem reagir ao hover. */
+  .btn[disabled] { opacity: .4; cursor: not-allowed; color: var(--text-dim); }
+  .btn[disabled]:hover { background: linear-gradient(180deg, #1a2130, #161c29); border-color: var(--border); transform: none; box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 2px 6px rgba(0,0,0,.2); }
   .btn-primary {
     background: var(--club-grad); border-color: color-mix(in srgb, var(--club-c1) 65%, white 8%);
     color: #06120c; font-weight: 700;
@@ -703,7 +709,7 @@
   }
   .menu-tile-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
   .menu-tile-title { font-family: var(--font-display); font-weight: 700; font-size: 16px; }
-  .menu-tile-sub { font-size: 12.5px; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .menu-tile-sub { font-size: 12.5px; color: var(--text-dim); white-space: normal; line-height: 1.35; }
   .menu-tile-primary {
     border-color: color-mix(in srgb, var(--club-c1) 60%, white 8%);
     box-shadow: 0 14px 34px -10px color-mix(in srgb, var(--club-c1) 45%, transparent), inset 0 1px 0 var(--border-soft);
@@ -762,7 +768,9 @@
   .live-match-card { text-align: center; }
   .live-match-top { display: flex; align-items: center; justify-content: center; gap: 22px; }
   .live-match-team { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1 1 120px; min-width: 0; }
-  .live-match-team span { font-size: 12.5px; color: var(--text-dim); max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .live-match-team span { font-size: 12.5px; color: var(--text-dim); max-width: 130px; white-space: normal; line-height: 1.3; }
+  .live-match-team-eventos { display: flex; flex-direction: column; gap: 2px; margin-top: 2px; max-width: 140px; }
+  .live-match-team-eventos span { display: block; font-size: 11px; color: var(--text-dim); white-space: normal; max-width: none; }
   .live-match-center { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 110px; }
   .live-match-clock {
     font-family: var(--font-display); font-weight: 700; font-size: 13px; color: var(--text-dim);
@@ -773,12 +781,17 @@
     transition: transform .15s ease;
   }
   .live-match-placar.pulse { animation: placarPulso .5s ease; }
-  @keyframes placarPulso { 0% { transform: scale(1); } 35% { transform: scale(1.18); color: var(--club-c1); } 100% { transform: scale(1); } }
+  @keyframes placarPulso { 0% { transform: scale(1); } 35% { transform: scale(1.18); color: var(--text); } 100% { transform: scale(1); } }
   .live-match-celebracao {
     height: 0; overflow: hidden; opacity: 0; transform: scale(.8);
     transition: opacity .2s ease, transform .2s ease;
     font-family: var(--font-display); font-weight: 800; font-size: 34px; letter-spacing: 1px;
-    color: var(--club-c1); text-shadow: 0 0 22px color-mix(in srgb, var(--club-c1) 70%, transparent);
+    /* Cor do clube (--club-c1) varia de quase-preta a quase-branca conforme o
+       time — usada só no glow (text-shadow). A letra em si fica em --text,
+       que é a variável já garantida pra contrastar com --surface/--bg-base
+       nos dois temas, senão clubes de cor escura ficavam com texto ilegível
+       aqui (mesma cor do fundo do card). */
+    color: var(--text); text-shadow: 0 0 22px color-mix(in srgb, var(--club-c1) 70%, transparent);
     text-align: center; margin-top: 0;
   }
   .live-match-celebracao.show {

@@ -187,8 +187,21 @@ function prepararPartida(contexto){
   }
   const poolMeio = [...LANCES_ATAQUE, ...LANCES_DEFESA];
   const pool = ehGoleiro ? LANCES_GOLEIRO : ehDefensor ? LANCES_DEFESA : ehMeio ? poolMeio : LANCES_ATAQUE;
+  // Anti-repetição (mesmo padrão de GAME.eventosRecentesIds em sistemas/eventos.js):
+  // evita repetir o mesmo lance dentro da mesma partida e entre as últimas
+  // partidas — sem isso, com poucos lances sorteados por jogo, a mesma cena
+  // podia repetir seguidas vezes ao longo da carreira.
+  const recentesLances = GAME.lancesRecentesIds || [];
+  const idsEscolhidosPartida = [];
   const lances = [];
-  for(let i=0;i<numLances;i++) lances.push(pick(pool));
+  for(let i=0;i<numLances;i++){
+    const excluir = [...recentesLances, ...idsEscolhidosPartida];
+    const disponiveis = pool.filter(l => !excluir.includes(l.id));
+    const escolhido = pick(disponiveis.length ? disponiveis : pool);
+    lances.push(escolhido);
+    idsEscolhidosPartida.push(escolhido.id);
+  }
+  GAME.lancesRecentesIds = [...idsEscolhidosPartida, ...recentesLances].slice(0,15);
 
   // Distribui os lances dentro da janela de minutos que o jogador realmente
   // esteve em campo, pra poder citar o minuto exato de um gol/assistência depois
@@ -276,14 +289,18 @@ function prepararPartida(contexto){
     golsTimeBase, golsAdversarioFinal, cronologiaGols,
     competicao, aoFinalizarNome,
     oponenteSnapshot: oponente ? { nome:oponente.nome, cor1:oponente.cor1, cor2:oponente.cor2 } : null,
-    timeline, indiceTimeline:0, minutoAtual:0, rodando:false, lancePendente:false, velocidadeMs:170, intervaloMostrado:false,
+    timeline, indiceTimeline:0, minutoAtual:0, rodando:false, lancePendente:false,
+    // Modo espectador (acompanhar sem estar relacionado): sem lance nenhum pra
+    // decidir, então corre bem mais rápido e não para no intervalo esperando
+    // clique — só uma pausa automática mínima (ver tickPartidaAoVivo).
+    modoEspectador: !!contexto.modoEspectador, velocidadeMs: contexto.modoEspectador ? 25 : 170, intervaloMostrado:false,
     estatBase, posseAtual: posseBase,
     estatJogador: { finalizacoes:0, finalizacoesGol:0, faltas:0, desarmes:0, defesas:0 },
     // Cartões vermelhos de fundo (companheiros/adversário, confirmados pelo
     // VAR) que não passam por p.acumulado — sem isso, o painel de estatísticas
     // nunca refletia esses cartões. vantagemNumerica: >0 meu time tem mais
     // jogadores em campo, <0 o adversário tem mais (ver mudarVantagemNumerica).
-    cartoesExtras: { meu:0, adv:0 }, vantagemNumerica:0,
+    cartoesExtras: { meu:0, adv:0 }, cartoesVermelhos: [], vantagemNumerica:0,
     acrescimo1, acrescimo2, acrescimo1Anunciado:false, acrescimo2Anunciado:false, varEmAndamento:null,
     acumulado: { gols:0, assist:0, erros:0, amarelo:0, vermelho:0, defesaImportante:0, desarmesCertos:0, eventos:[], golsMinutos:[], assistMinutos:[] }
   };
@@ -292,6 +309,58 @@ function prepararPartida(contexto){
   GAME.temporadaState.subFase = 'partidaAoVivo';
   salvarJogo();
   render();
+}
+
+/* ============================== PULAR PARTIDA (NÃO RELACIONADO) ===============
+   Só oferecido quando o jogador nem foi relacionado — nesse caso a timeline
+   nunca tem lance/entrada/saída (só gols de fundo e incidentes de VAR), então
+   dá pra resolver tudo de uma vez, sem nenhuma UI/som, e já cair direto na
+   tela de resultado (mesmo caminho de encerrarPartidaAoVivo/finalizarPartida).
+   ========================================================================= */
+function resolverPartidaInstantanea(p){
+  p.timeline.forEach(ev => {
+    p.minutoAtual = ev.minuto;
+    if(ev.tipo === 'golFundo'){
+      const gcRef = p.cronologiaGols.find(gc => gc.id === ev.id);
+      if(gcRef) gcRef.minutoExibido = minutoExibido(p);
+      // mesma probabilidade de resolverRevisaoVar (chance de ir a VAR, depois
+      // chance de ser confirmado) — só que resolvida na hora, sem pausa.
+      if(chance(CHANCE_VAR_GOL) && !chance(75)){
+        const idx = p.cronologiaGols.findIndex(gc => gc.id === ev.id);
+        if(idx>=0) p.cronologiaGols.splice(idx,1);
+        if(ev.adversario) p.golsAdversarioFinal = Math.max(0, p.golsAdversarioFinal-1);
+        else p.golsTimeBase = Math.max(0, p.golsTimeBase-1);
+      }
+    } else if(ev.tipo === 'varBg'){
+      if(ev.subtipo === 'vermelho'){
+        if(chance(60)){
+          p.cartoesExtras[ev.time] += 1;
+          p.vantagemNumerica += ev.time==='meu' ? -1 : 1;
+          if(!p.cartoesVermelhos) p.cartoesVermelhos = [];
+          const nomeCartao = ev.time==='meu' ? nomeJogadorAleatorio() : p.adversario;
+          p.cartoesVermelhos.push({ id:p.cartoesVermelhos.length, minuto:ev.minuto, minutoExibido:minutoExibido(p), nome:nomeCartao, adversario: ev.time==='adv' });
+        }
+      } else if(chance(65) && chance(76)){ // penalti confirmado e convertido
+        const cobrador = ev.time==='meu' ? nomeJogadorAleatorio() : p.adversario;
+        p.cronologiaGols.push({ id:p.cronologiaGols.length, minuto:ev.minuto, minutoExibido:minutoExibido(p), texto:cobrador, nome:cobrador, adversario: ev.time==='adv' });
+        if(ev.time==='meu') p.golsTimeBase += 1; else p.golsAdversarioFinal += 1;
+      }
+    }
+  });
+  p.indiceTimeline = p.timeline.length;
+  p.minutoAtual = 45 + p.acrescimo1 + 45 + p.acrescimo2;
+}
+
+// "Pular o jogo": prepara a partida normalmente (mesmos sorteios de sempre),
+// resolve tudo na hora e já finaliza — a tela ao vivo nunca chega a aparecer
+// pro jogador (o render() de prepararPartida é substituído antes do navegador
+// repintar, já que tudo roda síncrono dentro do mesmo clique).
+function pularPartidaNaoRelacionado(postura){
+  prepararPartida({ statusPreDecidido:'naoRelacionado', postura });
+  resolverPartidaInstantanea(GAME.temporadaState.partidaEmAndamento);
+  const p = GAME.temporadaState.partidaEmAndamento;
+  if(p.aoFinalizarNome === 'copa' && typeof finalizarPartidaCopaJogavel === 'function') finalizarPartidaCopaJogavel();
+  else finalizarPartida();
 }
 
 // Contexto do lance (clássico/rival, decisivo no fim do jogo, ou padrão) varia
@@ -407,6 +476,19 @@ function placarAoVivo(p){
   p.cronologiaGols.forEach(gc => { if(gc.minuto > p.minutoAtual) return; if(gc.adversario) deles++; else meus++; });
   return { meus, deles };
 }
+// Mini-lista (gol e cartão vermelho, com nome+minuto) exibida sob o nome de
+// cada time no placar ao vivo — ladoAdversario segue a mesma convenção de
+// p.cronologiaGols/p.cartoesVermelhos (false = meu time, true = adversário).
+function subEventosTimeHtml(p, ladoAdversario){
+  const gols = p.cronologiaGols
+    .filter(gc => gc.minuto <= p.minutoAtual && !!gc.adversario === ladoAdversario)
+    .map(gc => ({ minuto: gc.minuto, html: `⚽ ${gc.minutoExibido || gc.minuto+"'"} ${escapeHtml(gc.nome || gc.texto)}` }));
+  const cartoes = (p.cartoesVermelhos||[])
+    .filter(cv => cv.minuto <= p.minutoAtual && !!cv.adversario === ladoAdversario)
+    .map(cv => ({ minuto: cv.minuto, html: `🟥 ${cv.minutoExibido || cv.minuto+"'"} ${escapeHtml(cv.nome)}` }));
+  const todos = [...gols, ...cartoes].sort((a,b) => a.minuto - b.minuto);
+  return todos.map(e => `<span>${e.html}</span>`).join('');
+}
 function atualizarPlacarAoVivoDom(p){
   const el = document.getElementById('lm-placar');
   if(!el) return;
@@ -421,6 +503,10 @@ function atualizarPlacarAoVivoDom(p){
   el.classList.remove('pulse');
   void el.offsetWidth; // reflow pra poder reiniciar a animação de pulso
   el.classList.add('pulse');
+  const elMandante = document.getElementById('lm-eventos-mandante');
+  if(elMandante) elMandante.innerHTML = subEventosTimeHtml(p, !p.mandante);
+  const elVisitante = document.getElementById('lm-eventos-visitante');
+  if(elVisitante) elVisitante.innerHTML = subEventosTimeHtml(p, p.mandante);
 }
 
 /* ============================== ESTATÍSTICAS AO VIVO ==========================
@@ -575,7 +661,7 @@ function iniciarRevisaoVar(p, ctx){
   const duracaoAcrescimo = rand(1,3);
   if(!p.intervaloMostrado) p.acrescimo1 += duracaoAcrescimo; else p.acrescimo2 += duracaoAcrescimo;
   salvarJogo();
-  setTimeout(() => resolverRevisaoVar(p), 5000);
+  setTimeout(() => resolverRevisaoVar(p), p.modoEspectador ? 1200 : 5000);
 }
 
 /* ============================== VANTAGEM NUMÉRICA (CARTÃO VERMELHO) ============
@@ -657,13 +743,22 @@ function resolverRevisaoVar(p){
       if(!ctx.origemJogador){
         p.cartoesExtras[ctx.time] += 1;
         mudarVantagemNumerica(p, ctx.time, false);
+        if(!p.cartoesVermelhos) p.cartoesVermelhos = [];
+        const nomeCartao = ctx.time==='meu' ? nomeJogadorAleatorio() : p.adversario;
+        p.cartoesVermelhos.push({ id:p.cartoesVermelhos.length, minuto:p.minutoAtual, minutoExibido:minutoExibido(p), nome:nomeCartao, adversario: ctx.time==='adv' });
       }
+      atualizarPlacarAoVivoDom(p);
     } else {
       texto = 'VAR REVERTE a decisão — sem cartão vermelho, o lance segue normal.';
       if(ctx.origemJogador){
         p.acumulado.vermelho = Math.max(0, p.acumulado.vermelho-1);
         mudarVantagemNumerica(p, 'meu', true); // desfaz a vantagem aplicada quando o cartão foi dado
+        if(ctx.cartaoId != null && p.cartoesVermelhos){
+          const idxCartao = p.cartoesVermelhos.findIndex(cv => cv.id === ctx.cartaoId);
+          if(idxCartao>=0) p.cartoesVermelhos.splice(idxCartao,1);
+        }
       }
+      atualizarPlacarAoVivoDom(p);
       Som.tocarEfeito(ctx.time==='meu' ? 'torcidaVibra' : 'vaia');
     }
   } else { // penalti
@@ -693,7 +788,7 @@ function resolverRevisaoVar(p){
   adicionarLinhaFeed(`${minutoExibido(p)} — 📺 ${texto}`);
   p.varEmAndamento = null;
   salvarJogo();
-  setTimeout(() => { esconderPainelVar(); retomarPartidaAoVivo(); }, 2400);
+  setTimeout(() => { esconderPainelVar(); retomarPartidaAoVivo(); }, p.modoEspectador ? 500 : 2400);
 }
 
 function adicionarLinhaFeed(texto){
@@ -1005,7 +1100,14 @@ function tickPartidaAoVivo(){
     clearInterval(_timerPartidaAoVivo);
     p.rodando = false;
     salvarJogo();
-    mostrarIntervalo(p);
+    if(p.modoEspectador){
+      // Sem lance nenhum pra decidir nesse modo — só uma pausinha mínima
+      // automática (sem discurso de vestiário, sem clique) antes de já
+      // seguir pro 2º tempo, bem mais rápido que o intervalo normal.
+      setTimeout(retomarPartidaAoVivo, 300);
+    } else {
+      mostrarIntervalo(p);
+    }
     return;
   }
   if(p.minutoAtual >= 45 + p.acrescimo1 + 45 + p.acrescimo2 && p.indiceTimeline >= p.timeline.length){
@@ -1060,8 +1162,15 @@ function resolverEscolhaLanceAoVivo(escolha){
   const defesaBoa = ac.defesaImportante>defesaAntes || ac.desarmesCertos>desarmesAntes || faltaTaticaBoa;
   // Cartão vermelho vale imediatamente (o jogador sai de campo na hora, o VAR só
   // revisa depois) — a vantagem numérica é aplicada aqui, e desfeita depois em
-  // resolverRevisaoVar se a revisão reverter o cartão.
-  if(ac.vermelho>vermelhoAntes) mudarVantagemNumerica(p, 'meu', false);
+  // resolverRevisaoVar se a revisão reverter o cartão. cartaoIdJogador guarda
+  // o id do registro pra remover do placar caso o VAR reverta.
+  let cartaoIdJogador = null;
+  if(ac.vermelho>vermelhoAntes){
+    mudarVantagemNumerica(p, 'meu', false);
+    if(!p.cartoesVermelhos) p.cartoesVermelhos = [];
+    cartaoIdJogador = p.cartoesVermelhos.length;
+    p.cartoesVermelhos.push({ id:cartaoIdJogador, minuto:p.minutoAtual, minutoExibido:minutoExibido(p), nome:GAME.identidade.apelido, adversario:false });
+  }
 
   // Substituição "dinâmica" (2+ erros no jogo, ver resolverEscolhaLance): o
   // jogador sai AGORA, mais cedo do que o previsto — descarta qualquer aviso
@@ -1085,6 +1194,7 @@ function resolverEscolhaLanceAoVivo(escolha){
     Som.tocarEfeito('comemoracaoGrande');
     delay = 1800;
   } else if(piorouFalta){
+    atualizarPlacarAoVivoDom(p); // cartão vermelho próprio precisa aparecer no placar mesmo sem gol
     Som.tocarEfeito('vaia');
   } else if(defesaBoa){
     Som.tocarEfeito('aplausoContido');
@@ -1100,7 +1210,7 @@ function resolverEscolhaLanceAoVivo(escolha){
     const campoJogador = ac.gols>golsJogadorAntes ? 'gols' : 'assist';
     varCtx = { subtipo:'gol', time:'meu', golId: golRef.id, origem:'jogador', campoJogador };
   } else if(ac.vermelho>vermelhoAntes && chance(CHANCE_VAR_VERMELHO_JOGADOR)){
-    varCtx = { subtipo:'vermelho', time:'meu', origemJogador:true };
+    varCtx = { subtipo:'vermelho', time:'meu', origemJogador:true, cartaoId: cartaoIdJogador };
   }
 
   p.lancePendente = false;
@@ -1154,6 +1264,7 @@ function renderPartidaAoVivo(){
     p.acrescimo1Anunciado = false; p.acrescimo2Anunciado = false; p.varEmAndamento = null;
   }
   if(!p.cartoesExtras){ p.cartoesExtras = { meu:0, adv:0 }; p.vantagemNumerica = 0; }
+  if(!p.cartoesVermelhos) p.cartoesVermelhos = [];
   if(!p.clima) p.clima = 'normal';
   const climaInfo = CLIMAS_PARTIDA[p.clima] || CLIMAS_PARTIDA.normal;
   const oponenteObj = p.oponenteSnapshot || { nome: p.adversario };
@@ -1163,12 +1274,12 @@ function renderPartidaAoVivo(){
     ${statusBarHtml()}
     <div class="card live-match-card">
       <div class="live-match-top">
-        <div class="live-match-team">${escudoClubeHtml(mandanteObj, 40)}<span>${escapeHtml(mandanteObj.nome)}</span></div>
+        <div class="live-match-team">${escudoClubeHtml(mandanteObj, 40)}<span>${escapeHtml(mandanteObj.nome)}</span><span class="live-match-team-eventos" id="lm-eventos-mandante"></span></div>
         <div class="live-match-center">
           <div class="live-match-clock" id="lm-clock">${minutoExibido(p)}</div>
           <div class="live-match-placar" id="lm-placar">0 x 0</div>
         </div>
-        <div class="live-match-team">${escudoClubeHtml(visitanteObj, 40)}<span>${escapeHtml(visitanteObj.nome)}</span></div>
+        <div class="live-match-team">${escudoClubeHtml(visitanteObj, 40)}<span>${escapeHtml(visitanteObj.nome)}</span><span class="live-match-team-eventos" id="lm-eventos-visitante"></span></div>
       </div>
       <p class="small muted" style="text-align:center;margin-top:4px">${climaInfo.icone} ${escapeHtml(climaInfo.nome)}</p>
       <div class="live-match-celebracao" id="lm-celebracao"></div>
@@ -1317,7 +1428,7 @@ function reacaoElencoPosJogo(nota, resultadoJogo, cartaoGrave){
 // nada específico de liga (tabela/rodada) nem decide qual tela vem depois —
 // isso fica a cargo de quem chama.
 function consolidarDesempenhoPartida(p){
-  const { status, adversario, entrouBanco, titular, ehDefensor, ehMeio, mandante } = p;
+  const { status, adversario, entrouBanco, titular, ehDefensor, ehMeio, mandante, competicao, clima } = p;
   let { minutos } = p;
   const ac = p.acumulado;
   const { gols, assist, erros, amarelo, vermelho, defesaImportante, desarmesCertos, eventos } = ac;
@@ -1442,7 +1553,7 @@ function consolidarDesempenhoPartida(p){
   const estatisticasFinais = estatisticasAoVivo(p);
 
   return { status, adversario, titular, entrouBanco, minutos, mandante, gols, assist, erros, amarelo, vermelho, defesaImportante, eventos,
-    golsTime, golsAdversario, cronologiaGols, artilheiros, resultadoJogo, nota, estatisticasFinais };
+    golsTime, golsAdversario, cronologiaGols, artilheiros, resultadoJogo, nota, estatisticasFinais, competicao, clima };
 }
 
 // Cauda específica da Liga: fecha a rodada (tabela + simula os outros jogos),
@@ -1450,7 +1561,7 @@ function consolidarDesempenhoPartida(p){
 function finalizarPartida(){
   const p = GAME.temporadaState.partidaEmAndamento;
   const { status, adversario, titular, entrouBanco, minutos, mandante, gols, assist, erros, amarelo, vermelho, defesaImportante, eventos,
-    golsTime, golsAdversario, cronologiaGols, artilheiros, resultadoJogo, nota, estatisticasFinais } = consolidarDesempenhoPartida(p);
+    golsTime, golsAdversario, cronologiaGols, artilheiros, resultadoJogo, nota, estatisticasFinais, competicao, clima } = consolidarDesempenhoPartida(p);
 
   const liga = GAME.temporadaState.liga;
   const outrosResultados = (liga && p.oponenteId)
@@ -1463,7 +1574,7 @@ function finalizarPartida(){
   const resultado = {
     adversario, status, titular, entrouBanco, minutos, gols, assist, erros, amarelo, vermelho, defesaImportante, nota, eventos,
     golsTime, golsAdversario, resultadoJogo, artilheiros, mandante, outrosResultados, sumulaTime, cronologiaGols, confrontoRival, reacaoElenco,
-    estatisticasFinais, classicoRegional: p.classicoRegional
+    estatisticasFinais, classicoRegional: p.classicoRegional, competicao, clima
   };
 
   // Notícia pós-jogo
@@ -1532,13 +1643,27 @@ function renderPreJogo(){
     ${posturaTaticaSeletorHtml()}
     <div class="card center">
       ${viagemTxt}
-      <div class="choices"><button class="btn btn-primary" id="btn-jogar">Ir para a partida</button></div>
+      <div class="choices">
+        ${status === 'naoRelacionado' ? `
+          <button class="btn btn-primary" id="btn-acompanhar">Acompanhar o jogo</button>
+          <button class="btn" id="btn-pular">Pular o jogo</button>
+        ` : `<button class="btn btn-primary" id="btn-jogar">Ir para a partida</button>`}
+      </div>
     </div>
   `;
   wirePosturaTaticaBotoes();
-  document.getElementById('btn-jogar').onclick = () => {
-    prepararPartida({ statusPreDecidido: status, postura: posturaTaticaSelecionada });
-  };
+  if(status === 'naoRelacionado'){
+    document.getElementById('btn-acompanhar').onclick = () => {
+      prepararPartida({ statusPreDecidido: status, postura: posturaTaticaSelecionada, modoEspectador:true });
+    };
+    document.getElementById('btn-pular').onclick = () => {
+      pularPartidaNaoRelacionado(posturaTaticaSelecionada);
+    };
+  } else {
+    document.getElementById('btn-jogar').onclick = () => {
+      prepararPartida({ statusPreDecidido: status, postura: posturaTaticaSelecionada });
+    };
+  }
 }
 
 function renderResultadoJogo(){

@@ -83,6 +83,8 @@ function renderLesao(){
         <button class="btn" id="btn-reab-antecipar" ${podeAntecipar?'':'disabled'} title="${podeAntecipar?'':'Só falta 1 semana, não há o que antecipar'}">Antecipar retorno (risco de reincidência)</button>
         <button class="btn" id="btn-reab-fisio" ${podeFisio?'':'disabled'} title="${podeFisio?'':'Carteira insuficiente'}">Fisioterapia intensiva (R$ ${custoFisio.toLocaleString('pt-BR')})</button>
       </div>
+      ${!podeAntecipar ? `<p class="small muted spacer">"Antecipar retorno" indisponível: só falta 1 semana, não há o que antecipar.</p>` : ''}
+      ${!podeFisio ? `<p class="small muted spacer">"Fisioterapia intensiva" indisponível: carteira insuficiente (faltam R$ ${(custoFisio-(GAME.carteira||0)).toLocaleString('pt-BR')}).</p>` : ''}
     </div>
   `;
   document.getElementById('btn-reab-normal').onclick = () => {

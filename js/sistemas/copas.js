@@ -507,8 +507,8 @@ function renderPenaltisCopa(){
         ${escudoClubeHtml(p.a, 22)}${escapeHtml(p.a.nome)} ${p.placarPenA} x ${p.placarPenB} ${escapeHtml(p.b.nome)}${escudoClubeHtml(p.b, 22)}
         <span class="muted">(tempo normal ${p.golsA}x${p.golsB})</span>
       </p>
-      <div class="lm-pen-row"><span class="lm-pen-nome">${escapeHtml(p.a.nome)}</span><div class="lm-pen-dots">${dotsPenaltiHtml('A', p)}</div></div>
-      <div class="lm-pen-row"><span class="lm-pen-nome">${escapeHtml(p.b.nome)}</span><div class="lm-pen-dots">${dotsPenaltiHtml('B', p)}</div></div>
+      <div class="lm-pen-row"><span class="lm-pen-nome" title="${escapeHtml(p.a.nome)}">${escapeHtml(p.a.nome)}</span><div class="lm-pen-dots">${dotsPenaltiHtml('A', p)}</div></div>
+      <div class="lm-pen-row"><span class="lm-pen-nome" title="${escapeHtml(p.b.nome)}">${escapeHtml(p.b.nome)}</span><div class="lm-pen-dots">${dotsPenaltiHtml('B', p)}</div></div>
       ${cenaHtml}
     </div>
   `;

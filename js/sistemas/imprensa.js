@@ -38,7 +38,8 @@ const PERGUNTAS_COLETIVA_BASE = [
     escolhas: [
       { label:'Elogiar o coletivo', tom:'humilde', efeito:{relacaoElenco:4, imagemMidia:2}, resposta:'"O mérito é de todo o grupo, não é só meu."' },
       { label:'Assumir o protagonismo', tom:'confiante', efeito:{imagemMidia:4, popularidade:3, relacaoElenco:-2}, resposta:'"Trabalhei pra isso, sabia que podia fazer a diferença hoje."' },
-      { label:'Ser direto e técnico', tom:'serio', efeito:{relacaoTreinador:3, imagemMidia:1}, resposta:'"A gente executou o que foi treinado durante a semana."' }
+      { label:'Ser direto e técnico', tom:'serio', efeito:{relacaoTreinador:3, imagemMidia:1}, resposta:'"A gente executou o que foi treinado durante a semana."' },
+      { label:'Provocar quem duvidava do time', tom:'rebelde', efeito:{popularidade:5, imagemMidia:-4, relacaoTreinador:-2}, resposta:'"Muita gente só esperava a gente tropeçar. Que continuem esperando, porque não vamos parar."' }
     ] },
   { id:'cartao',
     aplicavel: (j)=> j.vermelho>0 || j.amarelo>=1,
@@ -46,7 +47,8 @@ const PERGUNTAS_COLETIVA_BASE = [
     escolhas: [
       { label:'Assumir o erro', tom:'humilde', efeito:{imagemMidia:3, relacaoTreinador:2}, resposta:'"Fui eu que errei o tempo da jogada, não tem desculpa."' },
       { label:'Questionar a arbitragem', tom:'rebelde', efeito:{imagemMidia:-3, popularidade:2, pressaoPsicologica:3}, resposta:'"Pra mim não foi cartão, mas o árbitro tem a palavra final."' },
-      { label:'Minimizar o episódio', tom:'descontraido', efeito:{}, resposta:'"Faz parte do jogo, já virei a página."' }
+      { label:'Minimizar o episódio', tom:'descontraido', efeito:{}, resposta:'"Faz parte do jogo, já virei a página."' },
+      { label:'Explicar o lance com objetividade', tom:'serio', efeito:{relacaoTreinador:2, disciplina:2}, resposta:'"Foi uma disputa normal de jogo. Analiso o lance com frieza e sigo focado no que vem pela frente."' }
     ] },
   { id:'gols',
     aplicavel: (j)=> j.gols>=1,
@@ -54,7 +56,8 @@ const PERGUNTAS_COLETIVA_BASE = [
     escolhas: [
       { label:'Dedicar a alguém querido', tom:'humilde', efeito:{relacaoElenco:2, moral:3}, resposta:'"Dedico esse gol pra minha família, que não me deixa desistir."' },
       { label:'Falar em artilharia', tom:'confiante', efeito:{popularidade:4, imagemMidia:2, relacaoElenco:-1}, resposta:'"Quero brigar de igual pra igual com os melhores artilheiros da competição."' },
-      { label:'Focar no próximo jogo', tom:'serio', efeito:{relacaoTreinador:3}, resposta:'"Já penso no próximo jogo, não dá pra comemorar demais um resultado só."' }
+      { label:'Focar no próximo jogo', tom:'serio', efeito:{relacaoTreinador:3}, resposta:'"Já penso no próximo jogo, não dá pra comemorar demais um resultado só."' },
+      { label:'Brincar sobre a comemoração do gol', tom:'descontraido', efeito:{popularidade:2, moral:3}, resposta:'"Aquela comemoração já tava ensaiada há um tempo, viu? Bom mesmo é poder usar ela de verdade."' }
     ] },
   { id:'pressao',
     aplicavel: (j)=> j.resultadoJogo==='derrota',
@@ -62,7 +65,8 @@ const PERGUNTAS_COLETIVA_BASE = [
     escolhas: [
       { label:'Pedir paciência à torcida', tom:'humilde', efeito:{relacaoTorcida:3}, resposta:'"Peço à torcida que confie no trabalho, vamos reverter isso."' },
       { label:'Cobrar o próprio grupo', tom:'serio', efeito:{relacaoTreinador:3, relacaoElenco:-3}, resposta:'"Precisamos de mais compromisso individual, ninguém pode se esconder."' },
-      { label:'Desconversar com bom humor', tom:'descontraido', efeito:{pressaoPsicologica:-2}, resposta:'"Prefiro focar no que dá pra controlar: treino, treino e treino."' }
+      { label:'Desconversar com bom humor', tom:'descontraido', efeito:{pressaoPsicologica:-2}, resposta:'"Prefiro focar no que dá pra controlar: treino, treino e treino."' },
+      { label:'Garantir que vai virar o jogo pessoalmente', tom:'confiante', efeito:{popularidade:4, pressaoPsicologica:3, relacaoTorcida:-2}, resposta:'"Pode cobrar de mim. Vou pegar essa responsabilidade nas costas e resolver isso jogo a jogo."' }
     ] }
 ];
 
@@ -115,7 +119,10 @@ const PERGUNTAS_COLETIVA_EXPANSAO = [
         resposta:(g)=>pick([
           `"Essa parte fica com meu empresário, eu só penso em jogar bola."`,
           `"Prefiro focar no campo. Contrato é assunto de escritório, não de vestiário."`
-        ]) }
+        ]) },
+      { label:'Deixar claro que não vai implorar por renovação', tom:'rebelde',
+        efeito:{popularidade:5, relacaoDiretoria:-9, pressaoPsicologica:5},
+        resposta:'"Não vou ficar implorando pra ninguém. Se o clube quiser contar comigo, que corra atrás, porque minha vida segue."' }
     ] },
 
   // ---------- SONDAGEM DE CLUBE GRANDE ----------
@@ -145,7 +152,10 @@ const PERGUNTAS_COLETIVA_EXPANSAO = [
         resposta:(g)=>pick([
           `"Todo jogador sonha em disputar coisas maiores. Se a hora chegar, não vou fugir dela."`,
           `"Não escondo que quero voar mais alto. Espero que o clube entenda isso."`
-        ]) }
+        ]) },
+      { label:'Tratar o assunto com frieza profissional', tom:'serio',
+        efeito:{relacaoTreinador:3, pressaoPsicologica:-2},
+        resposta:'"Prefiro não alimentar esse assunto agora. Meu trabalho é entregar dentro de campo, o resto não me tira o sono."' }
     ] },
 
   // ---------- CONFRONTO DIRETO COM O RIVAL ----------
@@ -185,7 +195,10 @@ const PERGUNTAS_COLETIVA_EXPANSAO = [
         resposta:(g)=>pick([
           `"Pode escrever aí: enquanto eu estiver bem, ninguém vai me alcançar tão cedo."`,
           `"Cansei de fingir que isso não me motiva. Gosto de vencer esse duelo, sim."`
-        ]) }
+        ]) },
+      { label:'Brincar com o clima da rivalidade', tom:'descontraido',
+        efeito:{popularidade:3, pressaoPsicologica:-2},
+        resposta:'"Vocês adoram esse duelo, hein? Eu também gosto, mas prefiro deixar essa resposta pro campo, rindo."' }
     ] },
 
   // ---------- COMPARAÇÃO GERAL COM O RIVAL ----------
@@ -224,7 +237,10 @@ const PERGUNTAS_COLETIVA_EXPANSAO = [
         resposta:(g)=>pick([
           `"Vocês adoram esse assunto, hein? Deixa que o campo responde, com o tempo."`,
           `"Rivalidade é bonita pro futebol. Sigo tranquilo, cada um no seu ritmo."`
-        ]) }
+        ]) },
+      { label:'Provocar o rival abertamente', tom:'rebelde',
+        efeito:{popularidade:5, pressaoPsicologica:5, imagemMidia:-3},
+        resposta:'"Enquanto ficam comparando, eu sigo entregando. Um dia essa diferença vai ficar clara até pra quem duvida."' }
     ] },
 
   // ---------- MARCO DE JOGOS ----------
@@ -256,7 +272,10 @@ const PERGUNTAS_COLETIVA_EXPANSAO = [
         resposta:(g)=>pick([
           `"Número bonito, mas já penso no próximo jogo. Não dá pra comemorar parado."`,
           `"É uma marca importante, mas o que importa mesmo é o próximo capítulo."`
-        ]) }
+        ]) },
+      { label:'Brincar com o próprio carimbo de veterano', tom:'descontraido',
+        efeito:{popularidade:3, moral:3},
+        resposta:'"Já virei sócio-torcedor de tanto jogo, hein? Brincadeira à parte, é gostoso ver esse número na carreira."' }
     ] },
 
   // ---------- MARCO DE GOLS ----------
@@ -288,7 +307,10 @@ const PERGUNTAS_COLETIVA_EXPANSAO = [
         resposta:(g)=>pick([
           `"Levo esse número comigo em silêncio. Quem sabe da luta por trás dele é minha família."`,
           `"Prefiro guardar isso sem alarde. O próximo jogo já está na cabeça."`
-        ]) }
+        ]) },
+      { label:'Provocar quem duvidava da artilharia', tom:'rebelde',
+        efeito:{popularidade:6, relacaoElenco:-5, imagemMidia:-2},
+        resposta:'"Tem gente que duvidou desse número. Pois fica anotado: ainda vou fazer muito mais, com ou sem a bênção de ninguém."' }
     ] },
 
   // ---------- SELEÇÃO — JÁ CONVOCADO ----------
@@ -317,7 +339,10 @@ const PERGUNTAS_COLETIVA_EXPANSAO = [
         resposta:(g)=>pick([
           `"Depois que você veste a Seleção, o nível de cobrança muda. Tento honrar isso todo jogo."`,
           `"Sinto uma responsabilidade extra desde a primeira convocação. Não posso relaxar."`
-        ]) }
+        ]) },
+      { label:'Cobrar mais espaço na Seleção com atrevimento', tom:'rebelde',
+        efeito:{popularidade:6, pressaoPsicologica:6, relacaoTreinador:-3},
+        resposta:'"Já mostrei que posso jogar lá. Quero parar de ser lembrete e virar decisão automática na lista."' }
     ] },
 
   // ---------- SELEÇÃO — SONHO AINDA NÃO REALIZADO ----------
@@ -345,7 +370,10 @@ const PERGUNTAS_COLETIVA_EXPANSAO = [
         resposta:(g)=>pick([
           `"Olhando meus números, acho que já mereceria uma chance. Mas essa decisão não é minha."`,
           `"Acho que meu futebol já fala por si. O resto é decisão de quem escala."`
-        ]) }
+        ]) },
+      { label:'Afirmar que a convocação é questão de tempo', tom:'confiante',
+        efeito:{popularidade:5, imagemMidia:3, pressaoPsicologica:3},
+        resposta:'"Tenho total confiança de que essa convocação vai chegar. Sigo trabalhando pra deixar a decisão fácil pra quem escolhe."' }
     ] },
 
   // ---------- RETORNO DE LESÃO ----------
@@ -374,7 +402,10 @@ const PERGUNTAS_COLETIVA_EXPANSAO = [
         resposta:(g)=>pick([
           `"Peço um pouco de paciência, o corpo ainda está se readaptando ao ritmo de jogo."`,
           `"Vou precisar de algumas partidas pra voltar ao meu melhor nível. Confiem no processo."`
-        ]) }
+        ]) },
+      { label:'Brincar com a saudade do gramado', tom:'descontraido',
+        efeito:{moral:3, saudeMental:2},
+        resposta:'"Confesso que já tava enjoando de ver jogo do sofá. Voltar foi quase um alívio cômico, de tão bom que foi."' }
     ] },
 
   // ---------- CRÍTICA ESPECÍFICA E RECORRENTE DA IMPRENSA ----------
@@ -403,7 +434,10 @@ const PERGUNTAS_COLETIVA_EXPANSAO = [
         resposta:(g)=>pick([
           `"Não leio muito sobre isso. Meu trabalho é dentro de campo, o resto não controlo."`,
           `"Prefiro deixar minha resposta no gramado. Não vale a pena entrar nessa discussão."`
-        ]) }
+        ]) },
+      { label:'Responder com confiança total no próprio nível', tom:'confiante',
+        efeito:{popularidade:4, imagemMidia:2, relacaoMidia:-2},
+        resposta:'"Sei exatamente o jogador que sou. Essas críticas não abalam quem já provou o que precisava provar."' }
     ] },
 
   // ---------- VIDA PESSOAL EXPOSTA ----------
@@ -432,7 +466,10 @@ const PERGUNTAS_COLETIVA_EXPANSAO = [
         resposta:(g)=>pick([
           `"Ih, quer saber demais da minha vida, hein? Vamos falar de futebol."`,
           `"Essa fica só entre a gente. Muda de assunto que eu respondo melhor sobre o jogo."`
-        ]) }
+        ]) },
+      { label:'Revoltar-se contra a invasão de privacidade', tom:'rebelde',
+        efeito:{relacaoMidia:-8, popularidade:3, pressaoPsicologica:4},
+        resposta:'"Isso já passou dos limites. Minha vida pessoal não é pauta de ninguém, e vou parar de fingir que não me incomoda."' }
     ] },
 
   // ---------- POLÊMICA / REDES SOCIAIS ----------
@@ -461,7 +498,10 @@ const PERGUNTAS_COLETIVA_EXPANSAO = [
         resposta:(g)=>pick([
           `"Prefiro ser julgado pelo meu futebol, não pelo que sai fora de campo."`,
           `"Peço um tempo. Minha resposta eu quero dar dentro das quatro linhas."`
-        ]) }
+        ]) },
+      { label:'Desconversar a polêmica com bom humor', tom:'descontraido',
+        efeito:{popularidade:2, imagemMidia:1},
+        resposta:'"Ih, vocês não esquecem nada, hein? Foi só um deslize bobo, já ri disso em casa. Bola pra frente."' }
     ] },
 
   // ---------- PATROCÍNIO / MARCA ----------
@@ -489,7 +529,10 @@ const PERGUNTAS_COLETIVA_EXPANSAO = [
         resposta:(g)=>pick([
           `"Prefiro não entrar muito nesse assunto aqui. Meu foco de verdade é o jogo."`,
           `"Isso fica mais com meu empresário. Eu só penso em treino e partida."`
-        ]) }
+        ]) },
+      { label:'Falar com orgulho do próprio valor de mercado', tom:'confiante',
+        efeito:{popularidade:5, imagemMidia:3},
+        resposta:'"Esse tipo de parceria não vem à toa, vem porque meu trabalho fala por si. Sei o quanto valho dentro e fora de campo."' }
     ] },
 
   // ---------- EMPRESÁRIO / BASTIDORES ----------
@@ -517,7 +560,10 @@ const PERGUNTAS_COLETIVA_EXPANSAO = [
         resposta:(g)=>pick([
           `"Sinceramente, não me envolvo muito nesses detalhes. Prefiro deixar isso com ele."`,
           `"Essa parte eu confesso que delego total. Meu foco é outro."`
-        ]) }
+        ]) },
+      { label:'Rebater quem questiona as escolhas do empresário', tom:'rebelde',
+        efeito:{popularidade:3, relacaoDiretoria:-5, confianca:2},
+        resposta:'"Cansei de explicar decisão que é só minha. Quem quiser desconfiar do meu empresário que desconfie, eu sigo em frente."' }
     ] },
 
   // ---------- DISCIPLINA / REPUTAÇÃO DE CABEÇA-QUENTE ----------
@@ -546,7 +592,10 @@ const PERGUNTAS_COLETIVA_EXPANSAO = [
         resposta:(g)=>pick([
           `"Jogo com intensidade, às vezes o cartão vem junto. Faz parte do meu estilo."`,
           `"Prefiro jogar assim, com entrega total, do que faltar vontade em campo."`
-        ]) }
+        ]) },
+      { label:'Tratar o assunto com seriedade profissional', tom:'serio',
+        efeito:{relacaoTreinador:4, disciplina:3},
+        resposta:'"É um ponto técnico que vou corrigir com trabalho, sem drama. Cartão em excesso atrapalha o time, e isso precisa mudar."' }
     ] },
 
   // ---------- TÍTULO / REBAIXAMENTO ----------
@@ -589,7 +638,10 @@ const PERGUNTAS_COLETIVA_EXPANSAO = [
         resposta:(g)=>pick([
           `"Bota na conta que eu resolvo. Vou pra cima nessa reta final, sem medo."`,
           `"Gosto de pressão, é onde eu rendo melhor. Pode cobrar de mim."`
-        ]) }
+        ]) },
+      { label:'Desafiar quem já contava o time como derrotado', tom:'rebelde',
+        efeito:{popularidade:5, pressaoPsicologica:6, relacaoTreinador:-3},
+        resposta:'"Tem gente que já desistiu da gente. Vamos provar, na marra se precisar, que ainda tem muita história pra escrever."' }
     ] },
 
   // ---------- RETROSPECTO CONTRA O ADVERSÁRIO DE HOJE ----------
@@ -627,7 +679,10 @@ const PERGUNTAS_COLETIVA_EXPANSAO = [
         resposta:(g)=>pick([
           `"Conheço bem esse adversário, sei onde dói. Da próxima vez o resultado será diferente."`,
           `"Gosto desses duelos recorrentes, me motivam demais. Da próxima, a conta fecha pra mim."`
-        ]) }
+        ]) },
+      { label:'Provocar dizendo que a conta vai virar', tom:'rebelde',
+        efeito:{popularidade:5, pressaoPsicologica:5, imagemMidia:-2},
+        resposta:'"Esse retrospecto não me assusta nem um pouco. Da próxima vez que a gente se encontrar, quero ver quem vai reclamar."' }
     ] },
 
   // ---------- CLÁSSICO REGIONAL ----------
@@ -655,7 +710,10 @@ const PERGUNTAS_COLETIVA_EXPANSAO = [
         resposta:(g)=>pick([
           `"Clássico é pra ser vencido com orgulho. Espero que a torcida deles já esteja acostumada."`,
           `"Adoro esse clima de clássico. E hoje o resultado fala por si."`
-        ]) }
+        ]) },
+      { label:'Afirmar que clássico é o seu tipo de jogo favorito', tom:'confiante',
+        efeito:{popularidade:4, imagemMidia:2, relacaoTorcida:2},
+        resposta:'"Clássico é onde eu mais gosto de jogar. Quanto maior a pressão, mais confiante eu fico em campo."' }
     ] },
 
   // ---------- VETERANIA / LEGADO ----------
@@ -684,7 +742,10 @@ const PERGUNTAS_COLETIVA_EXPANSAO = [
         resposta:(g)=>pick([
           `"O tempo passa rápido demais no futebol. Aprendi a valorizar cada temporada como única."`,
           `"Olhando pra trás, entendo o tamanho do que já construí. Mas ainda não é hora de parar."`
-        ]) }
+        ]) },
+      { label:'Brincar com o tempo de casa e a idade', tom:'descontraido',
+        efeito:{popularidade:3, moral:3},
+        resposta:'"Já sou quase relíquia no vestiário, os moleques nem acreditam nas histórias que conto. Mas ainda corro que nem eles, viu?"' }
     ] },
 
   // ---------- SEQUÊNCIA DE CRÍTICA DA IMPRENSA (memória social, prioridade) ----------
@@ -712,7 +773,10 @@ const PERGUNTAS_COLETIVA_EXPANSAO = [
         resposta:(g)=>pick([
           `"Não leio esses acúmulos. Cada semana é uma chance nova de responder dentro de campo."`,
           `"Prefiro gastar energia treinando, não acompanhando o que sai por aí."`
-        ]) }
+        ]) },
+      { label:'Garantir que vai virar essa sequência por conta própria', tom:'confiante',
+        efeito:{popularidade:4, imagemMidia:2, pressaoPsicologica:3},
+        resposta:'"Sei o tamanho do meu trabalho e não preciso convencer ninguém com palavras. Vou virar essa fase jogando, é só esperar."' }
     ] },
 
   // ---------- SEQUÊNCIA DE ELOGIOS DA IMPRENSA (memória social, prioridade) ----------
@@ -740,7 +804,10 @@ const PERGUNTAS_COLETIVA_EXPANSAO = [
         resposta:(g)=>pick([
           `"Sequência boa é bom, mas não posso relaxar. Amanhã tudo pode virar rápido."`,
           `"Prefiro manter o pé no chão. Elogio de hoje não garante nada pro próximo jogo."`
-        ]) }
+        ]) },
+      { label:'Brincar que a fase boa já virou piada interna', tom:'descontraido',
+        efeito:{popularidade:3, moral:3},
+        resposta:'"Já viraram até meme lá no grupo do elenco com tanto elogio. Vou aproveitar enquanto dura, rindo bastante disso."' }
     ] },
 
   // ---------- REPUTAÇÃO ACUMULADA (traço dominante, prioridade) ----------
@@ -767,7 +834,13 @@ const PERGUNTAS_COLETIVA_EXPANSAO = [
         resposta:(g)=>pick([
           `"Reconheço que já exagerei em alguns momentos. Tô tentando amadurecer isso."`,
           `"Não gosto do rótulo, mas entendo de onde vem. Quero mostrar outro lado."`
-        ]) }
+        ]) },
+      { label:'Rir da fama e não levar tão a sério', tom:'descontraido',
+        efeito:{popularidade:3, imagemMidia:1},
+        resposta:'"Cabeça-quente, olha só. Deveriam me ver em casa, sou tranquilo até demais. Em campo é outra história, confesso."' },
+      { label:'Admitir com sinceridade que precisa mudar', tom:'humilde',
+        efeito:{imagemMidia:5, relacaoTreinador:3},
+        resposta:'"Não vou negar, esse rótulo tem fundamento. Estou trabalhando de verdade pra controlar melhor essa intensidade."' }
     ] },
   // ---------- CONTRADIÇÃO COM MEMÓRIA PASSADA (prioridade) ----------
   // Antes, nenhuma pergunta fazia referência cruzada a uma resposta antiga —
@@ -788,7 +861,15 @@ const PERGUNTAS_COLETIVA_EXPANSAO = [
       { label:'Dizer que a imprensa exagera o peso de uma frase de ocasião', tom:'confiante',
         efeito:{imagemMidia:-3, popularidade:2},
         extra:(g)=>marcarMemoriaContradicaoResolvida(),
-        resposta:(g)=>`"Vocês pegam uma frase de contexto e viram manchete. Faz parte do jogo, mas não muda nada do que eu penso."` }
+        resposta:(g)=>`"Vocês pegam uma frase de contexto e viram manchete. Faz parte do jogo, mas não muda nada do que eu penso."` },
+      { label:'Recusar-se a pedir desculpa pela mudança', tom:'rebelde',
+        efeito:{imagemMidia:-6, popularidade:4, relacaoTorcida:-3},
+        extra:(g)=>marcarMemoriaContradicaoResolvida(),
+        resposta:'"Não devo satisfação de decisão nenhuma. Falei o que sentia na hora, e minha vida sempre foi minha pra decidir."' },
+      { label:'Explicar a decisão com objetividade, sem drama', tom:'serio',
+        efeito:{relacaoTreinador:2},
+        extra:(g)=>marcarMemoriaContradicaoResolvida(),
+        resposta:'"Contexto muda, decisão de carreira também. Não foi contra ninguém, foi o melhor pra esse momento."' }
     ] },
 
   { id:'reputacao_humilde', prioridade:true,
@@ -809,7 +890,256 @@ const PERGUNTAS_COLETIVA_EXPANSAO = [
         resposta:(g)=>pick([
           `"Prefiro falar do grupo. Sozinho eu não sou nada disso que perguntam."`,
           `"Esse tipo de elogio eu divido com quem trabalha comigo todos os dias."`
-        ]) }
+        ]) },
+      { label:'Brincar com o próprio rótulo de certinho', tom:'descontraido',
+        efeito:{popularidade:3, relacaoTorcida:2},
+        resposta:'"Certinho até demais, dizem por aí. Mas relaxa que também erro bastante lance de bobeira, viu? Sou gente como todo mundo."' },
+      { label:'Assumir com confiança que o respeito também se conquista', tom:'confiante',
+        efeito:{popularidade:4, imagemMidia:2},
+        resposta:'"Sou simples, mas sei o meu valor. Uma coisa não anula a outra."' }
+    ] },
+
+  // ---------- CONCORRÊNCIA JOVEM / POSIÇÃO (temas novos, sem sobrepor os acima) ----------
+  { id:'comparacao_jovem_promessa',
+    aplicavel: ()=> !!(GAME.concorrentesPosicao && GAME.concorrentesPosicao.length) && (GAME.numeroTemporada||1) <= 6,
+    pergunta: ()=> 'Um garoto novo tá comendo moral no seu setor. Como você vê essa concorrência aí dentro?',
+    escolhas:[
+      { label:'Isso só me afia mais', tom:'confiante', efeito:{confianca:6, relacaoElenco:2}, resposta:'"Concorrência sadia só me deixa mais afiado. Lugar na equipe se conquista todo dia."' },
+      { label:'Reconheço o talento dele', tom:'serio', efeito:{relacaoElenco:5, moral:3}, resposta:'"É um garoto de muita qualidade, reconheço isso. Vou trabalhar pra seguir sendo indispensável."' },
+      { label:'Ele que continue sonhando', tom:'rebelde', efeito:{popularidade:6, relacaoElenco:-8, pressaoPsicologica:5}, resposta:'"Ele ainda tem muito o que aprender antes de tomar meu lugar, viu?"' },
+      { label:'A gente brinca disso no treino', tom:'descontraido', efeito:{moral:4, relacaoElenco:3}, resposta:'"A gente já brinca disso no vestiário. Faz parte, ele sabe que precisa evoluir."' }
+    ] },
+
+  { id:'gol_contra_ex_clube',
+    aplicavel: (j)=> j.gols>0 && !!(GAME.statsCareer.clubesPassados||[]).find(c => c.nome === j.adversario),
+    pergunta: (j)=> pick([
+      `Marcar contra o ${j.adversario}, clube que já defendeu, pesa diferente?`,
+      `Foi estranho comemorar um gol desses contra o ${j.adversario}, seu ex-clube?`
+    ]),
+    escolhas:[
+      { label:'Guardo carinho, mas jogo pra vencer', tom:'humilde', efeito:{relacaoMidia:3, moral:3}, resposta:'"Não escondo o carinho que tenho por aquele clube, mas dentro de campo eu jogo pra vencer, não tem munição pra ninguém."' },
+      { label:'Hoje o compromisso é com quem me paga', tom:'serio', efeito:{reputacaoLocal:4, relacaoDiretoria:3}, resposta:'"Lá me abriram portas, mas hoje visto essa camisa e meu compromisso é com quem paga meu salário agora."' },
+      { label:'Não disfarcei a comemoração', tom:'rebelde', efeito:{popularidade:7, reputacaoLocal:-10, pressaoPsicologica:4}, resposta:'"Comemorei do jeitinho que quis, sim. Quem me conhece sabe o motivo."' },
+      { label:'Já rimos disso depois do jogo', tom:'descontraido', efeito:{moral:3, relacaoElenco:2}, resposta:'"Já mandei mensagem pra galera de lá rindo da situação. Faz parte do jogo, sem climão."' }
+    ] },
+
+  { id:'emprestimo_boa_atuacao',
+    aplicavel: (j)=> !!GAME.emprestimoOrigem && j.nota>=7,
+    pergunta: ()=> 'Você tá emprestado e vem fazendo um baita jogo. Isso muda alguma coisa pro seu futuro?',
+    escolhas:[
+      { label:'Só quero fazer meu trabalho direito', tom:'humilde', efeito:{moral:4, relacaoDiretoria:3}, resposta:'"Eu só quero fazer o meu trabalho direito, seja aqui, seja onde eu estiver depois."' },
+      { label:'Sei o que eu valho', tom:'confiante', efeito:{confianca:6, reputacaoLocal:4}, resposta:'"Sei o que eu valho e vou continuar mostrando isso jogo após jogo."' },
+      { label:'O problema foi de quem não me quis', tom:'rebelde', efeito:{popularidade:7, relacaoDiretoria:-8}, resposta:'"Se o meu clube não me quis, o problema foi deles. Aqui eu tô sendo valorizado."' },
+      { label:'Tô jogando leve, sem pressão', tom:'descontraido', efeito:{moral:3, relacaoTorcida:3}, resposta:'"Tô jogando leve, sem pressão, e as coisas tão saindo. Bola rolando é isso aí."' }
+    ] },
+
+  { id:'titulo_carreira_conquistado', prioridade:true,
+    aplicavel: (j)=> (GAME.statsCareer.titulos||0) >= 1 && j.resultadoJogo === 'vitoria',
+    pergunta: ()=> pick([
+      'Fala sobre esse título, o que ele significa pra sua carreira?',
+      'Depois de tanto tempo perseguindo, como é levantar essa taça?'
+    ]),
+    escolhas:[
+      { label:'Mérito de todo mundo', tom:'humilde', efeito:{moral:8, relacaoElenco:5, relacaoTorcida:5}, resposta:'"Isso é fruto do trabalho de todo mundo, não só meu. Vou guardar esse título pro resto da vida."' },
+      { label:'Sabia que esse dia ia chegar', tom:'confiante', efeito:{confianca:8, popularidade:6, imagemMidia:4}, resposta:'"Sabia que esse dia ia chegar. Trabalhei pra isso a carreira inteira e não vai ser o último."' },
+      { label:'Peso diferente na minha história', tom:'serio', efeito:{reputacaoLocal:6, relacaoDiretoria:4}, resposta:'"É um título que dá um peso diferente na minha história. Agora é manter o pé no chão e buscar mais."' },
+      { label:'Ainda nem caiu a ficha', tom:'descontraido', efeito:{moral:6, relacaoElenco:4}, resposta:'"Ainda nem caiu a ficha! Vou aproveitar a festa com a galera e pensar no resto depois."' }
+    ] },
+
+  { id:'saude_mental_baixa', prioridade:true,
+    aplicavel: ()=> GAME.status.saudeMental <= 30,
+    pergunta: ()=> pick([
+      'Como você tá lidando com a pressão, pessoalmente?',
+      'Dá pra falar um pouco de como você tá se sentindo fora de campo?'
+    ]),
+    escolhas:[
+      { label:'Não vou fingir que tá tudo bem', tom:'humilde', efeito:{saudeMental:8, relacaoMidia:4, relacaoFamilia:3}, resposta:'"Não vou fingir que tá tudo bem. Tô numa fase difícil e buscando ajuda pra lidar com isso."' },
+      { label:'Sei que vou superar', tom:'confiante', efeito:{saudeMental:4, confianca:3, pressaoPsicologica:-4}, resposta:'"Tenho meus momentos difíceis como qualquer ser humano, mas sei que vou superar isso."' },
+      { label:'Prefiro tratar com discrição', tom:'serio', efeito:{saudeMental:6, relacaoDiretoria:3, imagemMidia:3}, resposta:'"É um assunto sério, prefiro tratar isso com discrição, junto do departamento médico do clube."' },
+      { label:'A pressão vem de vocês', tom:'rebelde', efeito:{popularidade:5, pressaoPsicologica:8, relacaoMidia:-8}, resposta:'"Vocês da imprensa que colocam pressão em cima e depois perguntam por que a gente não aguenta."' }
+    ] },
+
+  { id:'concorrencia_direta_posicao',
+    aplicavel: ()=> !!(GAME.concorrentesPosicao && GAME.concorrentesPosicao.length),
+    pergunta: ()=> 'O técnico tem opção pra sua posição no banco. Isso te tira o sono?',
+    escolhas:[
+      { label:'Não tiro o sono, não', tom:'confiante', efeito:{confianca:7, relacaoTreinador:2}, resposta:'"Não tiro o sono, não. Enquanto eu render assim, a vaga é minha."' },
+      { label:'Respeito a decisão do treinador', tom:'serio', efeito:{relacaoTreinador:4, disciplina:3}, resposta:'"Concorrência existe em qualquer time grande. Eu respeito a decisão do treinador seja qual for."' },
+      { label:'O problema vai ser dele', tom:'rebelde', efeito:{popularidade:6, relacaoTreinador:-9}, resposta:'"Se ele quiser mexer numa coisa que tá funcionando, o problema vai ser dele, não meu."' },
+      { label:'Durmo tranquilo', tom:'descontraido', efeito:{moral:4, relacaoElenco:3}, resposta:'"Durmo tranquilo, viu? Cada um que brigue pela vaga no treino, é sadio."' }
+    ] },
+
+  { id:'matamata_copa_decisivo',
+    aplicavel: (j)=> !!j.competicao,
+    pergunta: ()=> pick([
+      'Jogo de eliminação direta pesa diferente, como foi a cabeça de vocês hoje?',
+      'Faltando erro zero numa mata-mata, como é jogar sob essa pressão?'
+    ]),
+    escolhas:[
+      { label:'Tivemos humildade pra sofrer', tom:'humilde', efeito:{moral:5, relacaoElenco:4}, resposta:'"É um jogo de detalhes, e a gente teve humildade pra sofrer quando precisou sofrer."' },
+      { label:'Entramos concentrados do início ao fim', tom:'serio', efeito:{disciplina:4, relacaoTreinador:4}, resposta:'"Mata-mata não perdoa erro. A gente entrou concentrado do primeiro ao último minuto."' },
+      { label:'Decisão pra mim é diversão', tom:'rebelde', efeito:{popularidade:7, pressaoPsicologica:6}, resposta:'"Eu amo esse tipo de jogo, decisão pra mim é diversão, não peso."' },
+      { label:'Só dá vontade de comemorar', tom:'descontraido', efeito:{moral:4, relacaoTorcida:3}, resposta:'"Depois de um jogo desse só dá vontade de comemorar com a torcida até tarde."' }
+    ] },
+
+  { id:'meta_carreira_internacional',
+    aplicavel: ()=> GAME.metaCarreira === 'estrelaInternacional',
+    pergunta: ()=> 'Você sempre falou em jogar fora, virar referência lá fora. Isso ainda tá nos seus planos?',
+    escolhas:[
+      { label:'O resto é consequência', tom:'humilde', efeito:{moral:4, relacaoTorcida:3}, resposta:'"Meu foco agora é aqui, o resto é consequência se eu fizer bem o meu trabalho."' },
+      { label:'Tenho nível pra jogar em qualquer lugar', tom:'confiante', efeito:{confianca:7, imagemMidia:4}, resposta:'"Com certeza. Tenho nível pra jogar em qualquer lugar do mundo e vou provar isso."' },
+      { label:'Não vou pensar duas vezes', tom:'rebelde', efeito:{popularidade:6, relacaoDiretoria:-7, relacaoTorcida:-5}, resposta:'"Se aparecer uma proposta boa lá fora, eu não vou pensar duas vezes, não."' },
+      { label:'Por enquanto é aproveitar aqui', tom:'descontraido', efeito:{moral:3, relacaoElenco:2}, resposta:'"Sonho ainda existe, viu? Mas por enquanto tô focado em aproveitar o momento aqui."' }
+    ] },
+
+  { id:'fora_de_casa_torcida_hostil',
+    aplicavel: (j)=> j.mandante === false,
+    pergunta: ()=> pick([
+      'Jogar com a torcida rival gritando o jogo inteiro, como lida com isso?',
+      'A pressão da torcida de fora incomodou nessa partida?'
+    ]),
+    escolhas:[
+      { label:'Respeito a torcida deles', tom:'humilde', efeito:{moral:4, relacaoTorcida:3}, resposta:'"Eu respeito a torcida deles, é apaixonada como a nossa. Isso não me tira do jogo."' },
+      { label:'Gosto de silenciar a torcida do outro', tom:'confiante', efeito:{confianca:6, pressaoPsicologica:-4}, resposta:'"Gosto de jogar fora de casa justamente por isso. Silenciar a torcida do outro é gostoso."' },
+      { label:'Treinamos a cabeça pra isso', tom:'serio', efeito:{disciplina:3, relacaoTreinador:3}, resposta:'"A gente treinou a cabeça pra isso durante a semana. Ambiente hostil faz parte do futebol."' },
+      { label:'Curto até a rivalidade', tom:'descontraido', efeito:{moral:3, relacaoElenco:2}, resposta:'"Curto até a rivalidade, sinceramente. Só não pode deixar isso mexer com a cabeça."' }
+    ] },
+
+  { id:'vaias_propria_torcida', prioridade:true,
+    aplicavel: ()=> GAME.relacoes.torcida <= 30,
+    pergunta: ()=> pick([
+      'A torcida tem vaiado você em casa. Como você recebe isso?',
+      'Como é ouvir a própria torcida cobrando tão duro assim?'
+    ]),
+    escolhas:[
+      { label:'Entendo a cobrança', tom:'humilde', efeito:{relacaoTorcida:8, moral:3, pressaoPsicologica:-3}, resposta:'"Eu entendo a cobrança, o torcedor quer ver resultado e eu sei que não tenho entregado o suficiente."' },
+      { label:'Vou reverter isso em campo', tom:'confiante', efeito:{confianca:5, relacaoTorcida:2}, resposta:'"Sei separar o que é torcida cobrando do que é torcida contra mim. Vou reverter isso dentro de campo."' },
+      { label:'Cobrança faz parte de camisa grande', tom:'serio', efeito:{relacaoTorcida:5, relacaoDiretoria:3}, resposta:'"É desconfortável, não vou mentir, mas cobrança faz parte de vestir uma camisa grande."' },
+      { label:'Quem vaia nunca entrou em campo', tom:'rebelde', efeito:{popularidade:4, relacaoTorcida:-10, pressaoPsicologica:7}, resposta:'"Quem tá vaiando de camarote nunca entrou em campo pra saber como é."' }
+    ] },
+
+  { id:'recorde_transferencia_batido', prioridade:true,
+    aplicavel: ()=> (GAME.statsCareer.maiorTransferencia||0) > 0,
+    pergunta: ()=> 'Depois de custar tanto dinheiro nessa transferência, a pressão pra retribuir em campo aumenta?',
+    escolhas:[
+      { label:'Sei que vou retribuir', tom:'confiante', efeito:{confianca:7, imagemMidia:3}, resposta:'"Cobrança por ter custado caro eu carrego numa boa, porque sei que vou retribuir em campo."' },
+      { label:'É uma responsabilidade diária', tom:'serio', efeito:{relacaoDiretoria:5, pressaoPsicologica:-3}, resposta:'"O valor pago é uma responsabilidade que eu levo a sério todos os dias de treino."' },
+      { label:'Eu só jogo bola', tom:'rebelde', efeito:{popularidade:6, pressaoPsicologica:8, relacaoDiretoria:-6}, resposta:'"Número é número. Quem decidiu pagar isso que lide com a expectativa, eu só jogo bola."' },
+      { label:'Prefiro nem pensar no valor', tom:'descontraido', efeito:{moral:4, relacaoTorcida:3}, resposta:'"Prefiro nem pensar no valor, sinceramente. Se eu ficar preso nisso, atrapalha meu jogo."' }
+    ] },
+
+  { id:'aproximando_aposentadoria', prioridade:true,
+    aplicavel: ()=> (GAME.numeroTemporada||1) >= 12,
+    pergunta: ()=> pick([
+      'Já pensou em quando vai pendurar as chuteiras?',
+      'Com tantos anos de carreira, a aposentadoria já passa pela cabeça?'
+    ]),
+    escolhas:[
+      { label:'Enquanto o corpo aguentar', tom:'humilde', efeito:{moral:5, relacaoElenco:4, relacaoTorcida:3}, resposta:'"Enquanto o corpo aguentar e eu servir pro time, vou continuar. Depois disso, a vida segue."' },
+      { label:'Já converso com a família sobre isso', tom:'serio', efeito:{disciplina:4, cuidadoFisico:5}, resposta:'"É um assunto que já converso com minha família. Quero terminar no momento certo, sem forçar."' },
+      { label:'Vou parar quando eu quiser', tom:'rebelde', efeito:{popularidade:5, relacaoDiretoria:-6, pressaoPsicologica:5}, resposta:'"Aposentadoria? Vou parar quando eu quiser, não quando acharem que devo."' },
+      { label:'Ainda tenho corda pra dar', tom:'descontraido', efeito:{moral:4, relacaoFamilia:3}, resposta:'"Ainda nem penso nisso, tenho corda pra muito tempo ainda, pode escrever aí."' }
+    ] },
+
+  { id:'amizade_forte_companheiro',
+    aplicavel: ()=> !!(GAME.elenco && GAME.elenco.some(c => c.vinculoForte)),
+    pergunta: ()=> 'Todo mundo já percebeu a parceria de vocês dois dentro e fora de campo. Fala um pouco dessa amizade.',
+    escolhas:[
+      { label:'É praticamente um irmão', tom:'humilde', efeito:{relacaoElenco:6, moral:4}, resposta:'"Ele é praticamente um irmão pra mim. Faz toda diferença ter alguém de confiança do lado."' },
+      { label:'A gente se entende em campo', tom:'confiante', efeito:{confianca:5, relacaoElenco:4}, resposta:'"A gente se entende de olho em campo. Essa parceria só tende a render mais coisa boa."' },
+      { label:'Já falamos até de jogar juntos em outro time', tom:'rebelde', efeito:{popularidade:5, relacaoElenco:6, relacaoTreinador:-3}, resposta:'"A gente já falou até de jogar junto em outro time um dia, sem essa de ficar preso a contrato."' },
+      { label:'É minha dupla até de churrasco', tom:'descontraido', efeito:{moral:5, relacaoElenco:4}, resposta:'"Ele é minha dupla de tudo, até de churrasco. Em campo então nem se fala."' }
+    ] },
+
+  { id:'atrito_serio_companheiro', prioridade:true,
+    aplicavel: ()=> !!(GAME.elenco && GAME.elenco.some(c => c.atritoSerio)),
+    pergunta: ()=> pick([
+      'Correm rumores de clima ruim entre você e um companheiro de elenco. Isso é verdade?',
+      'Como tá a relação com esse companheiro que falaram que você tem atrito?'
+    ]),
+    escolhas:[
+      { label:'Não vai passar da porta do vestiário', tom:'humilde', efeito:{relacaoElenco:7, moral:3, pressaoPsicologica:-4}, resposta:'"Tivemos uma diferença, sim, mas somos profissionais e isso não vai passar da porta do vestiário."' },
+      { label:'Continuamos remando pro mesmo lado', tom:'confiante', efeito:{confianca:4, relacaoElenco:3}, resposta:'"Problema resolvido é problema esquecido. Continuamos remando pro mesmo lado."' },
+      { label:'É questão interna', tom:'serio', efeito:{relacaoElenco:5, relacaoTreinador:3}, resposta:'"Prefiro não expor detalhes. É uma questão interna que vamos resolver entre nós."' },
+      { label:'Exageraram tudo', tom:'descontraido', efeito:{moral:3, relacaoElenco:3}, resposta:'"Ah, exageraram tudo. Foi climão de treino, já tá resolvido com risada e tudo."' }
+    ] },
+
+  { id:'ex_companheiro_reencontrado',
+    aplicavel: (j)=> !!(GAME.exCompanheiros && GAME.exCompanheiros.find(c => c.clubeNome === j.adversario)),
+    pergunta: (j)=> {
+      const ex = GAME.exCompanheiros.find(c => c.clubeNome === j.adversario);
+      return `Reencontrar ${ex ? ex.nome : 'um ex-companheiro de time'} do outro lado do campo, como foi esse reencontro?`;
+    },
+    escolhas:[
+      { label:'Foi emocionante rever ele', tom:'humilde', efeito:{relacaoElenco:3, moral:3}, resposta:'"Foi emocionante ver ele antes do jogo. A gente viveu muita coisa boa junto."' },
+      { label:'Cada um defende sua camisa', tom:'confiante', efeito:{confianca:5, imagemMidia:3}, resposta:'"Foi bom rever ele, mas entrando em campo cada um defende sua camisa até o fim."' },
+      { label:'A amizade fica de lado por 90 minutos', tom:'serio', efeito:{reputacaoLocal:4, relacaoDiretoria:2}, resposta:'"A amizade fica de lado por noventa minutos. Depois do apito final, voltamos a ser amigos."' },
+      { label:'Avisei que não ia ter presente', tom:'rebelde', efeito:{popularidade:5, pressaoPsicologica:3}, resposta:'"Falei pra ele antes do jogo que hoje não ia ter presente, só competição."' }
+    ] },
+
+  { id:'clima_extremo_jogo',
+    aplicavel: (j)=> !!j.clima && j.clima !== 'normal',
+    pergunta: (j)=> {
+      const nomeClima = (CLIMAS_PARTIDA[j.clima] ? CLIMAS_PARTIDA[j.clima].nome : 'clima difícil').toLowerCase();
+      return pick([
+        `Jogar debaixo desse cenário de ${nomeClima} pesou pro time?`,
+        `Esse ${nomeClima} atrapalhou o ritmo do jogo hoje?`
+      ]);
+    },
+    escolhas:[
+      { label:'Clima não é desculpa', tom:'confiante', efeito:{confianca:5, cuidadoFisico:2}, resposta:'"Clima não é desculpa pra time grande. A gente treina pra jogar em qualquer condição."' },
+      { label:'Tivemos que ajustar o ritmo', tom:'serio', efeito:{disciplina:4, cuidadoFisico:3}, resposta:'"Foi um fator a mais, sim. Tivemos que ajustar o ritmo e cuidar mais da bola."' },
+      { label:'Quem reclama já perdeu antes', tom:'rebelde', efeito:{popularidade:4, pressaoPsicologica:4}, resposta:'"Chuva, sol, não importa. Quem reclama de clima já perdeu antes de entrar em campo."' },
+      { label:'Até curti jogar assim', tom:'descontraido', efeito:{moral:3, relacaoElenco:2}, resposta:'"Sinceramente até curti jogar nessa condição, deu uma emoção a mais."' }
+    ] },
+
+  { id:'boa_fase_artilheiro',
+    aplicavel: ()=> (GAME.stats.gols||0) >= 15,
+    pergunta: ()=> pick([
+      'Você tá disparado na artilharia. Sente que pode ser o melhor momento da carreira?',
+      'Com esses números de gol, como enxerga sua fase atual?'
+    ]),
+    escolhas:[
+      { label:'Mérito também é do time', tom:'humilde', efeito:{moral:5, relacaoElenco:4}, resposta:'"Os números são mérito do time também, ninguém faz gol sozinho."' },
+      { label:'Preciso manter a consistência', tom:'serio', efeito:{disciplina:3, reputacaoLocal:4}, resposta:'"Estou numa fase boa, mas sei que preciso manter a consistência até o fim da temporada."' },
+      { label:'Artilheiro sou eu, é estatística', tom:'rebelde', efeito:{popularidade:8, relacaoElenco:-5, pressaoPsicologica:5}, resposta:'"Artilheiro sou eu, e não é força de expressão, é estatística."' },
+      { label:'A bola tá entrando fácil', tom:'descontraido', efeito:{moral:4, relacaoTorcida:3}, resposta:'"Tô numa pegada boa mesmo, a bola tá entrando com uma facilidade gostosa."' }
+    ] },
+
+  { id:'jogo_pesado_falta_dura',
+    aplicavel: (j)=> j.minutos>0 && (j.erros>=1 || j.amarelo>=1),
+    pergunta: ()=> pick([
+      'O jogo foi bem truncado, pegado. Como você avalia a arbitragem em relação às faltas que sofreu?',
+      'Você foi bem marcado, com faltas duras. Isso te tirou do jogo?'
+    ]),
+    escolhas:[
+      { label:'Faz parte, eu levanto e sigo', tom:'humilde', efeito:{moral:3, cuidadoFisico:3}, resposta:'"Faz parte, o adversário também tá lutando pelo resultado dele. Eu levanto e sigo."' },
+      { label:'Pode bater que eu levanto', tom:'confiante', efeito:{confianca:5, pressaoPsicologica:-3}, resposta:'"Pode bater que eu levanto. Não tem faltinha que vai me tirar do jogo."' },
+      { label:'Jogaram no meu corpo o jogo inteiro', tom:'rebelde', efeito:{popularidade:6, relacaoMidia:-5, pressaoPsicologica:5}, resposta:'"O árbitro deveria ter marcado mais faltas. Jogaram no meu corpo o jogo inteiro."' },
+      { label:'Amanhã tô inteiro de novo', tom:'descontraido', efeito:{moral:3, relacaoElenco:2}, resposta:'"Levei umas boas pancadas, mas amanhã eu tô inteiro de novo, sem problema."' }
+    ] },
+
+  { id:'declaracao_sobre_tecnico',
+    aplicavel: ()=> GAME.relacoes.treinador >= 70,
+    pergunta: ()=> 'Fala um pouco sobre o trabalho do treinador com o elenco nesse momento.',
+    escolhas:[
+      { label:'Cobra, mas com respeito', tom:'humilde', efeito:{relacaoTreinador:6, moral:3}, resposta:'"Ele nos cobra bastante, mas sempre com respeito. Aprendo muito no dia a dia com o trabalho dele."' },
+      { label:'Tá deixando a gente mais forte', tom:'confiante', efeito:{relacaoTreinador:5, confianca:4}, resposta:'"O trabalho dele tá deixando a gente mais forte, dá pra ver isso dentro de campo."' },
+      { label:'Orientações fundamentais', tom:'serio', efeito:{relacaoTreinador:5, disciplina:3}, resposta:'"Respeito muito a comissão técnica. As orientações vêm sendo fundamentais pro nosso rendimento."' },
+      { label:'Brinca no treino, mas cobra na hora', tom:'descontraido', efeito:{moral:3, relacaoTreinador:3}, resposta:'"Ele até brinca com a gente no treino, mas na hora de cobrar é sério. Boa relação."' }
+    ] },
+
+  { id:'sonho_infancia_motivacao',
+    aplicavel: ()=> true,
+    pergunta: ()=> pick([
+      'Qual era o seu sonho quando criança, jogando bola na rua ou na várzea?',
+      'O que te motivou a seguir carreira no futebol desde pequeno?'
+    ]),
+    escolhas:[
+      { label:'Queria ajudar minha família', tom:'humilde', efeito:{moral:5, relacaoTorcida:3, relacaoFamilia:3}, resposta:'"Meu sonho era simples: ajudar minha família. Jogar bola profissionalmente veio depois disso."' },
+      { label:'Nunca duvidei que chegaria aqui', tom:'confiante', efeito:{confianca:5, popularidade:3}, resposta:'"Desde moleque eu falava que ia ser jogador. Nunca duvidei que chegaria aqui."' },
+      { label:'Comecei com bola de meia', tom:'serio', efeito:{relacaoFamilia:4, moral:3}, resposta:'"Comecei jogando na rua, com bola de meia. Foi minha família que segurou a peteca pra eu chegar até aqui."' },
+      { label:'Ninguém apostava nada em mim', tom:'rebelde', efeito:{popularidade:6, relacaoMidia:-3, pressaoPsicologica:3}, resposta:'"Muita gente duvidou de mim no caminho. Hoje é fácil elogiar, mas ninguém apostava nada."' }
     ] }
 ];
 
@@ -822,20 +1152,36 @@ const PERGUNTAS_COLETIVA = [...PERGUNTAS_COLETIVA_BASE, ...PERGUNTAS_COLETIVA_EX
 // Sem essa prioridade, uma pergunta rara competia em pé de igualdade com
 // dezenas de perguntas genéricas e podia nunca aparecer justo no jogo em
 // que fazia sentido.
+// Anti-repetição (mesmo padrão de GAME.eventosRecentesIds em sistemas/eventos.js):
+// guarda os ids das últimas perguntas usadas pra evitar que a mesma pergunta
+// volte coletiva após coletiva — só cai pro pool completo se tudo elegível
+// já tiver sido perguntado recentemente (senão, com poucas opções elegíveis,
+// a coletiva ficaria sem pergunta nenhuma pra mostrar).
+function filtrarSemRepetirRecente(pool){
+  const recentes = GAME.perguntasColetivaRecentesIds || [];
+  const filtrado = pool.filter(p => !recentes.includes(p.id));
+  return filtrado.length ? filtrado : pool;
+}
 function gerarColetiva(j){
   const elegiveis = PERGUNTAS_COLETIVA.filter(p => p.aplicavel(j));
   const base = elegiveis.find(p => p.id === 'resultado');
   const restantes = elegiveis.filter(p => p !== base);
-  const prioritarias = restantes.filter(p => p.prioridade);
-  const regulares = restantes.filter(p => !p.prioridade);
+  const prioritarias = filtrarSemRepetirRecente(restantes.filter(p => p.prioridade));
+  const regulares = filtrarSemRepetirRecente(restantes.filter(p => !p.prioridade));
   const escolhidas = [];
   if(base) escolhidas.push(base);
   while(escolhidas.length < 3 && prioritarias.length){
     escolhidas.push(prioritarias.splice(rand(0, prioritarias.length-1), 1)[0]);
   }
-  while(escolhidas.length < 2 && regulares.length){
+  // Antes esse laço parava em "< 2" — como `escolhidas` já vem com a base +
+  // prioritárias (até 3), esse teto mais baixo quase nunca deixava sobrar
+  // espaço, e as perguntas "regulares" praticamente nunca apareciam. Mesmo
+  // teto de 3 do laço acima, só preenchendo o que ainda sobrar.
+  while(escolhidas.length < 3 && regulares.length){
     escolhidas.push(regulares.splice(rand(0, regulares.length-1), 1)[0]);
   }
+  const recentes = GAME.perguntasColetivaRecentesIds || [];
+  GAME.perguntasColetivaRecentesIds = [...escolhidas.filter(p => p.id !== 'resultado').map(p => p.id), ...recentes].slice(0,15);
   return escolhidas.map(p => ({ id:p.id, pergunta:p.pergunta(j), escolhas:p.escolhas, prioridade:!!p.prioridade }));
 }
 
