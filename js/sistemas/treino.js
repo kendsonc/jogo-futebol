@@ -6,6 +6,7 @@ const TREINOS = [
   { id:'defesaPosicionamento', nome:'Defesa e Posicionamento', icone:'🛡️', attrs:['desarme','marcacao','interceptacao'], custo:14, riscoLesaoMod:1 },
   { id:'bolaParada', nome:'Bola Parada', icone:'🥅', attrs:['bolaParada','cabeceio'], custo:10, riscoLesaoMod:0 },
   { id:'mentalidade', nome:'Mentalidade e Concentração', icone:'🧠', attrs:['concentracao','frieza','controleEmocional'], custo:8, riscoLesaoMod:-2 },
+  { id:'polivalencia', nome:'Polivalência tática', icone:'🔄', attrs:[], custo:14, riscoLesaoMod:1 },
   { id:'descanso', nome:'Descanso e Recuperação', icone:'😴', attrs:[], custo:-30, riscoLesaoMod:-10 }
 ];
 
@@ -36,7 +37,7 @@ function renderTreino(){
           <span class="menu-tile-icon">${t.icone}</span>
           <span class="menu-tile-body">
             <span class="menu-tile-title">${escapeHtml(t.nome)}</span>
-            <span class="menu-tile-sub">${t.attrs.length ? escapeHtml(t.attrs.map(a=>attrNome(a)).join(', ')) : 'Recupera energia'}</span>
+            <span class="menu-tile-sub">${t.attrs.length ? escapeHtml(t.attrs.map(a=>attrNome(a)).join(', ')) : (t.id==='polivalencia' ? 'Experiência na posição secundária' : 'Recupera energia')}</span>
           </span>
           <span class="menu-tile-arrow">→</span>
         </button>
@@ -54,6 +55,15 @@ function renderTreino(){
           </button>`).join('')}
       </div>
     </div>
+    ${GAME.identidade.posicaoSecundaria ? `
+    <div class="card">
+      <div class="card-title">Polivalência posicional${infoTipHtml('Aceitar jogar na sua posição secundária nesta semana — vem com uma penalidade de adaptação no overall, que fica menor quanto mais experiência você acumula naquela posição (jogando lá ou treinando Polivalência tática).')}</div>
+      <p class="small muted" style="margin-bottom:8px">Experiência acumulada em ${escapeHtml(GAME.identidade.posicaoSecundaria)}: ${(GAME.identidade.experienciaPosicoes && GAME.identidade.experienciaPosicoes[GAME.identidade.posicaoSecundaria]) || 0}</p>
+      <label class="row" style="align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="chk-escalar-secundaria" ${GAME.temporadaState.escaladoSecundariaSemana?'checked':''}>
+        <span class="small">Aceitar jogar em ${escapeHtml(GAME.identidade.posicaoSecundaria)} esta semana, se escalado</span>
+      </label>
+    </div>` : ''}
   `;
   document.querySelectorAll('.menu-tile[data-i]').forEach(btn => {
     btn.onclick = () => aplicarTreino(TREINOS[parseInt(btn.dataset.i,10)]);
@@ -61,6 +71,8 @@ function renderTreino(){
   document.querySelectorAll('.esquema-tile').forEach(btn => {
     btn.onclick = () => { GAME.esquemaTatico = btn.dataset.esquema; salvarJogo(); renderTreino(); };
   });
+  const chkSecundaria = document.getElementById('chk-escalar-secundaria');
+  if(chkSecundaria) chkSecundaria.onchange = () => { GAME.temporadaState.escaladoSecundariaSemana = chkSecundaria.checked; salvarJogo(); };
 }
 
 function attrNome(chave){
@@ -84,11 +96,22 @@ function aplicarTreino(treino){
     // Cada treino só tem uma CHANCE de render +1 (não é garantido), então a
     // evolução real depende de treinar com constância, disciplina e moral em dia.
     const fatorTeto = clamp(1 - (atual-30)/70, 0.05, 1);
-    const chanceGanho = atual >= 95 ? 0 : clamp(36 * fatorDisciplina * fatorEnergia * fatorMoral * fatorRecondicionamento * fatorTeto, 3, 65);
+    // Contexto "Zero a herói" (CONTEXTOS_INICIAIS, dados-base.js): começa mais
+    // cru, mas evolui mais rápido enquanto o atributo ainda está abaixo da média.
+    const fatorZeroHeroi = (GAME.contextoInicial === 'zeroAHeroi' && atual < 55) ? 1.3 : 1;
+    const chanceGanho = atual >= 95 ? 0 : clamp(36 * fatorDisciplina * fatorEnergia * fatorMoral * fatorRecondicionamento * fatorTeto * fatorZeroHeroi, 3, 65);
     const ganho = chance(chanceGanho) ? 1 : 0;
     GAME.atributos[chave] = clamp(GAME.atributos[chave] + ganho, 1, 99);
     qualidade += ganho;
   });
+  // Polivalência tática: em vez de subir atributo, reduz mais rápido a
+  // penalidade de adaptação na posição secundária (calcularOverallParaPosicao,
+  // dados-base.js), ganhando "experiência" nela sem precisar jogar de verdade.
+  if(treino.id === 'polivalencia' && GAME.identidade.posicaoSecundaria){
+    if(!GAME.identidade.experienciaPosicoes) GAME.identidade.experienciaPosicoes = {};
+    const pos = GAME.identidade.posicaoSecundaria;
+    GAME.identidade.experienciaPosicoes[pos] = (GAME.identidade.experienciaPosicoes[pos]||0) + 2;
+  }
   // cuidar do corpo (descanso) ou insistir treinando exausto também molda o
   // cuidadoFisico de longo prazo, que por sua vez pesa no risco de lesão
   if(treino.id === 'descanso'){
@@ -122,15 +145,24 @@ function prosseguirAposTreino(){
 }
 
 /* ------------------------------ PARTIDA --------------------------------- */
+// Polivalência posicional real: se o jogador aceitou jogar na posição
+// secundária esta semana (toggle em renderTreino), escalação/esquema tático
+// passam a considerar essa posição em vez da principal — com o overall
+// penalizado por calcularOverallParaPosicao (dados-base.js).
+function posicaoEscaladaSemana(){
+  const secundaria = GAME.identidade.posicaoSecundaria;
+  return (GAME.temporadaState && GAME.temporadaState.escaladoSecundariaSemana && secundaria) ? secundaria : GAME.identidade.posicaoPrincipal;
+}
 function bonusEsquemaTaticoPosicao(){
   const esquema = ESQUEMAS_TATICOS[GAME.esquemaTatico] || ESQUEMAS_TATICOS['4-3-3'];
-  return esquema.bonusPorPosicao[GAME.identidade.posicaoPrincipal] || 0;
+  return esquema.bonusPorPosicao[posicaoEscaladaSemana()] || 0;
 }
 function bonusConcorrenciaPosicao(){
   const concorrentes = GAME.concorrentesPosicao;
   if(!concorrentes || !concorrentes.length) return 0;
+  const meuOverall = calcularOverallParaPosicao(posicaoEscaladaSemana());
   const melhorConcorrente = Math.max(...concorrentes.map(c => c.overall));
-  return clamp((calcularOverall() - melhorConcorrente) * 0.6, -12, 12);
+  return clamp((meuOverall - melhorConcorrente) * 0.6, -12, 12);
 }
 function decidirEscalacao(){
   if(GAME.lesaoAtual) return 'naoRelacionado'; // lesionado não entra em campo, mas o time joga do mesmo jeito

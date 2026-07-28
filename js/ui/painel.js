@@ -122,6 +122,8 @@ function painelDados(){
       ${statTileHtml('⚖️', `${g.identidade.peso}kg`, 'Peso')}
       ${statTileHtml('🎭', ESTILOS[g.identidade.estilo].nome, 'Estilo')}
       ${g.metaCarreira ? statTileHtml('🎯', METAS_CARREIRA[g.metaCarreira].nome, 'Meta de carreira') : ''}
+      ${g.contextoInicial ? statTileHtml('📍', CONTEXTOS_INICIAIS[g.contextoInicial].nome, 'Origem') : ''}
+      ${(g.perksEscolhidos||[]).map(id => statTileHtml('🎴', PERKS_FLAWS[id].nome, 'Marca')).join('')}
     </div>
     ${progressoMetaCarreiraHtml()}
   </div>`;
@@ -193,6 +195,22 @@ function painelRelacoes(){
   </div>` : '';
   return geral + amigos + concorrencia;
 }
+// Estatísticas avançadas: sparkline SVG simples (sem lib externa) da evolução
+// de nota nas últimas partidas (GAME.historicoNotas, capado em 30 — ver
+// atualizarForma, partida.js). Escala fixa 0-10 (faixa real de nota do jogo).
+function sparklineNotasHtml(){
+  const notas = GAME.historicoNotas || [];
+  if(notas.length < 2) return `<p class="small muted">Jogue mais partidas para ver seu gráfico de evolução aqui.</p>`;
+  const w = 280, h = 60, pad = 4;
+  const pontos = notas.map((n,i) => {
+    const x = pad + (i/(notas.length-1)) * (w-pad*2);
+    const y = h - pad - (clamp(n,0,10)/10) * (h-pad*2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" style="display:block" role="img" aria-label="Gráfico de evolução de nota nas últimas ${notas.length} partidas">
+    <polyline points="${pontos}" fill="none" stroke="var(--club-c1, #2a9d6f)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>`;
+}
 function painelEstatisticas(){
   const s = GAME.stats;
   const linha = (label,val) => `<p><b>${label}:</b> ${val}</p>`;
@@ -212,9 +230,14 @@ function painelEstatisticas(){
       ${statTileHtml('🤕', s.lesoes, 'Lesões na temporada')}
       ${statTileHtml('📊', s.notaMedia.toFixed(2), 'Nota média')}
       ${statTileHtml('🏅', s.melhorEmCampo, 'Melhor em campo')}
+      ${statTileHtml('🎯', (s.xgPessoal||0).toFixed(2), 'xG pessoal (temporada)')}
     </div>
     <p class="small muted" style="margin-top:8px">Valor de mercado estimado: <b>R$ ${s.valorEstimado.toLocaleString('pt-BR')}</b></p>
     ${barraHtml('Interesse de clubes', s.interesseClubes, undefined, undefined, 'Quanto maior, mais chance de propostas de clubes maiores na próxima entressafra — sobe com boas notas e gols/assistências.')}
+  </div>
+  <div class="card">
+    <div class="card-title">Evolução de nota${infoTipHtml('Nota de cada partida nas últimas semanas — ajuda a enxergar uma sequência de altos e baixos que a média sozinha não mostra.')}</div>
+    ${sparklineNotasHtml()}
   </div>`
   + (GAME.statsCareer ? `<div class="card">
     <div class="card-title">Carreira (temporadas anteriores)</div>
@@ -222,6 +245,7 @@ function painelEstatisticas(){
     ${linha('Jogos na carreira', GAME.statsCareer.jogos + s.jogos)}
     ${linha('Gols na carreira', GAME.statsCareer.gols + s.gols)}
     ${linha('Assistências na carreira', GAME.statsCareer.assistencias + s.assistencias)}
+    ${linha('xG pessoal na carreira', ((GAME.statsCareer.xgPessoal||0) + (s.xgPessoal||0)).toFixed(2))}
   </div>` : '')
   + ((GAME.statsCareer && GAME.statsCareer.selecao && GAME.statsCareer.selecao.jogos>0) ? `<div class="card">
     <div class="card-title">🇧🇷 Seleção Brasileira</div>
@@ -295,11 +319,24 @@ function painelConquistas(){
       ${statTileHtml('👑', s.titulosCopas.bolaDeOuro, 'Bola de Ouro')}
     </div>
   </div>`;
+  const mf = GAME.marcosFisicos || { camisaAposentada:false, museu:false, estatua:false };
+  const marcosFisicosHtml = `<div class="card">
+    <div class="card-title">Marcos Físicos${infoTipHtml('Reconhecimentos concretos do clube atual/carreira — camisa aposentada (torcida no topo + anos de casa), nome no museu (título grande) e estátua (lenda absoluta). Podem ser conquistados durante a carreira ativa, não só na aposentadoria.')}</div>
+    <div class="stat-tile-grid">
+      ${statTileHtml(mf.camisaAposentada?'👕':'🔒', mf.camisaAposentada?'Conquistada':'Bloqueada', 'Camisa aposentada')}
+      ${statTileHtml(mf.museu?'🏛️':'🔒', mf.museu?'Conquistado':'Bloqueado', 'Nome no museu')}
+      ${statTileHtml(mf.estatua?'🗿':'🔒', mf.estatua?'Conquistada':'Bloqueada', 'Estátua')}
+    </div>
+  </div>`;
+  const institutoHtml = (GAME.institutoSocial && GAME.institutoSocial.fundado) ? `<div class="card">
+    <div class="card-title">${escapeHtml(GAME.institutoSocial.nome)}</div>
+    <p class="small muted">Arrecadado até agora: <b>R$ ${Math.round(GAME.institutoSocial.valorAcumulado||0).toLocaleString('pt-BR')}</b>${GAME.institutoSocial.valorAcumulado < 50000 ? ` (faltam R$ ${(50000-Math.round(GAME.institutoSocial.valorAcumulado||0)).toLocaleString('pt-BR')} para virar legado de impacto social)` : ' — já garante o Legado de Impacto Social'}</p>
+  </div>` : '';
   const marcos = (GAME.memorial || []).slice().reverse();
   const galeria = marcos.length ? `<div class="conquista-grid">
     ${marcos.map(m => `
-      <div class="conquista-card ${m.importancia==='alta'?'alta':''}">
-        <span class="conquista-icone">${m.importancia==='alta'?'🏆':'⭐'}</span>
+      <div class="conquista-card ${(m.importancia==='alta'||m.importancia==='lendaria')?'alta':''}">
+        <span class="conquista-icone">${m.importancia==='lendaria'?'🌟':m.importancia==='alta'?'🏆':'⭐'}</span>
         <div>
           <p class="conquista-titulo">${escapeHtml(m.titulo)}</p>
           <p class="small muted" style="margin-bottom:2px">Temporada ${m.temporada}</p>
@@ -307,7 +344,7 @@ function painelConquistas(){
         </div>
       </div>`).join('')}
   </div>` : `<div class="card muted">Nenhuma conquista registrada ainda — elas aparecem aqui conforme sua carreira avança.</div>`;
-  return resumoTitulos + progressoMetaCarreiraHtml() + galeria;
+  return resumoTitulos + progressoMetaCarreiraHtml() + marcosFisicosHtml + institutoHtml + galeria;
 }
 function painelObjetivos(){
   return `<div class="card">${GAME.objetivos.map(o => {

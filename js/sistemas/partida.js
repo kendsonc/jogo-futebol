@@ -4,13 +4,14 @@
 // (não precisa persistir no save: é uma escolha "desta partida", não da carreira).
 let posturaTaticaSelecionada = 'equilibrado';
 function posturaTaticaSeletorHtml(){
+  const preferidaTecnico = (GAME.tecnico && GAME.tecnico.estilo) ? ESTILO_TECNICO_POSTURA_PREFERIDA[GAME.tecnico.estilo] : null;
   return `<div class="card">
-    <div class="card-title">Postura tática para este jogo</div>
+    <div class="card-title">Postura tática para este jogo${preferidaTecnico ? infoTipHtml(`${GAME.tecnico.nome} prefere a postura "${POSTURAS_TATICAS[preferidaTecnico].nome}" — segui-la dá um pequeno bônus na relação com ele; divergir custa um pouco.`) : ''}</div>
     <div class="menu-tiles">
       ${Object.keys(POSTURAS_TATICAS).map(k => `
         <button type="button" class="menu-tile postura-tile ${k===posturaTaticaSelecionada?'sel':''}" data-postura="${k}">
           <span class="menu-tile-body">
-            <span class="menu-tile-title">${escapeHtml(POSTURAS_TATICAS[k].nome)}</span>
+            <span class="menu-tile-title">${escapeHtml(POSTURAS_TATICAS[k].nome)}${k===preferidaTecnico?' ⭐':''}</span>
             <span class="menu-tile-sub">${escapeHtml(POSTURAS_TATICAS[k].desc)}</span>
           </span>
         </button>`).join('')}
@@ -38,13 +39,31 @@ function resolverNivelLance(attr, dificuldade){
   // estatisticamente igual a um em alta. Peso pequeno de propósito (não é
   // pra dominar o resultado do lance, só fazer a fase psicológica ser sentida).
   const bonusEstadoEmocional = (GAME.sociais.moral-50)*0.05 + (GAME.sociais.confianca-50)*0.05;
-  const score = valor - dificuldade*0.45 - penalidadePressao + bonusEstadoEmocional + rand(-22,22);
+  // ser o cobrador oficial de bola parada (clubes.js) traz confiança extra
+  // real nesses lances específicos — não é só decorativo no painel
+  const bonusCobradorOficial = (attr === 'bolaParada' && GAME.bolaParadaOficial) ? 8 : 0;
+  // Perk "Corpo frio" (PERKS_FLAWS, dados-base.js): demora a "esquentar" —
+  // penalidade nos primeiros 15 minutos de partida, compensada pela baixa
+  // pressaoPsicologica de base (aplicada na criação, state.js).
+  const p = GAME.temporadaState && GAME.temporadaState.partidaEmAndamento;
+  const minutoLance = p && p.minutosLances ? p.minutosLances[p.indiceLance] : null;
+  const penalidadeCorpoFrio = ((GAME.perksEscolhidos||[]).includes('corpoFrio') && minutoLance != null && minutoLance < 15) ? -6 : 0;
+  // Clima e condição de gramado (CLIMAS_PARTIDA, dados-base.js): penaliza
+  // atributos específicos daquele clima (ex: chuva atrapalha controle de bola).
+  const climaAtual = p && p.clima ? CLIMAS_PARTIDA[p.clima] : null;
+  const penalidadeClima = (climaAtual && climaAtual.attrsPenalizados.includes(attr)) ? climaAtual.penalidadeAttr : 0;
+  const score = valor - dificuldade*0.45 - penalidadePressao + bonusEstadoEmocional + bonusCobradorOficial + penalidadeCorpoFrio + penalidadeClima + rand(-22,22);
   if(score >= 42) return 'otimo';
   if(score >= 18) return 'bom';
   if(score >= -8) return 'neutro';
   if(score >= -28) return 'ruim';
   return 'pessimo';
 }
+// xG pessoal (Estatísticas avançadas): a probabilidade implícita de cada
+// finalização já existia via resolverNivelLance (o "score" que decide o
+// nível) — aqui só é traduzida numa estimativa por nível e acumulada
+// (resolverEscolhaLance), pra uma métrica agregada de temporada/carreira.
+const XG_POR_NIVEL = { otimo:0.72, bom:0.42, neutro:0.18, ruim:0.07, pessimo:0.02 };
 
 // Perfil de estatísticas de fundo de UM time pra partida inteira (finalizações,
 // finalizações no alvo, escanteios, faltas, impedimentos, desarmes, cartões) —
@@ -101,7 +120,15 @@ function prepararPartida(contexto){
     const entraChance = clamp(30 + (GAME.clube.oportunidadeJovens-50)*0.4 + rand(-10,10), 5, 90);
     if(chance(entraChance)){ entrouBanco = true; minutos = rand(10,30); }
   }
-  const posicao = GAME.identidade.posicaoPrincipal;
+  // Polivalência posicional real (treino.js posicaoEscaladaSemana): se o
+  // jogador aceitou jogar na secundária esta semana, a partida inteira (lances,
+  // pesos de nota) segue essa posição, não a principal — e conta como
+  // experiência acumulada naquela posição, reduzindo a penalidade no futuro.
+  const posicao = posicaoEscaladaSemana();
+  if(posicao !== GAME.identidade.posicaoPrincipal){
+    if(!GAME.identidade.experienciaPosicoes) GAME.identidade.experienciaPosicoes = {};
+    GAME.identidade.experienciaPosicoes[posicao] = (GAME.identidade.experienciaPosicoes[posicao]||0) + 1;
+  }
   const ehGoleiro = posicao === 'Goleiro';
   const ehAtacante = ['Ponta-direita','Ponta-esquerda','Segundo atacante','Centroavante','Meia ofensivo'].includes(posicao);
   const ehDefensor = ['Zagueiro','Lateral-direito','Lateral-esquerdo','Volante'].includes(posicao);
@@ -116,6 +143,14 @@ function prepararPartida(contexto){
   // em cima disso — copiado pra um objeto novo, nunca mutando MODS_TATICOS
   // (que é compartilhado e usado a temporada inteira por todo mundo).
   const postura = POSTURAS_TATICAS[contexto.postura] || POSTURAS_TATICAS.equilibrado;
+  // Trade-off real com o técnico (ESTILO_TECNICO_POSTURA_PREFERIDA, dados-base.js):
+  // divergir do estilo dele custa relacoes.treinador; seguir dá um pequeno bônus.
+  if(GAME.tecnico && GAME.tecnico.estilo && contexto.postura){
+    const preferida = ESTILO_TECNICO_POSTURA_PREFERIDA[GAME.tecnico.estilo];
+    if(preferida){
+      GAME.relacoes.treinador = clamp(GAME.relacoes.treinador + (contexto.postura === preferida ? 2 : -3), 0, 100);
+    }
+  }
   const modsClubeMeu = modsTaticosClube(GAME.clube);
   const modsMeu = {
     ataque: modsClubeMeu.ataque + postura.ataque,
@@ -125,7 +160,12 @@ function prepararPartida(contexto){
   };
   const modsAdv = modsTaticosClube(oponente || GAME.clube);
   const forcaOponente = oponente ? oponente.reputacao : GAME.clube.reputacao;
-  const dificuldade = clamp(forcaOponente*0.6 + (mandante?-3:3) + (modsAdv.defesa-modsAdv.ataque)*0.5 + rand(-10,15), 15, 95);
+  // Clima e condição de gramado (CLIMAS_PARTIDA, dados-base.js): sorteado 1x
+  // por partida, ajusta dificuldade/posse e penaliza atributos específicos
+  // nos lances (resolverNivelLance) e o desgaste físico pós-jogo (abaixo).
+  const climaKey = sortearClimaPartida();
+  const clima = CLIMAS_PARTIDA[climaKey];
+  const dificuldade = clamp(forcaOponente*0.6 + (mandante?-3:3) + (modsAdv.defesa-modsAdv.ataque)*0.5 + clima.dificuldadeMod + rand(-10,15), 15, 95);
 
   // Viagem: jogos fora de casa cansam mais quanto mais longe fica a cidade do
   // adversário — desconta energia real antes da partida (o desgaste da estrada)
@@ -216,15 +256,19 @@ function prepararPartida(contexto){
   // força de cada time; estatJogador acumula em cima disso o que o SEU
   // jogador realmente fizer nos lances (ver aplicarEstatisticaLance).
   const estatBase = { meu: gerarEstatBaseTime(forcaTime, modsMeu.agressividade, modsMeu.ataque, modsMeu.posse), adv: gerarEstatBaseTime(forcaAdversario, modsAdv.agressividade, modsAdv.ataque, modsAdv.posse) };
-  const posseBase = clamp(Math.round(50 + (forcaTime-forcaAdversario)/4 + (modsMeu.posse-modsAdv.posse)/2), 28, 72);
+  const posseBase = clamp(Math.round(50 + (forcaTime-forcaAdversario)/4 + (modsMeu.posse-modsAdv.posse)/2 + clima.posseMod), 28, 72);
   // Acréscimos de cada tempo — base realista (1º tempo costuma ter menos que
   // o 2º) que só CRESCE durante a partida quando uma revisão de VAR acontece
   // (iniciarRevisaoVar soma o tempo gasto na análise a este total).
   const acrescimo1 = rand(1,4);
   const acrescimo2 = rand(2,6);
 
+  // Desgaste extra de energia pelo clima (calor cansa mais, gramado pesado
+  // exige mais do corpo) — aplicado uma vez, junto do desgaste de viagem.
+  if(clima.desgasteExtra > 0) GAME.status.energia = clamp(GAME.status.energia - clima.desgasteExtra, 0, 100);
   GAME.temporadaState.partidaEmAndamento = {
     status, adversario, minutos, entrouBanco, titular, dificuldade, mandante,
+    clima: climaKey,
     oponenteId: oponente ? oponente.id : null, confrontoRival, classicoRegional,
     distanciaKm, desgasteViagem,
     ehGoleiro, ehAtacante, ehDefensor, ehMeio,
@@ -275,6 +319,7 @@ function resolverEscolhaLance(escolha){
   const p = GAME.temporadaState.partidaEmAndamento;
   const ac = p.acumulado;
   const nivel = resolverNivelLance(escolha.attr, p.dificuldade);
+  if(escolha.perfil === 'finalizar') GAME.stats.xgPessoal = (GAME.stats.xgPessoal||0) + (XG_POR_NIVEL[nivel]||0);
   let texto = '';
   if(escolha.perfil === 'finalizar'){
     if(nivel==='otimo'){ ac.gols++; ac.golsMinutos.push(p.minutosLances[p.indiceLance]); p.cronologiaGols.push({ id:p.cronologiaGols.length, minuto:p.minutosLances[p.indiceLance], minutoExibido:minutoExibido(p), texto:'Você', nome:'Você' }); texto = textoGolContextual(p, 'Bola na rede! Um golaço seu.'); GAME.sociais.moral = clamp(GAME.sociais.moral+4,0,100); }
@@ -623,7 +668,7 @@ function resolverRevisaoVar(p){
     }
   } else { // penalti
     if(chance(65)){
-      const cobrador = ctx.time==='meu' ? nomeJogadorAleatorio() : p.adversario;
+      const cobrador = ctx.time==='meu' ? (GAME.bolaParadaOficial ? GAME.identidade.apelido : nomeJogadorAleatorio()) : p.adversario;
       if(chance(76)){
         p.cronologiaGols.push({ id:p.cronologiaGols.length, minuto:p.minutoAtual, minutoExibido:minutoExibido(p), texto:cobrador, nome:cobrador, adversario: ctx.time==='adv' });
         // pênalti é cobrado por um companheiro/adversário genérico (não pelo
@@ -825,10 +870,11 @@ function mostrarIntervalo(p){
   aplicarVariacaoTaticaIntervalo(p, pl);
   const dialogo = gerarDialogoIntervalo(p, pl);
   const nomeTecnico = (GAME.tecnico && GAME.tecnico.nome) || 'O técnico';
+  const climaInfo = CLIMAS_PARTIDA[p.clima] || CLIMAS_PARTIDA.normal;
   slot.innerHTML = `
     <div class="card live-match-lance">
       <div class="card-title">Intervalo — vestiário do ${escapeHtml(GAME.clube.nome)}</div>
-      <p class="small muted">${pl.meus} x ${pl.deles} ao final do 1º tempo.</p>
+      <p class="small muted">${pl.meus} x ${pl.deles} ao final do 1º tempo. ${climaInfo.icone} ${escapeHtml(climaInfo.nome)}</p>
       <div id="scene-text">💬 ${escapeHtml(nomeTecnico)}: "${escapeHtml(dialogo)}"</div>
       <div class="choices"><button class="btn btn-primary" id="btn-continuar-intervalo">Voltar para o 2º tempo</button></div>
     </div>
@@ -1108,6 +1154,8 @@ function renderPartidaAoVivo(){
     p.acrescimo1Anunciado = false; p.acrescimo2Anunciado = false; p.varEmAndamento = null;
   }
   if(!p.cartoesExtras){ p.cartoesExtras = { meu:0, adv:0 }; p.vantagemNumerica = 0; }
+  if(!p.clima) p.clima = 'normal';
+  const climaInfo = CLIMAS_PARTIDA[p.clima] || CLIMAS_PARTIDA.normal;
   const oponenteObj = p.oponenteSnapshot || { nome: p.adversario };
   const mandanteObj = p.mandante ? GAME.clube : oponenteObj;
   const visitanteObj = p.mandante ? oponenteObj : GAME.clube;
@@ -1122,6 +1170,7 @@ function renderPartidaAoVivo(){
         </div>
         <div class="live-match-team">${escudoClubeHtml(visitanteObj, 40)}<span>${escapeHtml(visitanteObj.nome)}</span></div>
       </div>
+      <p class="small muted" style="text-align:center;margin-top:4px">${climaInfo.icone} ${escapeHtml(climaInfo.nome)}</p>
       <div class="live-match-celebracao" id="lm-celebracao"></div>
     </div>
     <div class="card live-match-stats-card">
@@ -1177,6 +1226,12 @@ function atualizarForma(nota){
   if(GAME.forma.ultimasNotas.length > 5) GAME.forma.ultimasNotas.shift();
   GAME.forma.media = GAME.forma.ultimasNotas.reduce((a,b) => a+b, 0) / GAME.forma.ultimasNotas.length;
   GAME.forma.momento = (MOMENTO_FORMA.find(([min]) => GAME.forma.media >= min) || [0,'regular'])[1];
+  // Estatísticas avançadas: histórico maior (30 jogos) só pra alimentar o
+  // gráfico de evolução de nota no painel (js/ui/central.js) — GAME.forma
+  // continua sendo a janela curta (5) usada pra decisão de escalação.
+  if(!GAME.historicoNotas) GAME.historicoNotas = [];
+  GAME.historicoNotas.push(nota);
+  if(GAME.historicoNotas.length > 30) GAME.historicoNotas.shift();
 }
 
 /* ============================== STATUS NO ELENCO =============================

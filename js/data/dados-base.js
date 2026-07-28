@@ -371,6 +371,15 @@ const POSTURAS_TATICAS = {
   retranqueiro: { nome:'Retranqueiro', desc:'Prioriza não sofrer gol, abrindo mão de ataque.', ataque:-5, defesa:5, posse:-3, agressividade:0 },
   pressaoAlta:  { nome:'Pressão alta', desc:'Rouba mais bola no campo de ataque, mas cansa mais e arrisca mais cartão.', ataque:2, defesa:1, posse:3, agressividade:4 }
 };
+// Trade-off real com o técnico (ESTILOS_TECNICO, mais abaixo): divergir da
+// postura preferida do estilo dele custa um pouco de relacoes.treinador;
+// seguir o estilo dele dá um pequeno bônus (aplicado em prepararPartida,
+// partida.js, 1x por partida, junto da postura escolhida em renderPreJogo).
+const ESTILO_TECNICO_POSTURA_PREFERIDA = {
+  disciplinador: 'equilibrado', paizao: 'equilibrado', professor: 'equilibrado',
+  retranqueiro: 'retranqueiro', resultadista: 'retranqueiro',
+  ofensivo: 'ofensivo', formador: 'ofensivo'
+};
 
 /* ============================== CLÁSSICOS REGIONAIS ==========================
    Em vez de catalogar manualmente cada par de rivais (93+ clubes nacionais +
@@ -419,6 +428,49 @@ const METAS_CARREIRA = {
   idoloLocal: { nome:'Ídolo local', desc:'Quer ser lembrado no clube onde criar raízes — mais carinho da torcida ao longo da carreira, menos pressa de sair.' },
   estrelaInternacional: { nome:'Estrela internacional', desc:'Sonha em jogar no exterior o quanto antes — seu nome circula mais rápido entre clubes grandes.' },
   legadoTitulos: { nome:'Coleção de títulos', desc:'O que importa é erguer taças — na hora de trocar de clube, prioriza quem tem chance real de título.' }
+};
+
+/* ============================== CLIMA E CONDIÇÃO DE GRAMADO ======================
+   Sorteado 1x por partida (prepararPartida, partida.js), guardado em
+   p.clima — ajusta a dificuldade geral, a posse de bola base e penaliza
+   atributos específicos nos lances (resolverNivelLance) e o desgaste físico
+   pós-jogo. "normal" é bem mais comum que os demais (ver sortearClimaPartida).
+   ========================================================================= */
+const CLIMAS_PARTIDA = {
+  normal:   { nome:'Tempo bom', icone:'🌤️', dificuldadeMod:0, posseMod:0, desgasteExtra:0, attrsPenalizados:[], penalidadeAttr:0 },
+  chuva:    { nome:'Chuva', icone:'🌧️', dificuldadeMod:3, posseMod:-4, desgasteExtra:2, attrsPenalizados:['controleDeBola','passeCurto','passeLongo','drible'], penalidadeAttr:-6 },
+  solForte: { nome:'Sol forte', icone:'☀️', dificuldadeMod:0, posseMod:0, desgasteExtra:8, attrsPenalizados:['resistencia'], penalidadeAttr:-4 },
+  frio:     { nome:'Frio intenso', icone:'❄️', dificuldadeMod:2, posseMod:0, desgasteExtra:3, attrsPenalizados:['velocidade','aceleracao','agilidade'], penalidadeAttr:-4 },
+  sinteticoPesado: { nome:'Sintético pesado', icone:'🟩', dificuldadeMod:1, posseMod:-2, desgasteExtra:5, attrsPenalizados:[], penalidadeAttr:0 }
+};
+function sortearClimaPartida(){
+  return pick(['normal','normal','normal','normal','chuva','chuva','solForte','frio','sinteticoPesado']);
+}
+
+/* ============================== CONTEXTO DE ORIGEM ==============================
+   Segundo seletor na criação (ao lado de metaCarreira) — de onde o jogador
+   vem antes da peneira, com efeitos mecânicos reais (não só flavor):
+   aplicado em criarNovoJogador (state.js), lido em selecionarClubesProximos
+   (clubes.js), aplicarTreino (treino.js) e sortearEvento (eventos.js).
+   ========================================================================= */
+const CONTEXTOS_INICIAIS = {
+  baseFalida: { nome:'Base falida', desc:'Seu clube de formação está afundado em dívidas — bolsa atrasada, estrutura precária, mas por isso ninguém de olho em você ainda.' },
+  prodigioPressionado: { nome:'Prodígio pressionado', desc:'Seu talento nunca passou despercebido — a torcida e a imprensa já sabem seu nome antes da primeira peneira. O peso da expectativa vem junto.' },
+  zeroAHeroi: { nome:'Zero a herói', desc:'Você chega mais cru que a maioria dos garotos da sua idade, mas tem fome de treino — evolui mais rápido enquanto não alcança a média.' },
+  filhoDaVarzea: { nome:'Filho da várzea', desc:'Sem clube de formação nem contatos — vai ter que se provar do zero em clubes menores, peneira após peneira, até alguém te dar uma chance.' }
+};
+
+/* ============================== PERKS & FLAWS ==================================
+   Deck de marcas opcionais (0-2) escolhidas na criação, cada uma com um bônus
+   real e um contrapeso real — não é upgrade puro. Guardado em
+   GAME.perksEscolhidos (array de ids), aplicado em criarNovoJogador (state.js)
+   e lido pontualmente por lesao.js/eventos.js onde o efeito é contínuo.
+   ========================================================================= */
+const PERKS_FLAWS = {
+  joelhoDeVidro: { nome:'Joelho de vidro', desc:'+40% de chance de lesão ao longo da carreira, mas a recuperação é bem mais rápida que a média.' },
+  semEmpresarioAte20: { nome:'Sem empresário até os 20', desc:'Nenhuma oferta de empresário aparece antes dos 20 anos — em compensação, você começa com mais popularidade e disciplina, por ter feito tudo sozinho até aqui.' },
+  promessaDesconhecida: { nome:'Promessa desconhecida', desc:'Ninguém sabe seu nome ainda: popularidade e interesse de clubes zerados no início — mas seu potencial oculto real nunca é baixo.' },
+  corpoFrio: { nome:'Corpo frio', desc:'Você demora mais pra "esquentar" numa partida (pior nos primeiros lances), mas quase não sente pressão psicológica de reservas ou estreias.' }
 };
 
 // Progresso numérico da meta escolhida na criação do personagem — antes
@@ -520,6 +572,24 @@ function calcularOverall(){
   const pesos = OVERALL_PESOS[grupo];
   let soma = 0;
   Object.keys(pesos).forEach(attr => { soma += (GAME.atributos[attr]||40) * pesos[attr]; });
+  return clamp(Math.round(soma), 1, 99);
+}
+// Polivalência posicional real: overall calculado como se o jogador atuasse
+// em QUALQUER posição, não só a principal. Fora da posição principal, aplica
+// uma penalidade de adaptação (-8 a -15, pior quanto mais diferente o grupo
+// posicional) que diminui com GAME.identidade.experienciaPosicoes acumulada
+// naquela posição (ganha jogando lá, ver posicaoEscaladaSemana em treino.js).
+function calcularOverallParaPosicao(posicao){
+  const grupo = grupoOverallDaPosicao(posicao);
+  const pesos = OVERALL_PESOS[grupo];
+  let soma = 0;
+  Object.keys(pesos).forEach(attr => { soma += (GAME.atributos[attr]||40) * pesos[attr]; });
+  if(posicao !== GAME.identidade.posicaoPrincipal){
+    const grupoPrincipal = grupoOverallDaPosicao(GAME.identidade.posicaoPrincipal);
+    const penalidadeBase = grupo === grupoPrincipal ? 8 : 15;
+    const exp = (GAME.identidade.experienciaPosicoes && GAME.identidade.experienciaPosicoes[posicao]) || 0;
+    soma -= clamp(penalidadeBase - exp*0.6, 2, penalidadeBase);
+  }
   return clamp(Math.round(soma), 1, 99);
 }
 

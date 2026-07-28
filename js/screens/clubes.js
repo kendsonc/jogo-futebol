@@ -8,7 +8,15 @@ function selecionarClubesProximos(uf){
   // Série A e Série B ficam fora da primeira peneira — um garoto de 16 anos
   // não bate à porta do Flamengo do nada; esses clubes só entram na carreira
   // mais pra frente, subindo de divisão ou sendo scoutado depois de se destacar.
-  const clubesBase = CLUBES.filter(c => c.divisao !== 'Série A' && c.divisao !== 'Série B');
+  let clubesBase = CLUBES.filter(c => c.divisao !== 'Série A' && c.divisao !== 'Série B');
+  // Contexto de origem (CONTEXTOS_INICIAIS, dados-base.js): "Base falida" e
+  // "Filho da várzea" começam mirando só nos clubes mais fracos/pobres da
+  // região — não é o mesmo ponto de partida de quem já nasce perto de um
+  // clube de estrutura melhor.
+  if(GAME.contextoInicial === 'baseFalida' || GAME.contextoInicial === 'filhoDaVarzea'){
+    const fracos = clubesBase.filter(c => (c.financeiro||50) < 45);
+    if(fracos.length >= 4) clubesBase = fracos;
+  }
   const regiao = REGIOES[uf];
   const mesmoEstado = clubesBase.filter(c => c.uf === uf);
   const mesmaRegiao = clubesBase.filter(c => c.uf !== uf && REGIOES[c.uf] === regiao);
@@ -90,6 +98,19 @@ function gerarElenco(){
   return embaralhados.slice(0,5).map((nome,i) => ({ id:'comp_'+i, nome, papel: PAPEIS_ELENCO[i % PAPEIS_ELENCO.length], relacao:50 }));
 }
 
+// Química de vestiário: matriz leve de relação NPC↔NPC, independente de você
+// — cliques/rixas que existem entre os PRÓPRIOS companheiros. Chamada junto
+// de toda atribuição de `GAME.elenco = gerarElenco()`. A maioria dos elencos
+// não tem nenhum par em conflito ativo (senão viraria rotina); quando tem,
+// de vez em quando força você a escolher lado (gerarEventoQuimicaVestiario,
+// eventos.js, gate em sortearEvento).
+function gerarParesConflitoElenco(elenco){
+  if(!elenco || elenco.length < 2 || !chance(45)) return [];
+  const a = pick(elenco);
+  const b = pick(elenco.filter(c => c.id !== a.id));
+  return [{ aId:a.id, aNome:a.nome, bId:b.id, bNome:b.nome, tensao:rand(55,75), ladoEscolhido:null, resolvida:false }];
+}
+
 // Concorrentes nomeados disputando a MESMA posição do jogador — antes a
 // "concorrência por vaga" só existia como número abstrato dentro de
 // decidirEscalacao (treino.js), sem nenhum nome/overall comparável pra dar a
@@ -114,13 +135,31 @@ function evoluirConcorrentesPosicao(){
   (GAME.concorrentesPosicao||[]).forEach(c => { c.overall = clamp(c.overall + rand(-4,5), 30, 95); });
 }
 
+// Cobrador oficial de bola parada — disputa reavaliada 1x por temporada (e ao
+// trocar de clube), comparando bolaParada do jogador com um concorrente do
+// próprio elenco simulado na hora. Ganhar o posto dá mais protagonismo nos
+// lances de bola parada (ver resolverNivelLance, partida.js); perder vira notícia.
+function avaliarDisputaCobradorOficial(){
+  const meuBolaParada = (GAME.atributos && GAME.atributos.bolaParada) || 45;
+  const concorrente = clamp(45 + rand(-20, 25), 20, 95);
+  const eraOficial = !!GAME.bolaParadaOficial;
+  GAME.bolaParadaOficial = (meuBolaParada + rand(-6, 6)) >= concorrente;
+  if(GAME.bolaParadaOficial && !eraOficial){
+    pushNoticia('geral', `${GAME.identidade.apelido} assume as cobranças de bola parada do ${GAME.clube.nome} nesta temporada.`);
+    if(!estaEmPartidaAoVivo()) mostrarToast({ icone:'🎯', titulo:'Cobrador oficial', texto:'Você virou o cobrador oficial de bola parada do time.' });
+  } else if(!GAME.bolaParadaOficial && eraOficial){
+    pushNoticia('geral', `${GAME.identidade.apelido} perdeu o posto de cobrador oficial de bola parada para um companheiro de elenco.`);
+    if(!estaEmPartidaAoVivo()) mostrarToast({ icone:'📉', titulo:'Posto perdido', texto:'Outro jogador assumiu as cobranças de bola parada.' });
+  }
+}
+
 function iniciarPeneira(clube){
   GAME.clube = { id:clube.id, nome:clube.nome, cidade:clube.cidade, uf:clube.uf,
     divisao:clube.divisao, estiloJogo:clube.estiloJogo, nivelBase:clube.nivelBase,
     chanceAprovacaoBase:clube.chanceAprovacaoBase, pressaoTorcida:clube.pressaoTorcida,
     oportunidadeJovens:clube.oportunidadeJovens, financeiro:clube.financeiro,
     reputacao:clube.reputacao, exigenciaPeneira:clube.exigenciaPeneira,
-    cor1:clube.cor1, cor2:clube.cor2 };
+    cor1:clube.cor1, cor2:clube.cor2, temporadasAqui:1 };
   trocarTecnico();
   GAME.observador = pickExcluindo(NOMES_OBSERVADORES, GAME.observador);
   GAME.peneiraState = { faseIndex:0, chanceDestaque:0 };

@@ -163,8 +163,15 @@ function finalizarTemporada(){
   if(posFinal && posFinal.posicao === 1){
     GAME.statsCareer.titulos += 1;
     registrarMarco('Campeão!', `Título da ${GAME.temporadaState.liga.divisao} na Temporada ${GAME.numeroTemporada} pelo ${GAME.clube.nome}.`, 'alta');
+    // Clube vivo: título injeta dinheiro real no financeiro do clube (bilheteria, patrocínio, premiação)
+    if(GAME.clube) GAME.clube.financeiro = clamp((GAME.clube.financeiro||50) + 18, 5, 95);
   }
-  if(GAME.acessoRebaixamentoResultado && GAME.acessoRebaixamentoResultado.tipo === 'acesso') GAME.statsCareer.acessos += 1;
+  if(GAME.acessoRebaixamentoResultado && GAME.acessoRebaixamentoResultado.tipo === 'acesso'){
+    GAME.statsCareer.acessos += 1;
+    if(GAME.clube) GAME.clube.financeiro = clamp((GAME.clube.financeiro||50) + 12, 5, 95);
+  } else if(GAME.acessoRebaixamentoResultado && GAME.acessoRebaixamentoResultado.tipo === 'rebaixamento'){
+    if(GAME.clube) GAME.clube.financeiro = clamp((GAME.clube.financeiro||50) - 15, 5, 95);
+  }
   verificarConvocacaoSelecao();
   // Copas (Copa do Brasil/Libertadores/Champions), Mundial de Clubes, Copa do
   // Mundo e Bola de Ouro entram DEPOIS do título doméstico e da convocação —
@@ -393,6 +400,12 @@ function renderFimDeTemporada(){
    "documentário da carreira" — não existe uma função separada pra isso.
    ========================================================================= */
 const LEGADOS = {
+  talento_desperdicado: { titulo:'Talento Desperdiçado',
+    texto:(g)=>`Tinha tudo pra ser lembrado só pelo talento, mas ${(g.escandalosOcorridos||0)>1 ? 'os escândalos públicos' : 'o escândalo público'} que marcaram sua trajetória vão junto na memória de quem acompanhou ${g.identidade.apelido} de perto — um legado manchado, mesmo com números respeitáveis.`,
+    criterio:(g)=> (g.escandalosOcorridos||0) >= 1 },
+  legado_social: { titulo:'Legado de Impacto Social',
+    texto:(g)=>`Além dos gramados, ${g.identidade.apelido} deixou uma marca fora de campo: o ${(g.institutoSocial&&g.institutoSocial.nome)||'instituto social que fundou'} já arrecadou R$ ${Math.round((g.institutoSocial&&g.institutoSocial.valorAcumulado)||0).toLocaleString('pt-BR')} para a comunidade — um legado que vai além de qualquer estatística de campo.`,
+    criterio:(g)=> !!(g.institutoSocial && g.institutoSocial.fundado && g.institutoSocial.valorAcumulado >= 50000) },
   icone_mundial: { titulo:'Ícone do Futebol Mundial',
     texto:(g)=>{ const t = g.statsCareer.titulosCopas||{}; const internacionais = (t.libertadores||0)+(t.championsLeague||0)+(t.mundialClubes||0)+(t.copaDoMundo||0);
       return `Não foi só no Brasil que ${g.identidade.apelido} deixou sua marca — ${internacionais} título(s) internacional(is) e ${t.bolaDeOuro||0} Bola(s) de Ouro tornaram essa uma carreira que ultrapassou fronteiras.`; },
@@ -429,7 +442,7 @@ const LEGADOS = {
     criterio:(g)=> true }
 };
 function calcularLegadoFinal(){
-  const ordem = ['icone_mundial','lenda_absoluta','capitao_geracao','artilheiro_historico','construtor_acessos','andarilho_bola','idolo_multiplos_clubes','rei_do_classico','carreira_interrompida','carreira_solida','trajetoria_discreta'];
+  const ordem = ['icone_mundial','lenda_absoluta','talento_desperdicado','legado_social','capitao_geracao','artilheiro_historico','construtor_acessos','andarilho_bola','idolo_multiplos_clubes','rei_do_classico','carreira_interrompida','carreira_solida','trajetoria_discreta'];
   return ordem.find(id => LEGADOS[id].criterio(GAME));
 }
 

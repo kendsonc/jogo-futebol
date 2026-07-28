@@ -222,7 +222,9 @@ function renderResultadoPeneira(){
     GAME.status.statusElenco = 'Garoto da base';
     GAME.relacoes.diretoria = clamp(GAME.relacoes.diretoria + 10, 0, 100);
     GAME.elenco = gerarElenco();
+    GAME.elencoParesConflito = gerarParesConflitoElenco(GAME.elenco);
     GAME.concorrentesPosicao = gerarConcorrentesPosicao();
+    avaliarDisputaCobradorOficial();
     concluirObjetivo('aprovadoPeneira');
     if(contrato.tipo !== 'Promessa de avaliação futura') concluirObjetivo('contratoBase');
     registrarMarco('Aprovado na peneira', `Aprovado na peneira do ${GAME.clube.nome} com um ${contrato.tipo.toLowerCase()}.`, 'alta');

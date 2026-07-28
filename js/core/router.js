@@ -69,8 +69,11 @@ function render(){
   }
   // Reparo de saves antigos (de antes de features novas existirem)
   if(!GAME.consequenciasPendentes) GAME.consequenciasPendentes = [];
+  if(!GAME.consequenciasDeCarreiraPendentes) GAME.consequenciasDeCarreiraPendentes = [];
   if(GAME.clube && !GAME.rival) GAME.rival = gerarRival();
   if(GAME.clube && !GAME.concorrentesPosicao) GAME.concorrentesPosicao = gerarConcorrentesPosicao();
+  if(GAME.elenco && !GAME.elencoParesConflito) GAME.elencoParesConflito = gerarParesConflitoElenco(GAME.elenco);
+  if(GAME.clube && GAME.bolaParadaOficial === undefined) avaliarDisputaCobradorOficial();
   if(!GAME.esquemaTatico) GAME.esquemaTatico = '4-3-3';
   if(!GAME.vidaPessoal) GAME.vidaPessoal = { ultimaAcaoSemana: {} };
   if(GAME.relacionamento === undefined) GAME.relacionamento = null;

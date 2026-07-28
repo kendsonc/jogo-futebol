@@ -122,12 +122,14 @@ function irParaEmprestimo(clubeDestino){
     chanceAprovacaoBase:clubeDestino.chanceAprovacaoBase, pressaoTorcida:clubeDestino.pressaoTorcida,
     oportunidadeJovens:clubeDestino.oportunidadeJovens, financeiro:clubeDestino.financeiro,
     reputacao:clubeDestino.reputacao, exigenciaPeneira:clubeDestino.exigenciaPeneira,
-    cor1:clubeDestino.cor1, cor2:clubeDestino.cor2 };
+    cor1:clubeDestino.cor1, cor2:clubeDestino.cor2, temporadasAqui:1 };
   GAME.contrato.bolsa = Math.round(GAME.contrato.bolsa * 0.85);
   Som.tocarEfeito('contratoAssinado');
   trocarTecnico();
   GAME.elenco = gerarElenco();
+  GAME.elencoParesConflito = gerarParesConflitoElenco(GAME.elenco);
   GAME.concorrentesPosicao = gerarConcorrentesPosicao();
+  avaliarDisputaCobradorOficial();
   GAME.relacoes.elenco = 50; GAME.relacoes.diretoria = 50; GAME.relacoes.torcida = 10;
   GAME.status.statusElenco = 'Emprestado';
   mostrarToast({ icone:'📋', titulo:'Empréstimo fechado', texto:`Cedido ao ${clubeDestino.nome} por 1 temporada` });
@@ -141,7 +143,9 @@ function processarRetornoEmprestimoSeNecessario(){
   GAME.emprestimoOrigem = null;
   trocarTecnico();
   GAME.elenco = gerarElenco();
+  GAME.elencoParesConflito = gerarParesConflitoElenco(GAME.elenco);
   GAME.concorrentesPosicao = gerarConcorrentesPosicao();
+  avaliarDisputaCobradorOficial();
   GAME.relacoes.elenco = 50; GAME.relacoes.diretoria = 50; GAME.relacoes.torcida = 25;
   GAME.status.statusElenco = 'De volta do empréstimo';
   pushNoticiaImprensa('midia', `Fim do empréstimo: ${GAME.identidade.apelido} retorna ao ${origem.nome} após a passagem pelo ${clubeEmprestado}.`);
@@ -395,7 +399,7 @@ function renderEntressafraTransferencia(){
           chanceAprovacaoBase:novoClube.chanceAprovacaoBase, pressaoTorcida:novoClube.pressaoTorcida,
           oportunidadeJovens:novoClube.oportunidadeJovens, financeiro:novoClube.financeiro,
           reputacao:novoClube.reputacao, exigenciaPeneira:novoClube.exigenciaPeneira,
-          cor1:novoClube.cor1, cor2:novoClube.cor2 };
+          cor1:novoClube.cor1, cor2:novoClube.cor2, temporadasAqui:1 };
         const ofertaTransferencia = calcularOfertaTransferencia(novoClube, opcoes.length > 1);
         GAME.contrato = { tipo:ofertaTransferencia.tipo, bolsa:ofertaTransferencia.bolsa, duracao:ofertaTransferencia.duracao,
           expectativa:ofertaTransferencia.expectativa, confiancaDiretoria:ofertaTransferencia.confiancaDiretoria };
@@ -410,7 +414,9 @@ function renderEntressafraTransferencia(){
         trocarTecnico();
         GAME.observador = pickExcluindo(NOMES_OBSERVADORES, GAME.observador);
         GAME.elenco = gerarElenco(); // novo clube, novos companheiros de elenco
+        GAME.elencoParesConflito = gerarParesConflitoElenco(GAME.elenco);
         GAME.concorrentesPosicao = gerarConcorrentesPosicao(); // novo clube, novos concorrentes pela vaga
+        avaliarDisputaCobradorOficial();
         if(amigoPacto){
           if(chance(55)){
             GAME.elenco.push({ ...amigoPacto, id:'comp_pacto_'+GAME.status.semanaGlobal, pactoCarreira:undefined });
@@ -501,7 +507,12 @@ function iniciarAposentadoria(){
     const nomeCurto = NOMES_EMPRESARIOS[GAME.empresarioAtual].split(',')[0];
     registrarMarco('Lealdade rara', `${GAME.identidade.apelido} encerrou a carreira sem nunca trocar de empresário — ${nomeCurto} esteve ao seu lado do início ao fim.`, 'media');
   }
+  if(GAME.pupilo){
+    const destino = textoDestinoPupilo();
+    if(destino) registrarMarco('O destino do pupilo', destino, 'media');
+  }
   registrarNoHallDaFama();
+  registrarTrofeusMeta();
   GAME.fase = 'aposentadoria';
   documentarioCapitulo = 0;
   salvarJogo();
@@ -716,6 +727,7 @@ function avancarParaProximaTemporada(){
   const nasc = new Date(GAME.identidade.nascimento);
   GAME.identidade.nascimento = new Date(nasc.getFullYear()-1, nasc.getMonth(), nasc.getDate()).toISOString();
   aplicarDeclinioFisicoPorIdade();
+  if(GAME.clube) GAME.clube.temporadasAqui = (GAME.clube.temporadasAqui||1) + 1;
 
   // Arquiva as estatísticas da temporada que terminou no histórico de carreira
   // notaMediaCareer é média ponderada por jogos (não média simples de médias) —
@@ -729,6 +741,7 @@ function avancarParaProximaTemporada(){
   GAME.statsCareer.assistencias += GAME.stats.assistencias;
   GAME.statsCareer.minutos += GAME.stats.minutos;
   GAME.statsCareer.titular += GAME.stats.titular;
+  GAME.statsCareer.xgPessoal = (GAME.statsCareer.xgPessoal||0) + (GAME.stats.xgPessoal||0);
   GAME.statsCareer.temporadas += 1;
 
   GAME.numeroTemporada += 1;
@@ -737,7 +750,7 @@ function avancarParaProximaTemporada(){
     finalizacoes:0, passesDecisivos:0, desarmes:0, interceptacoes:0,
     amarelos:0, vermelhos:0, lesoes:0, somaNotas:0, notaMedia:0,
     melhorEmCampo:0, valorEstimado:GAME.stats.valorEstimado, interesseClubes:Math.round(GAME.stats.interesseClubes*0.7),
-    defesasImportantes:0
+    defesasImportantes:0, xgPessoal:0
   };
   GAME.objetivos = gerarObjetivosTemporada(GAME.identidade.posicaoPrincipal, GAME.numeroTemporada);
   GAME.lesaoAtual = null;
@@ -762,6 +775,9 @@ function avancarParaProximaTemporada(){
   evoluirRival();
   evoluirExCompanheiros();
   evoluirConcorrentesPosicao();
+  avaliarDisputaCobradorOficial();
+  evoluirPupilo();
+  evoluirGeracaoDourada();
 
   pushNoticia('geral', `Início da Temporada ${GAME.numeroTemporada} — agora com ${idadeAtual()} anos.`);
   iniciarTemporada();

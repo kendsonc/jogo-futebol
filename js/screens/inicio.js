@@ -84,6 +84,7 @@ function renderStart(){
       </button>` : ''}
     </div>
     ${temSave ? '<button class="link-danger" id="btn-apagar">Apagar save atual</button>' : ''}
+    ${trofeusMetaResumoHtml()}
 
     <div class="feature-strip">
       <span class="feature-pill">🏆 6 Ligas Europeias</span>
@@ -104,6 +105,29 @@ function renderStart(){
       if(ok){ apagarSave(); render(); }
     });
   };
+  const btnVerTrofeus = document.getElementById('btn-ver-trofeus');
+  if(btnVerTrofeus) btnVerTrofeus.onclick = () => {
+    const lista = document.getElementById('lista-trofeus-meta');
+    lista.style.display = lista.style.display === 'none' ? 'block' : 'none';
+  };
+}
+
+// Troféus Meta (state.js): conquistas acumuladas de TODAS as carreiras já
+// jogadas neste navegador, diferente do Hall da Fama (que guarda um resumo
+// por carreira). Mostrado como um resumo expansível na tela inicial.
+function trofeusMetaResumoHtml(){
+  const desbloqueados = new Set(obterTrofeusMeta());
+  if(!desbloqueados.size) return '';
+  return `<div class="card" id="card-trofeus-meta">
+    <div class="card-title">🏅 Troféus Meta (${desbloqueados.size}/${TROFEUS_META_CRITERIOS.length})</div>
+    <p class="small muted">Conquistas acumuladas de todas as carreiras já jogadas neste navegador.</p>
+    <button type="button" class="btn btn-small" id="btn-ver-trofeus" style="margin-top:8px">Ver troféus</button>
+    <div id="lista-trofeus-meta" style="display:none;margin-top:10px">
+      ${TROFEUS_META_CRITERIOS.map(t => `
+        <p class="small" style="opacity:${desbloqueados.has(t.id)?'1':'0.4'}">${desbloqueados.has(t.id)?'🏅':'🔒'} <b>${escapeHtml(t.nome)}</b> — ${escapeHtml(t.desc)}</p>
+      `).join('')}
+    </div>
+  </div>`;
 }
 
 /* ============================== TELA: CRIAÇÃO DE PERSONAGEM ================ */
@@ -114,6 +138,9 @@ let criacaoAparencia = null;
 // Seleção do Hall da Fama (js/core/state.js) — vive só durante a criação,
 // null = "começar do zero" (comportamento de sempre).
 let heredeiroSelecionado = null;
+// Perks & Flaws (PERKS_FLAWS, dados-base.js) escolhidos na criação — vive só
+// durante a tela, até 2 ids selecionados.
+let perksSelecionados = [];
 function atualizarPreviewAparencia(){
   const el = document.getElementById('preview-rosto');
   if(el) el.innerHTML = pixelRostoSvg(criacaoAparencia, 140);
@@ -148,9 +175,9 @@ function legadoSelecaoHtml(hallDaFama){
       </button>
       ${hallDaFama.slice().reverse().map(l => `
       <button type="button" class="menu-tile legado-tile" data-legado="${escapeHtml(l.id)}">
-        <span class="menu-tile-icon">⭐</span>
+        <span class="menu-tile-icon">${(l.eventosLendarios&&l.eventosLendarios.length) ? '🌟' : '⭐'}</span>
         <span class="menu-tile-body">
-          <span class="menu-tile-title">Filho(a) de ${escapeHtml(l.apelido)}</span>
+          <span class="menu-tile-title">Filho(a) de ${escapeHtml(l.apelido)}${(l.eventosLendarios&&l.eventosLendarios.length) ? ' <span class="small" style="color:#c98a2a">· LENDA</span>' : ''}</span>
           <span class="menu-tile-sub">${escapeHtml(l.posicaoPrincipal)} • ${l.temporadas} temporada(s) • ${l.gols} gols • ${l.titulos} título(s)${l.patrimonioLiquido ? ` • herança de R$ ${Math.round(l.patrimonioLiquido*0.15).toLocaleString('pt-BR')}` : ''}</span>
         </span>
       </button>`).join('')}
@@ -163,6 +190,7 @@ function renderCriacaoPersonagem(){
   const ufOpts = UF_LIST.map(uf=>`<option value="${uf}">${uf} (${REGIOES[uf]})</option>`).join('');
   criacaoAparencia = gerarAparenciaAleatoria(Math.random, 'm');
   heredeiroSelecionado = null;
+  perksSelecionados = [];
   const hallDaFama = obterHallDaFama();
   app.innerHTML = `
     <div class="screen-hero">
@@ -209,6 +237,18 @@ function renderCriacaoPersonagem(){
           <select id="f-estilo">${estOpts}</select>
           <label>Meta de carreira</label>
           <select id="f-metaCarreira">${Object.keys(METAS_CARREIRA).map(k=>`<option value="${k}">${escapeHtml(METAS_CARREIRA[k].nome)} — ${escapeHtml(METAS_CARREIRA[k].desc)}</option>`).join('')}</select>
+          <label>De onde você vem</label>
+          <select id="f-contextoInicial">${Object.keys(CONTEXTOS_INICIAIS).map(k=>`<option value="${k}">${escapeHtml(CONTEXTOS_INICIAIS[k].nome)} — ${escapeHtml(CONTEXTOS_INICIAIS[k].desc)}</option>`).join('')}</select>
+        </fieldset>
+        <fieldset>
+          <legend>Marcas (opcional, até 2)</legend>
+          <p class="small muted" style="margin-bottom:8px">Cada marca escolhida vem com um bônus real e um contrapeso real — não são upgrades de graça.</p>
+          <div class="menu-tiles">
+            ${Object.keys(PERKS_FLAWS).map(k => `
+            <button type="button" class="menu-tile perk-tile" data-perk="${k}">
+              <span class="menu-tile-body"><span class="menu-tile-title">${escapeHtml(PERKS_FLAWS[k].nome)}</span><span class="menu-tile-sub">${escapeHtml(PERKS_FLAWS[k].desc)}</span></span>
+            </button>`).join('')}
+          </div>
         </fieldset>
         <fieldset>
           <legend>Aparência</legend>
@@ -250,6 +290,19 @@ function renderCriacaoPersonagem(){
     </div>
   `;
   atualizarPreviewAparencia();
+  document.querySelectorAll('.perk-tile').forEach(btn => {
+    btn.onclick = () => {
+      const id = btn.dataset.perk;
+      if(perksSelecionados.includes(id)){
+        perksSelecionados = perksSelecionados.filter(p => p !== id);
+        btn.classList.remove('sel');
+      } else {
+        if(perksSelecionados.length >= 2){ avisar('Você só pode escolher até 2 marcas.'); return; }
+        perksSelecionados.push(id);
+        btn.classList.add('sel');
+      }
+    };
+  });
   document.querySelectorAll('.legado-tile').forEach(btn => {
     btn.onclick = () => {
       document.querySelectorAll('.legado-tile').forEach(b => b.classList.remove('sel'));
@@ -311,6 +364,8 @@ function renderCriacaoPersonagem(){
       posicaoSecundaria: document.getElementById('f-posSecundaria').value,
       estilo: document.getElementById('f-estilo').value,
       metaCarreira: document.getElementById('f-metaCarreira').value,
+      contextoInicial: document.getElementById('f-contextoInicial').value,
+      perksEscolhidos: perksSelecionados.slice(),
       aparencia: criacaoAparencia,
       heredeiroDe: heredeiroSelecionado
     };
@@ -329,6 +384,8 @@ function renderHistoriaPassado(){
       <p class="screen-hero-sub">${escapeHtml(GAME.identidade.cidadeNatal)}/${GAME.identidade.uf} — 16 anos, um sonho, e uma história até aqui.</p>
     </div>
     ${GAME.heredeiroDe ? `<div class="card" style="border-color:#c98a2a"><p class="small">⭐ Antes mesmo da primeira peneira, seu nome já carrega peso: filho(a) de <b>${escapeHtml(GAME.heredeiroDe.apelido)}</b>, ${escapeHtml(GAME.heredeiroDe.posicaoPrincipal).toLowerCase()} que marcou época. A comparação vai te seguir — resta saber se você escreve sua própria história ou vive à sombra da dele(a).</p></div>` : ''}
+    ${GAME.contextoInicial ? `<div class="card"><p class="small">📍 ${escapeHtml(CONTEXTOS_INICIAIS[GAME.contextoInicial].nome)}: ${escapeHtml(CONTEXTOS_INICIAIS[GAME.contextoInicial].desc)}</p></div>` : ''}
+    ${(GAME.perksEscolhidos||[]).length ? `<div class="card"><p class="small">🎴 Suas marcas: ${GAME.perksEscolhidos.map(id => `<b>${escapeHtml(PERKS_FLAWS[id].nome)}</b>`).join(', ')}</p></div>` : ''}
     <div class="card">
       <div id="scene-text">${escapeHtml(GAME.historiaPassado).replace(/\n/g,'<br>')}</div>
       <div class="choices"><button class="btn btn-primary" id="btn-continuar-historia">Seguir para a peneira</button></div>

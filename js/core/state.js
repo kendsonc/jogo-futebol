@@ -35,11 +35,62 @@ function registrarNoHallDaFama(){
       clubesPassados: (s.clubesPassados||[]).map(c => c.nome),
       // Herança financeira pro próximo herdeiro (aplicarBonusHeranca) — antes
       // o Hall da Fama só passava bônus de atributo, nunca patrimônio de verdade.
-      patrimonioLiquido: (typeof calcularPatrimonioLiquido === 'function') ? calcularPatrimonioLiquido() : 0
+      patrimonioLiquido: (typeof calcularPatrimonioLiquido === 'function') ? calcularPatrimonioLiquido() : 0,
+      // Eventos lendários raríssimos (EVENTOS_LENDARIOS, eventos.js) entram
+      // com tag especial no Hall da Fama — carreiras raras ficam marcadas.
+      eventosLendarios: (GAME.memorial||[]).filter(m => m.importancia === 'lendaria').map(m => m.titulo)
     });
-    if(hall.length > 12) hall.splice(0, hall.length-12);
+    const capHall = 12 + Math.floor(obterTrofeusMeta().length/5); // recompensa de troféus meta: mais slots
+    if(hall.length > capHall) hall.splice(0, hall.length-capHall);
     localStorage.setItem(HALL_DA_FAMA_KEY, JSON.stringify(hall));
   } catch(e){ console.warn('Falha ao salvar Hall da Fama:', e); }
+}
+
+/* ============================== TROFÉUS META (CROSS-SAVE) ====================
+   Diferente do Hall da Fama (que guarda um RESUMO de cada carreira aposentada),
+   isto acumula CONQUISTAS de todas as carreiras já jogadas neste navegador —
+   um critério, uma vez desbloqueado, fica pra sempre (não é substituído por
+   carreira nova). Checado em iniciarAposentadoria (entressafra.js). A cada 5
+   troféus desbloqueados, o Hall da Fama ganha +1 slot (ver registrarNoHallDaFama).
+   ========================================================================= */
+const TROFEUS_META_KEY = 'modoCarreira_trofeusMeta_v1';
+const TROFEUS_META_CRITERIOS = [
+  { id:'titulo_zagueiro', nome:'Título com um zagueiro', desc:'Ergueu um título de clube jogando como Zagueiro.', criterio:(g)=> g.statsCareer.titulos>=1 && g.identidade.posicaoPrincipal==='Zagueiro' },
+  { id:'titulo_goleiro', nome:'Título com um goleiro', desc:'Ergueu um título de clube jogando como Goleiro.', criterio:(g)=> g.statsCareer.titulos>=1 && g.identidade.posicaoPrincipal==='Goleiro' },
+  { id:'um_clube_so', nome:'Um clube a carreira toda', desc:'Se aposentou tendo defendido um único clube a carreira inteira.', criterio:(g)=> (g.statsCareer.clubesPassados||[]).length === 0 },
+  { id:'nunca_lesionou', nome:'Corpo de aço', desc:'Encerrou a carreira sem nenhuma lesão registrada.', criterio:(g)=> (g.historicoLesoesTotal||0) === 0 },
+  { id:'zero_ao_topo', nome:'Do zero ao topo', desc:'Começou com potencial oculto baixo (<=50) e mesmo assim virou lenda ou ícone mundial.', criterio:(g)=> (g.potencialOculto||0) <= 50 && (g.legadoFinal==='lenda_absoluta' || g.legadoFinal==='icone_mundial') },
+  { id:'artilheiro_200', nome:'200 gols na carreira', desc:'Marcou 200 gols ou mais ao longo da carreira.', criterio:(g)=> g.statsCareer.gols>=200 },
+  { id:'bola_de_ouro', nome:'Bola de Ouro', desc:'Foi eleito o melhor do mundo ao menos 1 vez.', criterio:(g)=> ((g.statsCareer.titulosCopas||{}).bolaDeOuro||0) >= 1 },
+  { id:'poliglota_titulos', nome:'Coleção internacional', desc:'Ergueu Libertadores, Champions League e Mundial de Clubes na mesma carreira.', criterio:(g)=>{ const t=g.statsCareer.titulosCopas||{}; return (t.libertadores||0)>=1 && (t.championsLeague||0)>=1 && (t.mundialClubes||0)>=1; } },
+  { id:'copa_do_mundo', nome:'Campeão do Mundo', desc:'Foi campeão da Copa do Mundo pela Seleção.', criterio:(g)=> ((g.statsCareer.titulosCopas||{}).copaDoMundo||0) >= 1 },
+  { id:'longevidade', nome:'Longevidade rara', desc:'Jogou 15 temporadas ou mais como profissional.', criterio:(g)=> g.statsCareer.temporadas>=15 },
+  { id:'herdeiro_do_hall', nome:'Segunda geração', desc:'Começou a carreira como herdeiro(a) de uma lenda do Hall da Fama.', criterio:(g)=> !!g.heredeiroDe },
+  { id:'legado_social', nome:'Impacto além do campo', desc:'Fundou e sustentou um instituto social até virar legado.', criterio:(g)=> g.legadoFinal === 'legado_social' },
+  { id:'evento_lendario', nome:'Um em quinhentos', desc:'Viveu um evento lendário raríssimo durante a carreira.', criterio:(g)=> (g.memorial||[]).some(m => m.importancia==='lendaria') },
+  { id:'marcos_fisicos_completos', nome:'Ídolo de corpo e alma', desc:'Conquistou camisa aposentada, museu e estátua na mesma carreira.', criterio:(g)=> !!(g.marcosFisicos && g.marcosFisicos.camisaAposentada && g.marcosFisicos.museu && g.marcosFisicos.estatua) },
+  { id:'andarilho', nome:'Mala sempre pronta', desc:'Passou por 6 clubes ou mais na carreira.', criterio:(g)=> (g.statsCareer.clubesPassados||[]).length >= 6 },
+  { id:'origem_dificil', nome:'De onde ninguém esperava', desc:'Veio de um contexto de origem difícil (Base falida ou Filho da várzea) e mesmo assim teve um legado de destaque.', criterio:(g)=> (g.contextoInicial==='baseFalida'||g.contextoInicial==='filhoDaVarzea') && g.legadoFinal!=='trajetoria_discreta' && g.legadoFinal!=='carreira_solida' }
+];
+function obterTrofeusMeta(){
+  try{
+    const raw = localStorage.getItem(TROFEUS_META_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch(e){ return []; }
+}
+function registrarTrofeusMeta(){
+  try{
+    const desbloqueados = new Set(obterTrofeusMeta());
+    const novos = [];
+    TROFEUS_META_CRITERIOS.forEach(t => {
+      if(!desbloqueados.has(t.id) && t.criterio(GAME)){ desbloqueados.add(t.id); novos.push(t); }
+    });
+    localStorage.setItem(TROFEUS_META_KEY, JSON.stringify([...desbloqueados]));
+    if(novos.length && typeof mostrarToast === 'function'){
+      novos.forEach(t => mostrarToast({ icone:'🏅', titulo:'Troféu meta desbloqueado', texto: t.nome }));
+    }
+    return novos;
+  } catch(e){ console.warn('Falha ao salvar Troféus Meta:', e); return []; }
 }
 
 function novoObjetivo(cfg){
@@ -131,6 +182,17 @@ function aplicarBonusHeranca(atributos, legado){
 function criarNovoJogador(dados){
   const atributos = gerarAtributosIniciais(dados.estilo);
   if(dados.heredeiroDe) aplicarBonusHeranca(atributos, dados.heredeiroDe);
+  // Contexto de origem (CONTEXTOS_INICIAIS, dados-base.js) mexe direto nos
+  // atributos físicos/técnicos ANTES do resto do estado ser montado — os
+  // outros efeitos (carteira, pressão, popularidade) entram logo abaixo, já
+  // dentro do objeto GAME.
+  if(dados.contextoInicial === 'zeroAHeroi'){
+    Object.keys(atributos).forEach(chave => { atributos[chave] = clamp(atributos[chave] - 10, 15, 99); });
+  } else if(dados.contextoInicial === 'prodigioPressionado'){
+    Object.keys(atributos).forEach(chave => { atributos[chave] = clamp(atributos[chave] + 3, 1, 99); });
+  }
+  const perks = dados.perksEscolhidos || [];
+  if(perks.includes('semEmpresarioAte20')) atributos.disciplina = clamp(atributos.disciplina + 5, 1, 99);
   const nascimento = calcularNascimento(dados.dia, dados.mes);
   const objetivosIniciais = gerarObjetivosTemporada(dados.posicaoPrincipal, 1);
   GAME = {
@@ -147,62 +209,82 @@ function criarNovoJogador(dados){
       peso: dados.peso,
       posicaoPrincipal: dados.posicaoPrincipal,
       posicaoSecundaria: dados.posicaoSecundaria || null,
+      experienciaPosicoes: {},
       estilo: dados.estilo,
       aparencia: dados.aparencia || gerarAparenciaAleatoria(Math.random, 'm')
     },
     atributos: atributos,
     status: {
-      energia: 80, moral: 60, confianca: 55, pressao: 30,
+      energia: 80, moral: 60, confianca: 55,
+      pressao: dados.contextoInicial === 'prodigioPressionado' ? 50 : 30,
       condicaoFisica: 90, risco: 10, statusElenco: 'Avaliação',
       semanaGlobal: 0, periodoAtual: 0, semanaNoPeriodo: 0,
       saudeMental: 68
     },
     // Herdeiro de uma carreira do Hall da Fama entra com mais popularidade
     // (o sobrenome já pesa) mas também mais pressão psicológica desde o
-    // início — expectativa alta tem preço, mesmo aos 16 anos.
-    sociais: { moral:60, confianca:55, popularidade: dados.heredeiroDe ? 42 : 20, reputacaoLocal:15, imagemMidia:50, pressaoPsicologica: dados.heredeiroDe ? 38 : 25 },
+    // início — expectativa alta tem preço, mesmo aos 16 anos. Contexto de
+    // origem (CONTEXTOS_INICIAIS) empurra os mesmos números de outro jeito.
+    sociais: {
+      moral:60, confianca:55,
+      popularidade: perks.includes('promessaDesconhecida') ? 0 : clamp((dados.heredeiroDe ? 42 : 20) + (dados.contextoInicial === 'prodigioPressionado' ? 15 : dados.contextoInicial === 'baseFalida' ? -5 : 0) + (perks.includes('semEmpresarioAte20') ? 8 : 0), 0, 100),
+      reputacaoLocal:15,
+      imagemMidia: clamp(50 + (dados.contextoInicial === 'prodigioPressionado' ? 10 : 0), 0, 100),
+      pressaoPsicologica: clamp((dados.heredeiroDe ? 38 : 25) + (dados.contextoInicial === 'prodigioPressionado' ? 15 : 0) + (perks.includes('corpoFrio') ? -15 : 0), 0, 100)
+    },
     heredeiroDe: dados.heredeiroDe ? { apelido:dados.heredeiroDe.apelido, sobrenome:dados.heredeiroDe.sobrenome, legadoFinal:dados.heredeiroDe.legadoFinal, posicaoPrincipal:dados.heredeiroDe.posicaoPrincipal } : null,
+    contextoInicial: dados.contextoInicial || null,
+    perksEscolhidos: perks,
+    marcosFisicos: { camisaAposentada:false, museu:false, estatua:false },
+    pupilo: null,
+    geracaoDourada: [],
+    familia: gerarFamilia(),
+    escandalosOcorridos: 0,
     relacoes: { treinador:50, elenco:50, familia:70, empresario:0, diretoria:50, torcida:20, midia:30 },
     contrato: { tipo:'Sem contrato', bolsa:0, duracao:0, expectativa:'Nenhuma', confiancaDiretoria:40 },
     stats: {
       jogos:0, titular:0, entrouBanco:0, minutos:0, gols:0, assistencias:0,
       finalizacoes:0, passesDecisivos:0, desarmes:0, interceptacoes:0,
       amarelos:0, vermelhos:0, lesoes:0, somaNotas:0, notaMedia:0,
-      melhorEmCampo:0, valorEstimado:5000, interesseClubes:0, defesasImportantes:0
+      melhorEmCampo:0, valorEstimado:5000, interesseClubes:0, defesasImportantes:0,
+      xgPessoal:0
     },
+    historicoNotas: [],
     clube: null,
     clubesOferecidos: [],
-    elenco: [], tecnico: null, observador: null,
+    elenco: [], elencoParesConflito: [], tecnico: null, observador: null,
     empresarioAtual: null,
     rival: null,
     exCompanheiros: [],
     relacionamento: null,
-    potencialOculto: rand(40,90),
+    potencialOculto: dados.contextoInicial === 'prodigioPressionado' ? rand(75,95) : (perks.includes('promessaDesconhecida') ? rand(70,95) : rand(40,90)),
     noticias: [],
     historico: [],
     memorial: [],
     objetivos: objetivosIniciais,
     consequenciasPendentes: [],
+    consequenciasDeCarreiraPendentes: [],
     vidaPessoal: { ultimaAcaoSemana: {} },
     peneiraState: null,
     temporadaState: null,
     lesaoAtual: null,
     disciplinaPontos: 0,
     recondicionamentoSemanas: 0,
+    riscoReincidenciaSemanas: 0,
     cuidadoFisico: 50,
     historicoLesoesTotal: 0,
     tracos: { humilde:0, confiante:0, descontraido:0, serio:0, rebelde:0 },
     forma: { ultimasNotas: [], media: 0, momento: 'regular' },
     // Herança financeira: uma fração do patrimônio da lenda escolhida no Hall
     // da Fama (registrarNoHallDaFama) — antes só herdava atributo, nunca dinheiro.
-    carteira: dados.heredeiroDe ? Math.round((dados.heredeiroDe.patrimonioLiquido||0) * 0.15) : 0,
+    carteira: dados.heredeiroDe ? Math.round((dados.heredeiroDe.patrimonioLiquido||0) * 0.15) : (dados.contextoInicial === 'baseFalida' ? -250 : 0),
     patrocinioAtual: null,
     patrociniosImagem: {},
     numeroTemporada: 1,
     statsCareer: { jogos:0, gols:0, assistencias:0, minutos:0, titular:0, temporadas:0, premios:[],
       titulos:0, acessos:0, clubesPassados:[], notaMediaCareer:0, convocacoes:[],
       titulosCopas: { copaBrasil:0, libertadores:0, championsLeague:0, mundialClubes:0, copaDoMundo:0, bolaDeOuro:0 },
-      copasDoMundo: [], confrontosHistorico: {} },
+      copasDoMundo: [], confrontosHistorico: {}, xgPessoal:0 },
     qualificacoesProximaTemporada: null,
     social: { seguidores: rand(120,400), mensagens: [] },
     historiaPassado: pick(HISTORIAS_PASSADO)(dados),
@@ -234,11 +316,23 @@ function repararEstadoEconomia(){
   if(!GAME.exCompanheiros) GAME.exCompanheiros = [];
   if(GAME.heredeiroDe === undefined) GAME.heredeiroDe = null;
   if(GAME.metaCarreira === undefined) GAME.metaCarreira = null;
+  if(GAME.contextoInicial === undefined) GAME.contextoInicial = null;
+  if(!GAME.perksEscolhidos) GAME.perksEscolhidos = [];
+  if(!GAME.marcosFisicos) GAME.marcosFisicos = { camisaAposentada:false, museu:false, estatua:false };
+  if(GAME.pupilo === undefined) GAME.pupilo = null;
+  if(!GAME.geracaoDourada) GAME.geracaoDourada = [];
+  if(!GAME.familia) GAME.familia = gerarFamilia();
+  if(GAME.escandalosOcorridos === undefined) GAME.escandalosOcorridos = 0;
+  if(!GAME.historicoNotas) GAME.historicoNotas = [];
+  if(GAME.stats && GAME.stats.xgPessoal === undefined) GAME.stats.xgPessoal = 0;
+  if(GAME.statsCareer && GAME.statsCareer.xgPessoal === undefined) GAME.statsCareer.xgPessoal = 0;
+  if(GAME.clube && GAME.clube.temporadasAqui === undefined) GAME.clube.temporadasAqui = 1;
   if(!GAME.historicoTecnicos) GAME.historicoTecnicos = {};
   if(GAME.contrato && GAME.contrato.clausulaRescisao == null) GAME.contrato.clausulaRescisao = Math.round(Math.max(50000, (GAME.stats.valorEstimado||50000) * 1.5) / 1000) * 1000;
   if(GAME.contrato && GAME.contrato.clausulaDesempenho === undefined) GAME.contrato.clausulaDesempenho = null;
   if(!GAME.memoriaSocial) GAME.memoriaSocial = { ultimosEventos: [] };
   if(GAME.identidade && !GAME.identidade.aparencia) GAME.identidade.aparencia = gerarAparenciaAleatoria(Math.random, 'm');
+  if(GAME.identidade && !GAME.identidade.experienciaPosicoes) GAME.identidade.experienciaPosicoes = {};
   if(GAME.relacionamento){
     if(GAME.relacionamento.casado === undefined) GAME.relacionamento.casado = false;
     if(GAME.relacionamento.semanasCasado === undefined) GAME.relacionamento.semanasCasado = 0;
@@ -349,8 +443,8 @@ function registrarMemoriaNarrativa(tag, resposta, tom){
 function registrarMarco(titulo, descricao, importancia){
   if(!GAME.memorial) GAME.memorial = [];
   GAME.memorial.push({ titulo, descricao, temporada: GAME.numeroTemporada, importancia });
-  if(importancia === 'alta' && !estaEmPartidaAoVivo() && typeof mostrarToast === 'function'){
-    mostrarToast({ icone:'🏆', titulo, texto: descricao });
+  if((importancia === 'alta' || importancia === 'lendaria') && !estaEmPartidaAoVivo() && typeof mostrarToast === 'function'){
+    mostrarToast({ icone: importancia === 'lendaria' ? '🌟' : '🏆', titulo, texto: descricao });
     if(typeof Som !== 'undefined') Som.tocarEfeito('marcoDeCarreira');
   }
 }

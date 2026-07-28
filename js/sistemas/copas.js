@@ -912,8 +912,46 @@ function finalizarCopaDoMundoJogavel(campeao){
    altura (o padrão real: quase sempre vem acompanhado de título grande).
    ========================================================================= */
 const NOMES_CRAQUES_MUNDIAIS = ['Kadu Vieira', 'Yannick Bertrand', 'Milo Aurélio', 'Sander Voss', 'Theo Duarte', 'Nemanja Kostic'];
+/* ------------------------------ GERAÇÃO DOURADA -------------------------------
+   Antes, os candidatos à Bola de Ouro eram sorteados do zero a cada temporada
+   (score puro aleatório) — nomes reaproveitados, mas sem trajetória real.
+   Agora GAME.geracaoDourada guarda 3-4 contemporâneos globais com um "nivel"
+   persistente que evolui por temporada (evoluirGeracaoDourada, chamada em
+   avancarParaProximaTemporada, entressafra.js, junto de evoluirRival) —
+   podem acumular vitórias, virar lenda (nivel alto sustentado) ou se
+   aposentar e serem substituídos, gerando manchete cruzada.
+   ------------------------------------------------------------------------- */
+function inicializarGeracaoDourada(){
+  if(GAME.geracaoDourada && GAME.geracaoDourada.length) return;
+  GAME.geracaoDourada = embaralhar(NOMES_CRAQUES_MUNDIAIS).slice(0,4).map(nome => ({ nome, nivel: rand(70,88), vitorias:0, temporadasAtivo:0, aposentado:false }));
+}
+// Chamada 1x por virada de temporada — evolução abstrata independente de você
+// disputar ou não a Bola de Ouro naquele ano (mundo segue vivendo sem você).
+function evoluirGeracaoDourada(){
+  inicializarGeracaoDourada();
+  GAME.geracaoDourada.forEach(c => {
+    if(c.aposentado) return;
+    c.temporadasAtivo += 1;
+    c.nivel = clamp(c.nivel + rand(-4,4), 55, 97);
+    if(c.temporadasAtivo >= 8 && chance(15)){
+      c.aposentado = true;
+      pushNoticiaImprensa('midia', `${c.nome}, um dos grandes nomes do futebol mundial da sua geração, anuncia aposentadoria após uma carreira de repercussão internacional${c.vitorias>0 ? ` e ${c.vitorias} Bola(s) de Ouro`:''}.`);
+    }
+  });
+  const ativos = GAME.geracaoDourada.filter(c => !c.aposentado);
+  if(ativos.length < 3){
+    const nomesAtuais = new Set(GAME.geracaoDourada.map(c=>c.nome));
+    const disponiveis = NOMES_COMPANHEIROS.filter(n => !nomesAtuais.has(n));
+    if(disponiveis.length){
+      const novo = { nome: pick(disponiveis), nivel: rand(68,82), vitorias:0, temporadasAtivo:0, aposentado:false };
+      GAME.geracaoDourada.push(novo);
+      pushNoticiaImprensa('midia', `Uma nova geração desponta no futebol mundial: ${novo.nome} começa a chamar atenção da crítica internacional.`);
+    }
+  }
+}
 function calcularMelhorDoMundoSeElegivel(){
   GAME.bolaDeOuroResultado = null;
+  inicializarGeracaoDourada();
   const grandeClube = GAME.clube.divisao==='Internacional' ? GAME.clube.reputacao>=78 : GAME.clube.reputacao>=85;
   if(!grandeClube) return;
   if(GAME.stats.notaMedia < 7.2) return;
@@ -929,7 +967,8 @@ function calcularMelhorDoMundoSeElegivel(){
   if(!venceuTituloGrande) return;
 
   const scoreJogador = GAME.stats.notaMedia*8 + GAME.stats.gols*1.5 + GAME.stats.assistencias + (calcularOverall()-70)*0.6 + rand(-5,5);
-  const candidatos = embaralhar(NOMES_CRAQUES_MUNDIAIS).slice(0,4).map(nome => ({ nome, score: rand(58,92) + rand(-6,6) }));
+  const ativos = GAME.geracaoDourada.filter(c => !c.aposentado);
+  const candidatos = ativos.slice(0,4).map(c => ({ nome:c.nome, score: c.nivel + rand(-6,6) }));
   candidatos.push({ nome: GAME.identidade.apelido, score: scoreJogador, souEu:true });
   candidatos.sort((a,b) => b.score-a.score);
   const vencedor = candidatos[0];
@@ -941,6 +980,12 @@ function calcularMelhorDoMundoSeElegivel(){
     GAME.premiacoesTemporada.push('Bola de Ouro — Melhor do Mundo');
   } else {
     pushNoticiaImprensa('midia', `Bola de Ouro: ${vencedor.nome} foi eleito o melhor do mundo nesta temporada — ${GAME.identidade.apelido} ficou entre os concorrentes.`);
+    const ref = GAME.geracaoDourada.find(c => c.nome === vencedor.nome);
+    if(ref){
+      ref.vitorias = (ref.vitorias||0) + 1;
+      ref.nivel = clamp(ref.nivel + 3, 55, 99);
+      if(ref.vitorias === 3) pushNoticiaImprensa('midia', `${ref.nome} chega à 3ª Bola de Ouro da carreira e já é tratado como uma lenda absoluta do futebol mundial.`);
+    }
   }
 }
 

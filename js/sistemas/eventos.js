@@ -278,7 +278,12 @@ function sortearEvento(){
   // corte de idade, um veterano de 30+ anos podia sortear "sua prova de
   // escola essa semana" no meio de uma carreira de uma década.
   const eventosJovem = idadeAtual() <= 19 ? EVENTOS_ADOLESCENTE : [];
-  const pool = [...EVENTOS_RECORRENTES, ...eventosJovem, ...EVENTOS_EQUIPE, ...EVENTOS_CLUBE]
+  // Contexto de origem (CONTEXTOS_INICIAIS, dados-base.js): eventos exclusivos
+  // só entram no sorteio pra quem escolheu aquele arquétipo na criação, e só
+  // enquanto jovem (mesmo corte de EVENTOS_ADOLESCENTE).
+  const eventosContexto = (idadeAtual() <= 19 && GAME.contextoInicial)
+    ? EVENTOS_CONTEXTO_INICIAL.filter(e => e.contexto === GAME.contextoInicial) : [];
+  const pool = [...EVENTOS_RECORRENTES, ...eventosJovem, ...eventosContexto, ...EVENTOS_EQUIPE, ...EVENTOS_CLUBE]
     .filter(e => eventoBateComResultado(e.id));
   if(GAME.elenco && GAME.elenco.length){
     pool.push(...EVENTOS_AMIZADE.map(gerador => gerador()));
@@ -297,7 +302,10 @@ function sortearEvento(){
   }
   else if(GAME.sociais.popularidade >= 15 && chance(15)) pool.push(gerarEventoConhecerAlguem());
   if(GAME.tecnico && GAME.tecnico.estilo) pool.push(...EVENTOS_TECNICO.map(gerador => gerador()).filter(Boolean));
-  if(!GAME.empresarioAtual && !ts.empresarioOfertado && ts.periodoIndex >= 1 && chance(40)){
+  // Perk "Sem empresário até os 20" (PERKS_FLAWS, dados-base.js): nenhuma
+  // oferta de empresário aparece antes disso.
+  const bloqueadoSemEmpresario = (GAME.perksEscolhidos||[]).includes('semEmpresarioAte20') && idadeAtual() < 20;
+  if(!GAME.empresarioAtual && !ts.empresarioOfertado && ts.periodoIndex >= 1 && !bloqueadoSemEmpresario && chance(40)){
     pool.push(gerarEventoEmpresario());
   }
   if(GAME.empresarioAtual && GAME.empresarioAtual !== 'renomado' && !ts.empresarioConcorrenteOfertado && ts.periodoIndex >= 1
@@ -372,6 +380,70 @@ function sortearEvento(){
   // Luto: no máximo 1 vez por temporada, chance bem baixa
   if(!ts.lutoOcorrido && ts.periodoIndex >= 1 && chance(4)){
     pool.push(pick(EVENTOS_LUTO));
+  }
+  // Família expandida (GAME.familia = {pai, mae, irmaos}): arcos próprios
+  // rodando dentro da mesma carreira, com nome e vínculo individual.
+  if(GAME.familia){
+    const irmaoParaTeste = (GAME.familia.irmaos||[]).find(i => !i.testouEntrarClube && idadeAtual() <= 24);
+    if(irmaoParaTeste && chance(6)) pool.push(gerarEventoIrmaoTestaClube(irmaoParaTeste));
+    const irmaoParaCiume = (GAME.familia.irmaos||[]).find(i => !i.ciumeOcorrido && GAME.sociais.popularidade >= 40);
+    if(irmaoParaCiume && chance(7)) pool.push(gerarEventoCiumeIrmaos(irmaoParaCiume));
+    if(GAME.familia.pai.vivo && idadeAtual() >= 24 && chance(4)) pool.push(gerarEventoPaiDoente());
+  }
+  // Escândalo e queda: gatilho raro de condição extrema, mancha o legado pra sempre
+  if(GAME.atributos.disciplina <= 25 && GAME.sociais.pressaoPsicologica >= 80 && GAME.relacoes.midia <= 25 && chance(3)){
+    pool.push(gerarEventoEscandaloPublico());
+  }
+  // Química de vestiário: rixa entre dois companheiros existe independente de
+  // você (gerarParesConflitoElenco, clubes.js) — de vez em quando força escolher lado.
+  {
+    const parAtivo = (GAME.elencoParesConflito||[]).find(p => !p.resolvida);
+    if(parAtivo && chance(9)) pool.push(gerarEventoQuimicaVestiario(parAtivo));
+  }
+  // Concorrência de elenco: concorrente muito atrás pode pedir transferência
+  if(GAME.concorrentesPosicao && GAME.concorrentesPosicao.length){
+    const meuOverall = calcularOverall();
+    const bemAtras = GAME.concorrentesPosicao.find(c => (meuOverall - c.overall) >= 20);
+    if(bemAtras && chance(10)) pool.push(gerarEventoConcorrentePedeTransferencia(bemAtras));
+  }
+  // Mentoria de jovem jogador (pupilo): chegada a partir dos 33 anos, depois
+  // eventos recorrentes de mentoria enquanto o vínculo existir.
+  if(!GAME.pupilo && idadeAtual() >= 33 && chance(15)) pool.push(gerarEventoChegadaPupilo());
+  if(GAME.pupilo){
+    if(chance(14)) pool.push(gerarEventoMentoriaConselho());
+    if(chance(10)) pool.push(gerarEventoMentoriaCobranca());
+  }
+  // Identidade regional de verdade: eventos culturais da região de nascimento
+  // (chance baixa pra não repetir toda hora — dedup por eventosRecentesIds já
+  // cuida do resto) e reação única da torcida ao "forasteiro" na chegada.
+  if(chance(9)){
+    const regiaoNatal = REGIOES[GAME.identidade.uf];
+    const elegiveisRegiao = EVENTOS_REGIONAIS.filter(e => e.regiao === regiaoNatal);
+    if(elegiveisRegiao.length) pool.push(pick(elegiveisRegiao));
+  }
+  if(GAME.clube && (GAME.clube.temporadasAqui||0) === 1 && !GAME.clube.forasteiroEventoOcorrido
+    && REGIOES[GAME.clube.uf] && REGIOES[GAME.clube.uf] !== REGIOES[GAME.identidade.uf] && chance(20)){
+    pool.push(gerarEventoForasteiroRegional());
+  }
+  // Instituto/fundação social: pode ser oferecido mais de uma vez (recusar não
+  // fecha a porta pra sempre), mas nunca depois de já fundado.
+  if(!(GAME.institutoSocial && GAME.institutoSocial.fundado) && GAME.sociais.popularidade >= 70 && (GAME.carteira||0) >= 25000 && chance(8)){
+    pool.push(gerarEventoFundarInstituto());
+  }
+  // Biografia ou filme da carreira: 1x por carreira, gatilhado por legado alto
+  // (popularidade + títulos), com chance de aparecer a cada temporada elegível.
+  if(!GAME.biografiaOfertada){
+    const tituloCopasSoma = Object.values((GAME.statsCareer&&GAME.statsCareer.titulosCopas)||{}).reduce((a,b)=>a+b, 0);
+    const legadoAlto = GAME.sociais.popularidade >= 85 && ((GAME.statsCareer.titulos||0) + tituloCopasSoma) >= 2;
+    if(legadoAlto && chance(10)) pool.push(gerarEventoBiografiaFilme());
+  }
+  // Eventos lendários raríssimos (EVENTOS_LENDARIOS, eventos.js): checado no
+  // máximo 1x por temporada, com gate de condição extrema (aplicavel) MAIS
+  // uma chance bem baixa por cima — a raridade real vem da combinação dos dois.
+  if(!ts.eventoLendarioOcorrido){
+    ts.eventoLendarioOcorrido = true;
+    const elegiveis = EVENTOS_LENDARIOS.filter(e => e.aplicavel(GAME));
+    if(elegiveis.length && chance(0.4)) pool.push(pick(elegiveis));
   }
   // Evita repetir os últimos eventos vistos (inclusive de temporadas anteriores)
   const recentes = GAME.eventosRecentesIds || [];

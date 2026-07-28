@@ -538,6 +538,270 @@ const EVENTOS_ADOLESCENTE = [
       { label:'Seguir a tendência e renovar o visual', efeitos:{popularidade:2, moral:2, tracos:{confiante:1}} },
       { label:'Manter o seu jeito de ser, sem seguir modismos', efeitos:{moral:1, tracos:{humilde:1, serio:1}} },
       { label:'Ficar na dúvida e perguntar a opinião dos amigos antes', efeitos:{moral:1} }
+    ] },
+  { id:'juventude_ajudar_companheiro_base', categoria:'geral',
+    texto:(g)=>`Um garoto novo na base, claramente inseguro e com dificuldade de acompanhar o ritmo dos treinos, pede uma ajuda extra sua depois do expediente.`,
+    escolhas:[
+      { label:'Ajudar de verdade, treinando extra com ele', efeitos:{relacaoElenco:4, moral:3, tracos:{humilde:1}} },
+      { label:'Focar só na sua própria evolução por agora', efeitos:{atributos:{disciplina:1}, tracos:{serio:1}},
+        // Semente narrativa de longuíssimo prazo (E3.5): não paga/cobra na
+        // hora — volta anos depois, em unidade de TEMPORADA, não semana
+        // (agendarConsequenciaDeCarreira, consequencias.js).
+        extra:(g)=>agendarConsequenciaDeCarreira('juventude_rancor_retorno', rand(4,7), {}, 'Uma decisão de anos atrás na base pode voltar à tona.') }
+    ] }
+];
+
+/* --------------------------- IDENTIDADE REGIONAL DE VERDADE ------------------
+   Antes, REGIOES/UF_COORDS (dados-base.js) só serviam pra calcular distância
+   de viagem — aqui ganham peso narrativo real: 2 eventos culturais próprios
+   por região de NASCIMENTO (gate por GAME.identidade.uf em sortearEvento,
+   js/sistemas/eventos.js) e um evento único de "torcida reage ao forasteiro"
+   quando o clube atual é de região bem diferente da natal (gate em
+   GAME.clube.temporadasAqui===1, flag GAME.clube.forasteiroEventoOcorrido).
+   ------------------------------------------------------------------------- */
+const EVENTOS_REGIONAIS = [
+  { id:'regional_norte_boi_bumba', regiao:'Norte', categoria:'familia',
+    texto:(g)=>`Chega notícia de casa: é época de festival de boi-bumbá na sua cidade natal, e a família manda vídeos da festa — dá até saudade do cheiro de fogueira e da música ao vivo.`,
+    escolhas:[
+      { label:'Ligar pra família e reviver as lembranças com carinho', efeitos:{relacaoFamilia:6, moral:4, tracos:{humilde:1}} },
+      { label:'Sentir a distância pesar um pouco mais hoje', efeitos:{saudeMental:-3, moral:-2} }
+    ] },
+  { id:'regional_norte_calor', regiao:'Norte', categoria:'geral',
+    texto:(g)=>`O calor e a umidade da região onde você nasceu são um mundo diferente do clima daqui — companheiros de elenco perguntam curiosos como é viver por lá.`,
+    escolhas:[
+      { label:'Contar com orgulho como é a vida na sua região', efeitos:{relacaoElenco:4, popularidade:2, tracos:{descontraido:1}} },
+      { label:'Comentar rapidamente e mudar de assunto', efeitos:{relacaoElenco:1} }
+    ] },
+  { id:'regional_nordeste_festa_junina', regiao:'Nordeste', categoria:'familia',
+    texto:(g)=>`É época de festa junina — mesmo longe de casa, o cheiro de milho assado e a lembrança do forró animado no terreiro batem forte na memória.`,
+    escolhas:[
+      { label:'Organizar uma festinha junina com o elenco em homenagem à sua terra', efeitos:{relacaoElenco:6, popularidade:3, moral:5, tracos:{descontraido:1}} },
+      { label:'Guardar a saudade só pra você mesmo', efeitos:{saudeMental:-2, moral:-1} }
+    ] },
+  { id:'regional_nordeste_vaquejada', regiao:'Nordeste', categoria:'geral',
+    texto:(g)=>`Uma reportagem sobre vaquejada no seu estado natal viraliza nas redes — e junto vem um enxame de comentários carinhosos de gente da sua terra torcendo por você.`,
+    escolhas:[
+      { label:'Compartilhar e agradecer publicamente o apoio da sua região', efeitos:{popularidade:5, imagemMidia:3, moral:3, tracos:{humilde:1}} },
+      { label:'Curtir por dentro, sem fazer alarde nas redes', efeitos:{moral:2} }
+    ] },
+  { id:'regional_centrooeste_agro', regiao:'Centro-Oeste', categoria:'familia',
+    texto:(g)=>`Sua família manda fotos da fazenda de um parente, no meio do Cerrado — o tipo de paisagem que não existe em lugar nenhum perto de onde você mora agora.`,
+    escolhas:[
+      { label:'Planejar uma visita assim que a agenda permitir', efeitos:{relacaoFamilia:5, moral:4, tracos:{serio:1}} },
+      { label:'Só responder com carinho, sem prometer nada por enquanto', efeitos:{relacaoFamilia:2} }
+    ] },
+  { id:'regional_centrooeste_churrasco', regiao:'Centro-Oeste', categoria:'geral',
+    texto:(g)=>`Você organiza um churrasco no estilo da sua região pro elenco — um jeito de levar um pedaço de casa pro dia a dia no CT.`,
+    escolhas:[
+      { label:'Caprichar e fazer questão de reunir todo mundo', efeitos:{relacaoElenco:7, moral:4, tracos:{descontraido:1}} },
+      { label:'Fazer algo simples, sem grande produção', efeitos:{relacaoElenco:3} }
+    ] },
+  { id:'regional_sudeste_correria', regiao:'Sudeste', categoria:'geral',
+    texto:(g)=>`Um companheiro comenta como sente falta do ritmo acelerado das grandes cidades de onde você veio — pergunta como você lida com a saudade da correria de casa.`,
+    escolhas:[
+      { label:'Dizer que sente falta, mas está focado no presente', efeitos:{relacaoElenco:3, moral:2, tracos:{serio:1}} },
+      { label:'Admitir que às vezes bate um saudosismo forte', efeitos:{saudeMental:2, relacaoElenco:2, tracos:{humilde:1}} }
+    ] },
+  { id:'regional_sudeste_praia', regiao:'Sudeste', categoria:'vidaPessoal',
+    texto:(g)=>`Num dia de folga, você lembra das praias e da vida da sua região natal — bem diferente da rotina corrida de atleta que você leva hoje.`,
+    escolhas:[
+      { label:'Aproveitar a folga pra descansar de verdade, pensando em casa', efeitos:{energia:6, moral:4} },
+      { label:'Preencher a folga com mais uma sessão extra de treino', efeitos:{atributos:{disciplina:1}, energia:-4, tracos:{serio:1}} }
+    ] },
+  { id:'regional_sul_churrasco', regiao:'Sul', categoria:'familia',
+    texto:(g)=>`Chimarrão na mão, você lembra dos domingos em família lá na sua região — um hábito que você mantém firme mesmo longe de casa.`,
+    escolhas:[
+      { label:'Levar o costume pro vestiário e compartilhar com o elenco', efeitos:{relacaoElenco:5, moral:4, tracos:{descontraido:1}} },
+      { label:'Manter o hábito só pra você, num momento mais pessoal', efeitos:{saudeMental:3, moral:2} }
+    ] },
+  { id:'regional_sul_frio', regiao:'Sul', categoria:'geral',
+    texto:(g)=>`O clima frio da sua terra natal é bem diferente de onde você joga hoje — dá pra sentir o corpo estranhando a mudança sempre que volta de férias.`,
+    escolhas:[
+      { label:'Se adaptar sem reclamar, focado na rotina', efeitos:{atributos:{disciplina:1}, tracos:{serio:1}} },
+      { label:'Comentar com bom humor a diferença de clima com os companheiros', efeitos:{relacaoElenco:3, moral:2, tracos:{descontraido:1}} }
+    ] }
+];
+// Torcida/imprensa reagem diferente quando o clube é de uma região BEM
+// diferente da natal — evento único por passagem no clube (flag em
+// GAME.clube, que é substituído por inteiro a cada transferência).
+function gerarEventoForasteiroRegional(){
+  return {
+    id:'regional_forasteiro_chegada', categoria:'torcida',
+    texto:(g)=>`Parte da torcida do ${g.clube.nome} comenta abertamente que você é "de fora" — nascido bem longe dali, numa região com cultura e sotaque diferentes. Alguns acham exótico, outros desconfiam.`,
+    escolhas:[
+      { label:'Abraçar a cultura local e aprender os costumes daqui', efeitos:{relacaoTorcida:6, popularidade:3, tracos:{humilde:1}},
+        extra:(g)=>{ g.clube.forasteiroEventoOcorrido = true; } },
+      { label:'Ser você mesmo, sem tentar se encaixar à força', efeitos:{relacaoTorcida:2, imagemMidia:2, tracos:{confiante:1}},
+        extra:(g)=>{ g.clube.forasteiroEventoOcorrido = true; } }
+    ]
+  };
+}
+
+/* --------------------------- ESCÂNDALO E QUEDA (LEGADO PERMANENTE) -----------
+   Gatilho raro (disciplina muito baixa + pressão muito alta + relação ruim
+   com a mídia, checado em sortearEvento) — mancha o legado final PRA SEMPRE
+   (GAME.escandalosOcorridos, critério em LEGADOS.talento_desperdicado,
+   fim-temporada.js), contrapondo o fato de quase todo desfecho hoje ser
+   sólido/lendário.
+   ------------------------------------------------------------------------- */
+function gerarEventoEscandaloPublico(){
+  return {
+    id:'legado_escandalo_publico', categoria:'midia',
+    texto:(g)=>`Vem à tona um escândalo público envolvendo ${g.identidade.apelido} — a imprensa não larga o assunto, e dessa vez não tem discurso que abafe de vez a repercussão.`,
+    escolhas:[
+      { label:'Assumir publicamente o erro e pedir desculpas', efeitos:{imagemMidia:-14, pressaoPsicologica:10, saudeMental:-6, tracos:{humilde:1}},
+        extra:(g)=>{ g.escandalosOcorridos = (g.escandalosOcorridos||0)+1; registrarMarco('Escândalo público', `Temporada ${g.numeroTemporada}: um escândalo público manchou permanentemente a imagem de ${g.identidade.apelido}, mesmo após o pedido de desculpas.`, 'alta'); } },
+      { label:'Negar tudo e tentar minimizar a repercussão', efeitos:{imagemMidia:-22, pressaoPsicologica:16, relacaoDiretoria:-8, tracos:{rebelde:1}},
+        extra:(g)=>{ g.escandalosOcorridos = (g.escandalosOcorridos||0)+1; registrarMarco('Escândalo público', `Temporada ${g.numeroTemporada}: um escândalo público manchou permanentemente a imagem de ${g.identidade.apelido}, agravado pela tentativa de negar tudo.`, 'alta'); } }
+    ]
+  };
+}
+
+/* --------------------------- QUÍMICA DE VESTIÁRIO (NPC x NPC) ----------------
+   GAME.elencoParesConflito (gerarParesConflitoElenco, clubes.js) guarda uma
+   rixa entre dois companheiros que existe INDEPENDENTE de você — de vez em
+   quando, força escolher lado numa briga ENTRE ELES (não entre você e um
+   deles), afetando sua relação com os dois de forma assimétrica.
+   ------------------------------------------------------------------------- */
+function gerarEventoQuimicaVestiario(par){
+  return {
+    id:'quimica_vestiario_lado', categoria:'vestiario',
+    texto:(g)=>`O clima esquentou entre ${par.aNome} e ${par.bNome} — uma rixa que já vinha de um tempo explode de vez no vestiário, e os dois cobram publicamente que você escolha um lado.`,
+    escolhas:[
+      { label:`Ficar do lado de ${par.aNome}`, efeitos:{},
+        extra:(g)=>{ par.resolvida = true; par.ladoEscolhido = 'a';
+          const cA = g.elenco.find(c=>c.id===par.aId), cB = g.elenco.find(c=>c.id===par.bId);
+          if(cA){ cA.relacao = clamp(cA.relacao+10,0,100); }
+          if(cB){ cB.relacao = clamp(cB.relacao-8,0,100); }
+          aplicarEfeitos({ relacaoElenco:-2 }); } },
+      { label:`Ficar do lado de ${par.bNome}`, efeitos:{},
+        extra:(g)=>{ par.resolvida = true; par.ladoEscolhido = 'b';
+          const cA = g.elenco.find(c=>c.id===par.aId), cB = g.elenco.find(c=>c.id===par.bId);
+          if(cB){ cB.relacao = clamp(cB.relacao+10,0,100); }
+          if(cA){ cA.relacao = clamp(cA.relacao-8,0,100); }
+          aplicarEfeitos({ relacaoElenco:-2 }); } },
+      { label:'Se recusar a escolher lado e tentar apaziguar os dois', efeitos:{relacaoElenco:2, tracos:{humilde:1}},
+        extra:(g)=>{ par.resolvida = true; par.ladoEscolhido = 'neutro'; par.tensao = clamp(par.tensao-15,0,100); } }
+    ]
+  };
+}
+
+/* --------------------------- CONCORRÊNCIA DE ELENCO: PEDIDO DE TRANSFERÊNCIA --
+   Complementa gerarConcorrentesPosicao/evoluirConcorrentesPosicao (clubes.js):
+   um concorrente muito atrás do seu overall pode pedir pra sair, abrindo
+   espaço de verdade na disputa pela vaga (gate em sortearEvento).
+   ------------------------------------------------------------------------- */
+function gerarEventoConcorrentePedeTransferencia(concorrente){
+  return {
+    id:'concorrencia_pedido_transferencia', categoria:'diretoria',
+    texto:(g)=>`${concorrente.nome}, que disputava sua posição no elenco, procura a diretoria do ${g.clube.nome} pedindo para ser negociado — sabe que dificilmente vai te superar na concorrência pela vaga.`,
+    escolhas:[
+      { label:'Desejar sorte e torcer pelo sucesso dele em outro lugar', efeitos:{relacaoElenco:3, tracos:{humilde:1}},
+        extra:(g)=>{ g.concorrentesPosicao = (g.concorrentesPosicao||[]).filter(c => c.id !== concorrente.id); pushNoticia('geral', `${concorrente.nome} deixou o elenco do ${g.clube.nome} após pedir transferência.`); } },
+      { label:'Só registrar e seguir focado no seu próprio jogo', efeitos:{},
+        extra:(g)=>{ g.concorrentesPosicao = (g.concorrentesPosicao||[]).filter(c => c.id !== concorrente.id); } }
+    ]
+  };
+}
+
+/* --------------------------- MENTORIA DE JOVEM JOGADOR (PUPILO) --------------
+   Gerador da chegada (gate por idade em sortearEvento, js/sistemas/eventos.js)
+   + eventos recorrentes de mentoria enquanto GAME.pupilo existir. Evolução
+   abstrata do pupilo em evoluirPupilo (js/sistemas/mentoria.js).
+   ------------------------------------------------------------------------- */
+function gerarEventoChegadaPupilo(){
+  return {
+    id:'mentoria_chegada_pupilo', categoria:'treinador',
+    texto:(g)=>`A diretoria do ${g.clube.nome} tem um pedido: com sua experiência agora, topa apadrinhar um garoto promissor da base, ajudando a moldar o próximo passo da carreira dele?`,
+    escolhas:[
+      { label:'Aceitar de bom grado o papel de mentor', efeitos:{moral:5, relacaoDiretoria:5, tracos:{humilde:1}},
+        extra:(g)=>{ g.pupilo = gerarPupilo(); pushNoticia('geral', `${g.identidade.apelido} passa a mentorar ${g.pupilo.nome}, jovem promessa da base do ${g.clube.nome}.`); } },
+      { label:'Aceitar, mas deixar claro que tem pouco tempo livre', efeitos:{relacaoDiretoria:2},
+        extra:(g)=>{ g.pupilo = gerarPupilo(); g.pupilo.vinculo = 35; } }
+    ]
+  };
+}
+function gerarEventoMentoriaConselho(){
+  const p = GAME.pupilo;
+  return {
+    id:'mentoria_conselho', categoria:'treinador',
+    texto:(g)=>`${p.nome} te procura depois do treino, ansioso, pedindo um conselho sobre como lidar com a pressão de crescer no futebol.`,
+    escolhas:[
+      { label:'Dedicar um tempo de verdade, com atenção e paciência', efeitos:{moral:2, tracos:{humilde:1}},
+        extra:(g)=>{ g.pupilo.vinculo = clamp(g.pupilo.vinculo+10, 0, 100); } },
+      { label:'Dar um conselho rápido, sem se aprofundar muito', efeitos:{},
+        extra:(g)=>{ g.pupilo.vinculo = clamp(g.pupilo.vinculo+2, 0, 100); } }
+    ]
+  };
+}
+function gerarEventoMentoriaCobranca(){
+  const p = GAME.pupilo;
+  return {
+    id:'mentoria_cobranca', categoria:'treinador',
+    texto:(g)=>`${p.nome} vem de uma sequência ruim nos treinos da base e parece desanimado — é a hora certa pra você intervir como mentor.`,
+    escolhas:[
+      { label:'Cobrar com firmeza, mas mostrando que acredita nele', efeitos:{atributos:{lideranca:1}, tracos:{serio:1}},
+        extra:(g)=>{ g.pupilo.vinculo = clamp(g.pupilo.vinculo+6, 0, 100); g.pupilo.overallEstimado = clamp(g.pupilo.overallEstimado+3, 30, 95); } },
+      { label:'Deixar ele resolver sozinho, sem interferir', efeitos:{},
+        extra:(g)=>{ g.pupilo.vinculo = clamp(g.pupilo.vinculo-4, 0, 100); } }
+    ]
+  };
+}
+
+/* ---------------------- CONTEXTO DE ORIGEM (CONTEXTOS_INICIAIS) --------------
+   Eventos exclusivos por arquétipo de origem escolhido na criação (dados-base.js),
+   só sorteados enquanto jovem (mesmo corte de idade de EVENTOS_ADOLESCENTE) e
+   filtrados por GAME.contextoInicial em sortearEvento (js/sistemas/eventos.js).
+   ------------------------------------------------------------------------- */
+const EVENTOS_CONTEXTO_INICIAL = [
+  { id:'basefalida_bolsa_atrasada', contexto:'baseFalida', categoria:'diretoria',
+    texto:(g)=>`A bolsa auxílio do mês atrasou de novo — o ${g.clube.nome} vive apertado e o financeiro do clube não é segredo pra ninguém no CT.`,
+    escolhas:[
+      { label:'Cobrar educadamente na diretoria', efeitos:{relacaoDiretoria:-2, atributos:{disciplina:1}, tracos:{serio:1}} },
+      { label:'Aguentar calado, sabendo que o clube não tem de onde tirar', efeitos:{moral:-3, relacaoDiretoria:3, tracos:{humilde:1}} },
+      { label:'Desabafar sobre isso com um jornalista local', efeitos:{imagemMidia:-3, popularidade:4, relacaoDiretoria:-6, tracos:{rebelde:1}} }
+    ] },
+  { id:'basefalida_material_precario', contexto:'baseFalida', categoria:'geral',
+    texto:(g)=>`Sua chuteira já está com a sola gasta e o clube não tem verba pra repor material da base agora. Treinar assim vai custar caro pro seu corpo.`,
+    escolhas:[
+      { label:'Comprar um par novo do próprio bolso', efeitos:{carteira:-150, cuidadoFisico:6, tracos:{serio:1}} },
+      { label:'Se virar com o que tem por enquanto', efeitos:{energia:-4, cuidadoFisico:-3, atributos:{disciplina:1}, tracos:{humilde:1}} }
+    ] },
+  { id:'prodigio_expectativa_precoce', contexto:'prodigioPressionado', categoria:'midia',
+    texto:(g)=>`Antes mesmo de estrear de verdade, a torcida já fala do seu nome como "o próximo craque" do ${g.clube.nome}. A cobrança chega antes da experiência.`,
+    escolhas:[
+      { label:'Abraçar a expectativa e prometer entregar', efeitos:{confianca:6, pressaoPsicologica:8, popularidade:4, tracos:{confiante:1}} },
+      { label:'Pedir à família e ao empresário para conter um pouco o hype', efeitos:{saudeMental:5, popularidade:-3, tracos:{humilde:1}} }
+    ] },
+  { id:'prodigio_comparacao_precoce', contexto:'prodigioPressionado', categoria:'midia',
+    texto:(g)=>`Um comentarista te compara publicamente a um craque consagrado, ainda nos seus primeiros meses de profissional. A comparação pega — e cola.`,
+    escolhas:[
+      { label:'Aceitar a comparação como motivação', efeitos:{imagemMidia:4, pressaoPsicologica:6, tracos:{confiante:1}} },
+      { label:'Pedir tempo e recusar publicamente a comparação', efeitos:{saudeMental:4, imagemMidia:-2, tracos:{humilde:1}} }
+    ] },
+  { id:'zeroheroi_duvida_inicial', contexto:'zeroAHeroi', categoria:'treinador',
+    texto:(g)=>`${g.observador||'O olheiro'} não esconde a dúvida sobre seu potencial — "cru" é a palavra que mais escuta sobre o próprio jogo por enquanto.`,
+    escolhas:[
+      { label:'Provar em campo, treinando dobrado', efeitos:{energia:-6, moral:4, atributos:{disciplina:1}, tracos:{serio:1}} },
+      { label:'Deixar quieto e seguir no seu ritmo', efeitos:{moral:-2, tracos:{humilde:1}} }
+    ] },
+  { id:'zeroheroi_primeira_evolucao', contexto:'zeroAHeroi', categoria:'geral',
+    texto:(g)=>`Um treinador percebe e comenta: você está evoluindo mais rápido do que esperavam de alguém que chegou tão cru.`,
+    escolhas:[
+      { label:'Agradecer com humildade e continuar no foco', efeitos:{moral:4, relacaoTreinador:3, tracos:{humilde:1}} },
+      { label:'Se orgulhar abertamente da evolução', efeitos:{confianca:4, popularidade:2, tracos:{confiante:1}} }
+    ] },
+  { id:'varzea_peneira_dificil', contexto:'filhoDaVarzea', categoria:'geral',
+    texto:(g)=>`Sem nenhum contato no futebol, você encarou uma fila enorme de garotos na peneira de hoje — ninguém ali sabia seu nome antes de você entrar em campo.`,
+    escolhas:[
+      { label:'Aguentar firme e confiar só no que fez em campo', efeitos:{atributos:{disciplina:1}, energia:-4, moral:3, tracos:{serio:1}} },
+      { label:'Reclamar da falta de oportunidade pra quem não tem indicação', efeitos:{moral:-2, tracos:{rebelde:1}} }
+    ] },
+  { id:'varzea_saudade_resiliencia', contexto:'filhoDaVarzea', categoria:'familia',
+    texto:(g)=>`Uma lembrança do campo de terra onde tudo começou, na várzea perto de casa, bate forte — bem diferente da estrutura (ainda modesta) do CT de agora.`,
+    escolhas:[
+      { label:'Usar essa origem como combustível todo dia', efeitos:{moral:5, confianca:3, tracos:{serio:1}} },
+      { label:'Preferir não falar muito sobre de onde veio', efeitos:{imagemMidia:2, saudeMental:-2, tracos:{humilde:1}} }
     ] }
 ];
 
@@ -1123,6 +1387,97 @@ const EVENTOS_AMIZADE = [
       { label:'Voltar pro treino normalmente, confiando que é só um susto', efeitos:{amigo:c.id, amigoDelta:-6} }
     ] }; }
 ];
+
+/* --------------------------- EVENTOS LENDÁRIOS RARÍSSIMOS --------------------
+   Pool checado no máximo 1x por temporada (ver tentarEventoLendario,
+   js/sistemas/eventos.js), cada entrada com um gate de condição extrema
+   (aplicavel) além da própria chance baixíssima do sorteio — combinados, dão
+   a raridade de "1 em ~500 carreiras" pedida pra esse sistema. Sempre resolve
+   em registrarMarco com importancia:'lendaria', que entra no Hall da Fama
+   com tag especial (registrarNoHallDaFama, state.js).
+   ------------------------------------------------------------------------- */
+const EVENTOS_LENDARIOS = [
+  { id:'lendario_atuacao_perfeita', categoria:'geral',
+    aplicavel:(g)=> g.stats.notaMedia >= 8.4 && g.stats.jogos >= 8,
+    texto:(g)=>`Depois de uma sequência de atuações quase perfeitas, comentaristas do país inteiro começam a repetir a mesma frase: você está vivendo a melhor fase individual que o futebol nacional viu em anos.`,
+    escolhas:[
+      { label:'Falar sobre isso com humildade na entrevista', efeitos:{imagemMidia:10, popularidade:14, saudeMental:4, tracos:{humilde:1}},
+        extra:(g)=>registrarMarco('Fase inesquecível', `Temporada ${g.numeroTemporada}: uma sequência de atuações lembrada como uma das melhores fases individuais do futebol nacional.`, 'lendaria') },
+      { label:'Deixar claro que quer ainda mais, sem se acomodar', efeitos:{confianca:10, pressaoPsicologica:8, popularidade:10, tracos:{confiante:1}},
+        extra:(g)=>registrarMarco('Fase inesquecível', `Temporada ${g.numeroTemporada}: uma sequência de atuações lembrada como uma das melhores fases individuais do futebol nacional.`, 'lendaria') }
+    ] },
+  { id:'lendario_ligacao_ex_craque', categoria:'midia',
+    aplicavel:(g)=> g.sociais.popularidade >= 88 && g.sociais.imagemMidia >= 80,
+    texto:(g)=>`Seu celular toca com um número desconhecido. Do outro lado, a voz é inconfundível: um dos maiores craques que o futebol mundial já viu liga pessoalmente só para dizer que anda te acompanhando.`,
+    escolhas:[
+      { label:'Agradecer emocionado e guardar a ligação pra sempre', efeitos:{saudeMental:10, moral:10, confianca:6, tracos:{humilde:1}},
+        extra:(g)=>{ registrarMarco('A ligação inesquecível', `Temporada ${g.numeroTemporada}: recebeu uma ligação pessoal de uma lenda mundial do futebol, reconhecendo sua trajetória.`, 'lendaria'); pushNoticiaImprensa('midia', `Bastidor raro: uma lenda do futebol mundial ligou pessoalmente para elogiar ${g.identidade.apelido}.`); } },
+      { label:'Pedir um conselho de carreira antes de desligar', efeitos:{atributos:{decisao:1}, confianca:8, saudeMental:6, tracos:{serio:1}},
+        extra:(g)=>registrarMarco('A ligação inesquecível', `Temporada ${g.numeroTemporada}: recebeu uma ligação pessoal de uma lenda mundial do futebol, reconhecendo sua trajetória.`, 'lendaria') }
+    ] },
+  { id:'lendario_resgate_impossivel', categoria:'geral',
+    aplicavel:(g)=>{ const seq = sequenciaAtual(); return seq.tipo==='derrota' && seq.tamanho>=4 && g.status.saudeMental <= 35; },
+    texto:(g)=>`No fundo do poço de uma sequência de derrotas, com a cabeça em frangalhos, alguma coisa muda dentro de você numa única semana — como se o próprio limite virasse combustível.`,
+    escolhas:[
+      { label:'Canalizar tudo isso na próxima partida', efeitos:{confianca:14, saudeMental:12, moral:10, tracos:{serio:1}},
+        extra:(g)=>registrarMarco('A virada de dentro pra fora', `Temporada ${g.numeroTemporada}: reagiu ao pior momento psicológico da carreira com uma virada de mentalidade lembrada por anos.`, 'lendaria') },
+      { label:'Dividir o peso com quem está por perto antes de reagir', efeitos:{saudeMental:16, relacaoElenco:8, relacaoFamilia:6, tracos:{humilde:1}},
+        extra:(g)=>registrarMarco('A virada de dentro pra fora', `Temporada ${g.numeroTemporada}: reagiu ao pior momento psicológico da carreira com uma virada de mentalidade lembrada por anos.`, 'lendaria') }
+    ] },
+  { id:'lendario_gesto_historico', categoria:'midia',
+    aplicavel:(g)=> g.sociais.imagemMidia >= 85 && g.relacoes.torcida >= 85,
+    texto:(g)=>`Num gesto espontâneo dentro de campo — fair-play puro, sem cálculo nenhum — você faz algo que a torcida rival também aplaude de pé. O vídeo viraliza no mundo inteiro em questão de horas.`,
+    escolhas:[
+      { label:'Dizer que faria tudo de novo, sem pensar duas vezes', efeitos:{imagemMidia:12, popularidade:16, relacaoTorcida:6, tracos:{humilde:1}},
+        extra:(g)=>registrarMarco('O gesto que viralizou', `Temporada ${g.numeroTemporada}: um gesto de fair-play em campo viralizou mundialmente e virou símbolo de esportividade.`, 'lendaria') },
+      { label:'Ficar surpreso com o tamanho da repercussão', efeitos:{saudeMental:8, popularidade:10, imagemMidia:8, tracos:{descontraido:1}},
+        extra:(g)=>registrarMarco('O gesto que viralizou', `Temporada ${g.numeroTemporada}: um gesto de fair-play em campo viralizou mundialmente e virou símbolo de esportividade.`, 'lendaria') }
+    ] }
+];
+
+/* --------------------------- BIOGRAFIA OU FILME DA CARREIRA ------------------
+   Evento único (checado em sortearEvento, js/sistemas/eventos.js, gate de
+   legado alto — popularidade + títulos) que deixa o jogador ESCOLHER O TOM
+   da obra (heroico/cru/polêmico), com efeito duradouro em imagemMidia e um
+   capítulo extra no documentário de aposentadoria (capitulosDocumentario,
+   entressafra.js já inclui qualquer marco do memorial automaticamente).
+   ------------------------------------------------------------------------- */
+function gerarEventoBiografiaFilme(){
+  return {
+    id:'legado_biografia_filme', categoria:'midia',
+    texto:(g)=>`Uma produtora renomada procura ${g.identidade.apelido} com uma proposta: transformar a sua trajetória numa biografia (livro e documentário). Antes de fechar contrato, eles pedem que você escolha o tom da obra.`,
+    escolhas:[
+      { label:'Tom heroico — a superação e a conquista em primeiro plano', efeitos:{imagemMidia:10, popularidade:8, moral:6, tracos:{confiante:1}},
+        extra:(g)=>{ g.biografiaOfertada = true; g.biografiaTom = 'heroico'; registrarMarco('A biografia', `Temporada ${g.numeroTemporada}: autorizou uma biografia/documentário de tom heroico sobre sua trajetória, celebrando as conquistas.`, 'alta'); pushNoticiaImprensa('midia', `Anunciada biografia oficial de ${g.identidade.apelido}, com tom celebratório sobre a carreira.`); } },
+      { label:'Tom cru — sem filtro, incluindo os erros e as dificuldades reais', efeitos:{imagemMidia:4, saudeMental:6, relacaoFamilia:-2, tracos:{serio:1}},
+        extra:(g)=>{ g.biografiaOfertada = true; g.biografiaTom = 'cru'; registrarMarco('A biografia', `Temporada ${g.numeroTemporada}: autorizou uma biografia/documentário de tom cru e sem filtro, expondo também as dificuldades da trajetória.`, 'alta'); pushNoticiaImprensa('midia', `Biografia de ${g.identidade.apelido} promete não esconder os momentos difíceis da carreira.`); } },
+      { label:'Tom polêmico — deixar as farpas e as rivalidades aparecerem', efeitos:{popularidade:12, imagemMidia:-6, relacaoDiretoria:-4, tracos:{rebelde:1}},
+        extra:(g)=>{ g.biografiaOfertada = true; g.biografiaTom = 'polemico'; registrarMarco('A biografia', `Temporada ${g.numeroTemporada}: autorizou uma biografia/documentário de tom polêmico, sem esconder rivalidades e farpas da carreira.`, 'alta'); pushNoticiaImprensa('midia', `Biografia polêmica de ${g.identidade.apelido} promete repercussão — rivais já reagem.`); } }
+    ]
+  };
+}
+
+/* --------------------------- INSTITUTO/FUNDAÇÃO SOCIAL -----------------------
+   Evento único (popularidade+carteira altas, gate em sortearEvento) de fundar
+   um instituto social com o próprio nome — cresce lentamente por doações
+   (avaliarInstitutoSocial, chamada semanalmente em concluirTickSemanal,
+   liga.js) e vira critério de um LEGADO dedicado (LEGADOS.legado_social,
+   fim-temporada.js) quando acumula o suficiente.
+   ------------------------------------------------------------------------- */
+function gerarEventoFundarInstituto(){
+  return {
+    id:'legado_fundar_instituto', categoria:'geral',
+    texto:(g)=>`Com o nome que você construiu e um patrimônio já sólido, surge a ideia de fundar um instituto social na sua cidade natal — algo que vá além do futebol e deixe uma marca concreta na comunidade.`,
+    escolhas:[
+      { label:'Fundar o instituto com um investimento inicial', efeitos:{carteira:-20000, popularidade:6, imagemMidia:6, moral:6, tracos:{humilde:1}},
+        extra:(g)=>{ g.institutoOfertado = true; g.institutoSocial = { fundado:true, nome:`Instituto ${g.identidade.apelido}`, valorAcumulado:0 };
+          registrarMarco('Fundação do instituto', `Temporada ${g.numeroTemporada}: fundou o ${g.institutoSocial.nome}, um instituto social na cidade natal, ${g.identidade.cidadeNatal}.`, 'alta');
+          pushNoticiaImprensa('midia', `${g.identidade.apelido} funda instituto social em ${g.identidade.cidadeNatal}, com investimento próprio.`); } },
+      { label:'Não é o momento — talvez mais adiante na carreira', efeitos:{},
+        extra:(g)=>{ g.institutoOfertado = false; } }
+    ]
+  };
+}
 
 /* ------------------------- LADO OBSCURO DO FUTEBOL ---------------------------
    O futebol de base real nem sempre é só sonho: golpes, agiotagem e gente

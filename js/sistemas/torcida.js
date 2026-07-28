@@ -92,6 +92,37 @@ function gerarEventoBoicoteTorcida(){
   };
 }
 
+/* ============================== MARCOS FÍSICOS DA CARREIRA =====================
+   Cascata de reconhecimentos físicos resolvida DURANTE a carreira ativa (não
+   só no documentário de aposentadoria, entressafra.js): camisa aposentada
+   (torcida alta + anos de casa no clube atual, GAME.clube.temporadasAqui),
+   nome no museu (após título grande) e estátua (critério raro de lenda
+   absoluta). Cada um só dispara 1x na carreira inteira (GAME.marcosFisicos).
+   Chamada 1x por semana em concluirTickSemanal (liga.js).
+   ========================================================================= */
+function avaliarMarcosFisicos(){
+  if(!GAME.clube) return;
+  const mf = GAME.marcosFisicos;
+  const s = GAME.statsCareer;
+  if(!mf.camisaAposentada && GAME.relacoes.torcida >= 90 && (GAME.clube.temporadasAqui||0) >= 6){
+    mf.camisaAposentada = true;
+    registrarMarco('Camisa aposentada', `A torcida do ${GAME.clube.nome} pede a aposentadoria da sua camisa em homenagem aos anos de história juntos.`, 'alta');
+    pushNoticiaImprensa('torcida', `${GAME.clube.nome} anuncia a aposentadoria da camisa de ${GAME.identidade.apelido} — feito raro concedido a ídolos do clube.`);
+  }
+  const tituloGrande = (s.titulos||0) >= 1 || Object.values(s.titulosCopas||{}).some(v => v >= 1);
+  if(!mf.museu && tituloGrande && GAME.relacoes.torcida >= 70){
+    mf.museu = true;
+    registrarMarco('Nome no museu do clube', `Seu nome entra para o museu do ${GAME.clube.nome}, ao lado de outras histórias marcantes do clube.`, 'alta');
+    pushNoticiaImprensa('torcida', `${GAME.clube.nome} inaugura espaço no museu do clube dedicado à trajetória de ${GAME.identidade.apelido}.`);
+  }
+  const tituloCopas = Object.values(s.titulosCopas||{}).reduce((a,b)=>a+b, 0);
+  if(!mf.estatua && ((s.titulos||0) + tituloCopas) >= 4 && GAME.sociais.popularidade >= 90){
+    mf.estatua = true;
+    registrarMarco('Estátua na entrada do estádio', `Uma estátua sua é erguida na entrada do estádio do ${GAME.clube.nome} — reconhecimento reservado a poucas lendas absolutas.`, 'alta');
+    pushNoticiaImprensa('torcida', `${GAME.clube.nome} inaugura estátua em homenagem a ${GAME.identidade.apelido}, consagrando seu nome na história do clube.`);
+  }
+}
+
 /* ============================== TORCIDA DIVIDIDA ================================
    Antes, a torcida ia direto de "número sem rosto" (< 85) pro arco de ídolo
    (>= 85), sem nenhuma gradação no meio — uma torcida "cética mas dando

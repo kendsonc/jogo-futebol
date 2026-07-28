@@ -332,6 +332,18 @@ function concluirTickSemanal(){
   GAME.status.condicaoFisica = clamp((GAME.status.condicaoFisica!=null?GAME.status.condicaoFisica:90) + 2, 0, 100);
   // fase de recondicionamento pós-lesão: evolução de atributos mais lenta por um tempo
   if(GAME.recondicionamentoSemanas > 0) GAME.recondicionamentoSemanas -= 1;
+  // risco de reincidência por ter antecipado o retorno de uma lesão (lesao.js)
+  if(GAME.riscoReincidenciaSemanas > 0) GAME.riscoReincidenciaSemanas -= 1;
+  avaliarMarcosFisicos();
+  avaliarClubeVivo();
+  // Instituto social (eventos.js legado_fundar_instituto): cresce devagar por
+  // doações a cada semana, proporcional à popularidade atual do jogador.
+  if(GAME.institutoSocial && GAME.institutoSocial.fundado){
+    GAME.institutoSocial.valorAcumulado = Math.round((GAME.institutoSocial.valorAcumulado||0) + 80 + GAME.sociais.popularidade*3);
+  }
+  // Polivalência posicional: o toggle de jogar na secundária vale só pra
+  // semana em que foi marcado — precisa ser reafirmado toda vez.
+  GAME.temporadaState.escaladoSecundariaSemana = false;
   // bolsa/salário e eventual patrocínio caem na conta toda semana (valor mensal / 4),
   // descontada a comissão do empresário, se houver
   const rendaPatrociniosImagem = GAME.patrociniosImagem ? Object.values(GAME.patrociniosImagem).reduce((soma,p) => soma + p.valorMensal/4, 0) : 0;

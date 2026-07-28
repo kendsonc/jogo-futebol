@@ -19,17 +19,47 @@ function agendarConsequencia(resolverId, semanasDelay, contexto, tituloAgenda){
   });
 }
 
+// Sementes narrativas de longuíssimo prazo: mesma ideia de agendarConsequencia,
+// mas em unidade de TEMPORADA em vez de semana — pra decisões que só pagam ou
+// cobram anos depois (ex: recusar ajudar alguém na base pode voltar como
+// diretor de clube rival negando proposta por rancor). Fila separada
+// (GAME.consequenciasDeCarreiraPendentes) checada 1x por temporada em
+// puxarProximaConsequenciaPronta, junto da fila semanal normal.
+function agendarConsequenciaDeCarreira(resolverId, temporadasDelay, contexto, tituloAgenda){
+  if(!GAME.consequenciasDeCarreiraPendentes) GAME.consequenciasDeCarreiraPendentes = [];
+  GAME.consequenciasDeCarreiraPendentes.push({
+    id: resolverId + '_' + GAME.numeroTemporada + '_' + rand(1, 99999),
+    resolverId,
+    contexto: contexto || {},
+    temporadaAlvo: GAME.numeroTemporada + temporadasDelay,
+    criadaTemporada: GAME.numeroTemporada,
+    tituloAgenda: tituloAgenda || null
+  });
+}
+
 // Puxa (e remove) a primeira consequência cujo prazo já chegou, gerando o
 // evento correspondente. Se o resolvedor não existir mais ou devolver null
 // (ex: contexto obsoleto), a semana simplesmente segue o roteiro normal.
+// Prioriza a fila semanal normal; a fila de longuíssimo prazo (por temporada)
+// só é checada quando a semanal está vazia/sem nada pronto ainda.
 function puxarProximaConsequenciaPronta(){
-  if(!GAME.consequenciasPendentes || !GAME.consequenciasPendentes.length) return null;
-  const idx = GAME.consequenciasPendentes.findIndex(c => c.semanaAlvo <= GAME.status.semanaGlobal);
-  if(idx < 0) return null;
-  const item = GAME.consequenciasPendentes.splice(idx, 1)[0];
-  const gerador = RESOLVEDORES_CONSEQUENCIA[item.resolverId];
-  if(!gerador) return null;
-  return gerador(item.contexto) || null;
+  if(GAME.consequenciasPendentes && GAME.consequenciasPendentes.length){
+    const idx = GAME.consequenciasPendentes.findIndex(c => c.semanaAlvo <= GAME.status.semanaGlobal);
+    if(idx >= 0){
+      const item = GAME.consequenciasPendentes.splice(idx, 1)[0];
+      const gerador = RESOLVEDORES_CONSEQUENCIA[item.resolverId];
+      if(gerador){ const evt = gerador(item.contexto); if(evt) return evt; }
+    }
+  }
+  if(GAME.consequenciasDeCarreiraPendentes && GAME.consequenciasDeCarreiraPendentes.length){
+    const idx = GAME.consequenciasDeCarreiraPendentes.findIndex(c => c.temporadaAlvo <= GAME.numeroTemporada);
+    if(idx >= 0){
+      const item = GAME.consequenciasDeCarreiraPendentes.splice(idx, 1)[0];
+      const gerador = RESOLVEDORES_CONSEQUENCIA[item.resolverId];
+      if(gerador){ const evt = gerador(item.contexto); if(evt) return evt; }
+    }
+  }
+  return null;
 }
 
 const RESOLVEDORES_CONSEQUENCIA = {
@@ -135,6 +165,18 @@ const RESOLVEDORES_CONSEQUENCIA = {
     escolhas: [
       { label: 'Reafirmar comprometimento com o clube', efeitos: { relacaoDiretoria: 8, tracos: { humilde: 1 } } },
       { label: 'Manter a postura e dizer que foi sincero', efeitos: { relacaoDiretoria: -5, popularidade: 2, tracos: { confiante: 1 } } }
+    ]
+  }),
+
+  // Gatilho: evento 'juventude_ajudar_companheiro_base' (eventos.js), escolha
+  // "Focar só na sua própria evolução" — semente de longuíssimo prazo (E3.5),
+  // volta anos depois via agendarConsequenciaDeCarreira (unidade: temporada).
+  juventude_rancor_retorno: () => ({
+    id:'juventude_rancor_retorno', categoria:'diretoria',
+    texto:(g)=>`Numa negociação de transferência, você reconhece o rosto do dirigente do outro lado da mesa: aquele garoto inseguro da base, anos atrás, que você preferiu ignorar pra focar só em você mesmo. Ele não esqueceu.`,
+    escolhas:[
+      { label:'Reconhecer o erro do passado e pedir desculpas', efeitos:{relacaoDiretoria:-2, saudeMental:4, tracos:{humilde:1}} },
+      { label:'Manter a postura profissional, sem se abalar', efeitos:{relacaoDiretoria:-6, tracos:{confiante:1}} }
     ]
   }),
 
