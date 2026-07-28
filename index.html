@@ -8,6 +8,15 @@
 <link rel="stylesheet" href="css/style.css">
 <!-- Google AdSense — Publisher ID real da conta (ver js/core/ads.js). -->
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1959719427487568" crossorigin="anonymous"></script>
+<!-- Google Analytics (GA4) — TODO: trocar G-XXXXXXXXXX pelo Measurement ID real
+     depois de criar a propriedade em analytics.google.com (ver instruções). -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){ dataLayer.push(arguments); }
+  gtag('js', new Date());
+  gtag('config', 'G-XXXXXXXXXX');
+</script>
 </head>
 <body>
 <div id="app"></div>
@@ -23,61 +32,61 @@
 <div id="ad-left" class="ad-side"></div>
 <div id="ad-right" class="ad-side"></div>
 
-<script src="js/core/utils.js"></script>
-<script src="js/core/ads.js"></script>
-<script src="js/core/pixelart.js"></script>
-<script src="js/core/escudos.js"></script>
-<script src="js/core/rostos.js"></script>
-<script src="js/data/dados-base.js"></script>
-<script src="js/data/escudos-clubes.js"></script>
-<script src="js/data/lances.js"></script>
-<script src="js/data/dialogos-tecnico.js"></script>
-<script src="js/data/eventos.js"></script>
-<script src="js/data/loja-roupas.js"></script>
-<script src="js/data/loja-tenis.js"></script>
-<script src="js/data/loja-relogios.js"></script>
-<script src="js/data/carros.js"></script>
-<script src="js/data/imoveis.js"></script>
+<script defer src="js/core/utils.js"></script>
+<script defer src="js/core/ads.js"></script>
+<script defer src="js/core/pixelart.js"></script>
+<script defer src="js/core/escudos.js"></script>
+<script defer src="js/core/rostos.js"></script>
+<script defer src="js/data/dados-base.js"></script>
+<script defer src="js/data/escudos-clubes.js"></script>
+<script defer src="js/data/lances.js"></script>
+<script defer src="js/data/dialogos-tecnico.js"></script>
+<script defer src="js/data/eventos.js"></script>
+<script defer src="js/data/loja-roupas.js"></script>
+<script defer src="js/data/loja-tenis.js"></script>
+<script defer src="js/data/loja-relogios.js"></script>
+<script defer src="js/data/carros.js"></script>
+<script defer src="js/data/imoveis.js"></script>
 
-<script src="js/core/audio.js"></script>
-<script src="js/core/state.js"></script>
-<script src="js/core/efeitos.js"></script>
-<script src="js/core/router.js"></script>
+<script defer src="js/core/audio.js"></script>
+<script defer src="js/core/state.js"></script>
+<script defer src="js/core/efeitos.js"></script>
+<script defer src="js/core/router.js"></script>
 
-<script src="js/screens/inicio.js"></script>
-<script src="js/screens/clubes.js"></script>
-<script src="js/screens/peneira.js"></script>
+<script defer src="js/screens/inicio.js"></script>
+<script defer src="js/screens/clubes.js"></script>
+<script defer src="js/screens/peneira.js"></script>
 
-<script src="js/sistemas/consequencias.js"></script>
-<script src="js/sistemas/rival.js"></script>
-<script src="js/sistemas/exCompanheiros.js"></script>
-<script src="js/sistemas/mentoria.js"></script>
-<script src="js/sistemas/torcida.js"></script>
-<script src="js/sistemas/clubeVivo.js"></script>
-<script src="js/sistemas/familia.js"></script>
-<script src="js/sistemas/vidapessoal.js"></script>
-<script src="js/sistemas/loja.js"></script>
-<script src="js/sistemas/imoveis.js"></script>
-<script src="js/sistemas/banco.js"></script>
-<script src="js/sistemas/liga.js"></script>
-<script src="js/sistemas/copas.js"></script>
-<script src="js/sistemas/eventos.js"></script>
-<script src="js/sistemas/lesao.js"></script>
-<script src="js/sistemas/treino.js"></script>
-<script src="js/sistemas/partida.js"></script>
-<script src="js/sistemas/imprensa.js"></script>
-<script src="js/sistemas/selecao.js"></script>
+<script defer src="js/sistemas/consequencias.js"></script>
+<script defer src="js/sistemas/rival.js"></script>
+<script defer src="js/sistemas/exCompanheiros.js"></script>
+<script defer src="js/sistemas/mentoria.js"></script>
+<script defer src="js/sistemas/torcida.js"></script>
+<script defer src="js/sistemas/clubeVivo.js"></script>
+<script defer src="js/sistemas/familia.js"></script>
+<script defer src="js/sistemas/vidapessoal.js"></script>
+<script defer src="js/sistemas/loja.js"></script>
+<script defer src="js/sistemas/imoveis.js"></script>
+<script defer src="js/sistemas/banco.js"></script>
+<script defer src="js/sistemas/liga.js"></script>
+<script defer src="js/sistemas/copas.js"></script>
+<script defer src="js/sistemas/eventos.js"></script>
+<script defer src="js/sistemas/lesao.js"></script>
+<script defer src="js/sistemas/treino.js"></script>
+<script defer src="js/sistemas/partida.js"></script>
+<script defer src="js/sistemas/imprensa.js"></script>
+<script defer src="js/sistemas/selecao.js"></script>
 
-<script src="js/ui/dialogo.js"></script>
-<script src="js/ui/toast.js"></script>
-<script src="js/ui/statusbar.js"></script>
-<script src="js/ui/agenda.js"></script>
-<script src="js/ui/painel.js"></script>
-<script src="js/ui/central.js"></script>
+<script defer src="js/ui/dialogo.js"></script>
+<script defer src="js/ui/toast.js"></script>
+<script defer src="js/ui/statusbar.js"></script>
+<script defer src="js/ui/agenda.js"></script>
+<script defer src="js/ui/painel.js"></script>
+<script defer src="js/ui/central.js"></script>
 
-<script src="js/temporada/fim-temporada.js"></script>
-<script src="js/temporada/entressafra.js"></script>
+<script defer src="js/temporada/fim-temporada.js"></script>
+<script defer src="js/temporada/entressafra.js"></script>
 
-<script src="js/main.js"></script>
+<script defer src="js/main.js"></script>
 </body>
 </html>

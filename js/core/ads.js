@@ -17,17 +17,15 @@
      dos dois lados em tela grande, espaço perfeito pra um anúncio vertical
      sem nunca encostar no jogo.
 
-   AD_SLOT_ID_* ainda estão com valor de exemplo: falta criar os blocos de
-   anúncios em Google AdSense > Anúncios > Por bloco de anúncios (depois que
-   o site for aprovado) e colar os IDs reais aqui — sem isso, os blocos ficam
-   vazios (nenhum erro, só não aparece nada). Pode usar o MESMO slot nos três
-   pra começar (funciona), ou criar um bloco por posição pra ter relatório
-   separado de quanto cada lugar rende.
+   AD_SLOT_ID ainda está com valor de exemplo: falta criar 1 bloco de anúncios
+   em Google AdSense > Anúncios > Por bloco de anúncios (Display) e colar o ID
+   real aqui — sem isso, os blocos ficam vazios (nenhum erro, só não aparece
+   nada). Os três espaços (canto, lateral esquerda, lateral direita) reusam o
+   MESMO bloco — mais simples de configurar; dá pra separar em blocos
+   individuais depois, se quiser relatório de receita por posição.
    ========================================================================= */
 const AD_CLIENT_ID = 'ca-pub-1959719427487568'; // Publisher ID real da conta
-const AD_SLOT_ID_CORNER = '0000000000'; // TODO: ID do bloco de anúncios do canto/rodapé
-const AD_SLOT_ID_LEFT = '0000000000'; // TODO: ID do bloco de anúncios da lateral esquerda
-const AD_SLOT_ID_RIGHT = '0000000000'; // TODO: ID do bloco de anúncios da lateral direita
+const AD_SLOT_ID = '0000000000'; // TODO: ID do bloco de anúncios (Google AdSense > Anúncios > Por bloco de anúncios)
 
 // Google não permite ficar recarregando o mesmo espaço com frequência alta
 // demais (política de "refresh" de anúncio) — esse intervalo mínimo protege
@@ -81,10 +79,10 @@ function talvezAtualizarAnuncio(){
   if(Date.now() - _ultimoAnuncioEm < INTERVALO_MINIMO_ANUNCIO_MS) return;
   _ultimoAnuncioEm = Date.now();
 
-  exibirAnuncioNoSlot('ad-corner', AD_SLOT_ID_CORNER, 300, 80);
+  exibirAnuncioNoSlot('ad-corner', AD_SLOT_ID, 300, 80);
 
   const esquerda = document.getElementById('ad-left');
   const direita = document.getElementById('ad-right');
-  if(elementoRealmenteVisivel(esquerda)) exibirAnuncioNoSlot('ad-left', AD_SLOT_ID_LEFT, 160, 600);
-  if(elementoRealmenteVisivel(direita)) exibirAnuncioNoSlot('ad-right', AD_SLOT_ID_RIGHT, 160, 600);
+  if(elementoRealmenteVisivel(esquerda)) exibirAnuncioNoSlot('ad-left', AD_SLOT_ID, 160, 600);
+  if(elementoRealmenteVisivel(direita)) exibirAnuncioNoSlot('ad-right', AD_SLOT_ID, 160, 600);
 }
