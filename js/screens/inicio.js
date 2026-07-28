@@ -204,11 +204,11 @@ function renderCriacaoPersonagem(){
         <fieldset>
           <legend>Identidade</legend>
           <label>Nome completo</label>
-          <input type="text" id="f-nomeCompleto" required>
+          <input type="text" id="f-nomeCompleto" maxlength="60" required>
           <label>Como quer ser chamado (apelido)</label>
-          <input type="text" id="f-apelido" required>
+          <input type="text" id="f-apelido" maxlength="30" required>
           <div class="row">
-            <div class="col"><label>Cidade natal</label><input type="text" id="f-cidade" required></div>
+            <div class="col"><label>Cidade natal</label><input type="text" id="f-cidade" maxlength="40" required></div>
             <div class="col"><label>Estado (UF)</label><select id="f-uf">${ufOpts}</select></div>
           </div>
           <div class="row">
