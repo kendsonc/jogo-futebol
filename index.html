@@ -6,8 +6,13 @@
 <title>Modo Carreira: A Jornada</title>
 <meta name="description" content="Modo Carreira: A Jornada é um simulador de carreira de jogador de futebol no navegador. Comece aos 16 anos numa peneira, evolua atributos, negocie contratos, dispute Brasileirão, Libertadores, Champions League e Copa do Mundo até a aposentadoria.">
 <link rel="stylesheet" href="css/style.css">
-<!-- Google AdSense — Publisher ID real da conta (ver js/core/ads.js). -->
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1959719427487568" crossorigin="anonymous"></script>
+<!-- Google AdSense — o script adsbygoogle.js NÃO carrega mais aqui. Ele só é
+     inserido dinamicamente por js/core/ads.js quando a tela já tem conteúdo
+     do jogo (GAME.clube definido) — ver telaAtualPermiteAnuncio() em ads.js.
+     Isso evita que o Auto Ads do Google rode sozinho nas telas de menu/criação
+     de personagem, que é exatamente o motivo da rejeição registrada em
+     ads.google.com > Sites > kendsonc.github.io ("Anúncios veiculados pelo
+     Google em telas sem conteúdo do editor"). -->
 <!-- Google Analytics (GA4) — Measurement ID real da propriedade "Modo Carreira: A Jornada". -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-DK6LTBPD3M"></script>
 <script>

@@ -27,6 +27,33 @@
 const AD_CLIENT_ID = 'ca-pub-1959719427487568'; // Publisher ID real da conta
 const AD_SLOT_ID = '6765830262'; // Bloco "Modo Carreira - Anúncio Geral" (Google AdSense > Anúncios > Por bloco de anúncios)
 
+// O <script src=".../adsbygoogle.js"> NÃO fica mais fixo no <head> do
+// index.html — ele é criado aqui, na primeira vez que a tela permite
+// anúncio (ver telaAtualPermiteAnuncio). Motivo: enquanto o script vinha
+// fixo no HTML, ele carregava mesmo nas telas de menu/criação de personagem
+// (sem conteúdo do jogo) — e o Auto Ads do Google usa a simples presença
+// desse script pra decidir, por conta própria, inserir anúncio em QUALQUER
+// lugar da página, inclusive nessas telas sem conteúdo. Foi exatamente isso
+// que gerou a rejeição "Anúncios veiculados pelo Google em telas sem
+// conteúdo do editor" em ads.google.com > Sites, mesmo com os 3 blocos
+// manuais abaixo já corretamente bloqueados nessas telas. Só carregando o
+// script depois que GAME.clube existe garante que nem o Auto Ads nem os
+// blocos manuais tenham chance de agir fora da tela de jogo de verdade.
+let _scriptAdsbygooglePromise = null;
+function garantirScriptAdsbygoogleCarregado(){
+  if(_scriptAdsbygooglePromise) return _scriptAdsbygooglePromise;
+  _scriptAdsbygooglePromise = new Promise((resolve) => {
+    const script = document.createElement('script');
+    script.async = true;
+    script.crossOrigin = 'anonymous';
+    script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${AD_CLIENT_ID}`;
+    script.onload = () => resolve();
+    script.onerror = () => resolve(); // bloqueador de anúncio ou offline — segue sem travar o jogo
+    document.head.appendChild(script);
+  });
+  return _scriptAdsbygooglePromise;
+}
+
 // Google não permite ficar recarregando o mesmo espaço com frequência alta
 // demais (política de "refresh" de anúncio) — esse intervalo mínimo protege
 // contra isso mesmo se o jogador trocar de tela rápido demais em sequência
@@ -79,10 +106,16 @@ function talvezAtualizarAnuncio(){
   if(Date.now() - _ultimoAnuncioEm < INTERVALO_MINIMO_ANUNCIO_MS) return;
   _ultimoAnuncioEm = Date.now();
 
-  exibirAnuncioNoSlot('ad-corner', AD_SLOT_ID, 300, 80);
+  garantirScriptAdsbygoogleCarregado().then(() => {
+    // A tela pode ter mudado de novo enquanto o script carregava (primeira
+    // vez, é assíncrono) — reconfere antes de inserir qualquer anúncio.
+    if(!telaAtualPermiteAnuncio()) return;
 
-  const esquerda = document.getElementById('ad-left');
-  const direita = document.getElementById('ad-right');
-  if(elementoRealmenteVisivel(esquerda)) exibirAnuncioNoSlot('ad-left', AD_SLOT_ID, 160, 600);
-  if(elementoRealmenteVisivel(direita)) exibirAnuncioNoSlot('ad-right', AD_SLOT_ID, 160, 600);
+    exibirAnuncioNoSlot('ad-corner', AD_SLOT_ID, 300, 80);
+
+    const esquerda = document.getElementById('ad-left');
+    const direita = document.getElementById('ad-right');
+    if(elementoRealmenteVisivel(esquerda)) exibirAnuncioNoSlot('ad-left', AD_SLOT_ID, 160, 600);
+    if(elementoRealmenteVisivel(direita)) exibirAnuncioNoSlot('ad-right', AD_SLOT_ID, 160, 600);
+  });
 }
